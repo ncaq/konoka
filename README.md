@@ -1,5 +1,7 @@
 # Konoka
 
+LLM向けのプロンプトなどを管理するためのリポジトリです。
+
 ## Setup
 
 ```console
