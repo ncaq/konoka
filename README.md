@@ -2,19 +2,29 @@
 
 LLM向けのプロンプトなどを管理するためのリポジトリです。
 
-## Setup
+Claude Codeプラグインマーケットプレイスとして配布しています。
+
+## Install
+
+```console
+/plugin marketplace add ncaq/konoka
+```
+
+## Development
+
+### Setup
 
 ```console
 direnv allow
 ```
 
-## Format
+### Format
 
 ```console
 nix fmt
 ```
 
-## Check
+### Check
 
 ```console
 nix-fast-build --option eval-cache false --no-link --skip-cached

@@ -23,23 +23,24 @@ jobs:
           ref: "${{ github.event.workflow_run.head_sha }}"
           persist-credentials: false
           fetch-depth: 0 # タグの存在確認と作成に全履歴が必要
-      - name: Check package.json changed # workflow_runでpathsフィルタは使えないので、ジョブ内でのチェックが必要になります。
+      - name: Check marketplace.json changed # workflow_runでpathsフィルタは使えないので、ジョブ内でのチェックが必要になります。
         id: changed
         run: |
           set -euo pipefail
+          MANIFEST=".claude-plugin/marketplace.json"
           # 最新のリリースタグを取得(なければ全履歴を対象)
           LAST_TAG=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
-          if git diff --name-only "$LAST_TAG" HEAD -- package.json | grep -q package.json; then
-            echo "package_json=true" >> "$GITHUB_OUTPUT"
+          if git diff --name-only "$LAST_TAG" HEAD -- "$MANIFEST" | grep -q .; then
+            echo "manifest=true" >> "$GITHUB_OUTPUT"
           else
-            echo "package_json=false" >> "$GITHUB_OUTPUT"
+            echo "manifest=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Extract version
-        if: steps.changed.outputs.package_json == 'true'
+        if: steps.changed.outputs.manifest == 'true'
         id: version
         run: |
           set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
           if [ "$VERSION" = "0.0.0" ]; then
             echo "Initial version, skipping release"
           elif ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
