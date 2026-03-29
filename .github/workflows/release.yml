@@ -27,7 +27,9 @@ jobs:
         id: changed
         run: |
           set -euo pipefail
-          if git diff --name-only HEAD~1 HEAD -- package.json | grep -q package.json; then
+          # 最新のリリースタグを取得(なければ全履歴を対象)
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          if git diff --name-only "$LAST_TAG" HEAD -- package.json | grep -q package.json; then
             echo "package_json=true" >> "$GITHUB_OUTPUT"
           else
             echo "package_json=false" >> "$GITHUB_OUTPUT"
