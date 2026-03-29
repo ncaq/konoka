@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": ["Bash(npm exec:*)", "Bash(npm run fix:*)", "Bash(npm run lint:*)"],
+    "deny": ["Bash(npx:*)", "Bash(pnpm:*)", "Bash(pnpx:*)", "Bash(yarn:*)"]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Stop",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd $CLAUDE_PROJECT_DIR && nix fmt"
+          }
+        ]
+      }
+    ]
+  }
+}
