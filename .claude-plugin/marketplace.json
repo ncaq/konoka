@@ -1,0 +1,13 @@
+{
+  "name": "konoka",
+  "owner": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by ncaq",
+    "version": "0.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": []
+}
