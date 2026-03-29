@@ -50,14 +50,11 @@
           tsSrc = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
-              ./src
-              ./test
               ./.editorconfig
               ./.gitignore
               ./eslint.config.ts
               ./package.json
               ./tsconfig.json
-              ./vitest.config.ts
             ];
           };
 
@@ -105,7 +102,6 @@
             lint-eslint = mkNpmCheck "lint-eslint" "lint:eslint";
             lint-prettier = mkNpmCheck "lint-prettier" "lint:prettier";
             lint-tsc = mkNpmCheck "lint-tsc" "lint:tsc";
-            test = mkNpmCheck "test" "test";
           };
 
           packages = {

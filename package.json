@@ -4,16 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
     "fix": "run-p fix:*",
     "fix:eslint": "eslint --fix .",
     "fix:prettier": "prettier --write .",
     "lint": "run-p lint:*",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --check .",
-    "lint:tsc": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/compat": "^2",
