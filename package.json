@@ -1,0 +1,37 @@
+{
+  "name": "project-name",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "fix": "run-p fix:*",
+    "fix:eslint": "eslint --fix .",
+    "fix:prettier": "prettier --write .",
+    "lint": "run-p lint:*",
+    "lint:eslint": "eslint .",
+    "lint:prettier": "prettier --check .",
+    "lint:tsc": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2",
+    "@eslint/js": "^10",
+    "@types/node": "^24",
+    "eslint": "^10",
+    "eslint-config-prettier": "^10",
+    "eslint-import-resolver-typescript": "^4",
+    "eslint-plugin-import-x": "^4",
+    "eslint-plugin-n": "^17",
+    "jiti": "^2",
+    "npm-run-all2": "^8",
+    "prettier": "^3",
+    "typescript": "^5.9",
+    "typescript-eslint": "^8",
+    "vitest": "^4"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
