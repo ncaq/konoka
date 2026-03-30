@@ -24,6 +24,8 @@ Or in project `.claude/settings.json`.
 }
 ```
 
+Get `CLAUDE_CODE_OAUTH_TOKEN` by `claude --bare setup-token`.
+
 ## 使い方
 
 ### ローカルでの実行
