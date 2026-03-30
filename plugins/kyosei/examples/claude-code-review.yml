@@ -3,7 +3,8 @@ name: Claude Code Review
 on:
   pull_request:
     # デフォルトのイベントには`ready_for_review`と`reopened`が含まれますが、
-    # `synchronize`で既にレビューを受けているのに再度レビューを受けることが納得できないので、
+    # `synchronize`イベントによって既にレビューを受けているのに、
+    # 別のイベントで同じリビジョンに対して再度レビューが発生することが納得できないので、
     # `opened`と`synchronize`だけにしています。
     types: [opened, synchronize]
 
