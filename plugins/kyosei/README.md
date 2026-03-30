@@ -6,8 +6,22 @@ Code review for PRs or local changes. Covers code quality, performance, test cov
 
 ## インストール
 
+Before install [ncaq/konoka](../../README.md) marketplace.
+
+In Claude Code.
+
+```text
+/plugin install kyosei@ncaq-konoka
 ```
-/plugin marketplace add ncaq/konoka
+
+Or In project `.claude/settings.json`.
+
+```json
+{
+  "enabledPlugins": {
+    "kyosei@konoka": true
+  }
+}
 ```
 
 ## 使い方
