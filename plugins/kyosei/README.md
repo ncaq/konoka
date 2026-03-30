@@ -6,7 +6,7 @@ Code review for PRs or local changes. Covers code quality, performance, test cov
 
 ## インストール
 
-Before install [ncaq/konoka](../../README.md) marketplace.
+Before installing this plugin, install the [ncaq/konoka](../../README.md) marketplace.
 
 In Claude Code.
 
