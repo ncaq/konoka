@@ -12,7 +12,7 @@
   "plugins": [
     {
       "name": "kyosei",
-      "source": "kyosei"
+      "source": "./plugins/kyosei"
     }
   ]
 }
