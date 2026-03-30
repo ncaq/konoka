@@ -14,7 +14,7 @@ In Claude Code.
 /plugin install kyosei@konoka
 ```
 
-Or In project `.claude/settings.json`.
+Or in project `.claude/settings.json`.
 
 ```json
 {

@@ -12,7 +12,7 @@ In Claude Code.
 /plugin marketplace add ncaq/konoka
 ```
 
-Or In project `.claude/settings.json`.
+Or in project `.claude/settings.json`.
 
 ```json
 {
