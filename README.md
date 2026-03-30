@@ -6,8 +6,25 @@ Claude Codeプラグインマーケットプレイスとして配布していま
 
 ## Install
 
-```console
+In Claude Code.
+
+```text
 /plugin marketplace add ncaq/konoka
+```
+
+Or in project `.claude/settings.json`.
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "konoka": {
+      "source": {
+        "repo": "ncaq/konoka",
+        "source": "github"
+      }
+    }
+  }
+}
 ```
 
 ## Development
