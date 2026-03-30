@@ -1,6 +1,7 @@
 ---
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security.
+argument-hint: "[REPO:<owner/repo> PR_NUMBER:<number>]"
 allowed-tools:
   - Bash(gh pr checks:*)
   - Bash(gh pr diff:*)
@@ -24,13 +25,23 @@ model: inherit
 
 以下の順序でレビュー対象のコンテキストを判定します。
 
-## PRレビュー(CI経由)
+## PRレビュー(GitHub投稿モード)
 
-`$ARGUMENTS`に`REPO:`と`PR_NUMBER:`が含まれている場合、PRレビューとして実行します。
+`$ARGUMENTS`が以下の形式の場合、PRレビューとして実行します。
+結果はGitHub PRにインラインコメントとして投稿されます。
+
+```
+REPO:<owner/repo> PR_NUMBER:<number>
+```
+
+例: `REPO:ncaq/konoka PR_NUMBER:42`
+
+CI経由でもローカルからでも、この引数を渡せばPRレビューモードで実行されます。
 
 ## ローカルレビュー
 
 `$ARGUMENTS`がない場合、ローカルレビューとして実行します。
+結果はターミナルに直接出力されます。
 
 # ベースブランチの特定
 
@@ -42,7 +53,7 @@ model: inherit
 
 コンテキストに応じて差分を取得します。
 
-- PRレビュー(CI経由): `gh pr diff PR_NUMBER --repo REPO`
+- PRレビュー(GitHub投稿モード): `gh pr diff PR_NUMBER --repo REPO`
 - ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
 
 # コードレビューの実行
