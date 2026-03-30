@@ -53,7 +53,7 @@ CI経由でもローカルからでも、この引数を渡せばPRレビュー�
 
 コンテキストに応じて差分を取得します。
 
-- PRレビュー(CI経由): `gh pr diff PR_NUMBER --repo REPO`
+- PRレビュー(GitHub投稿モード): `gh pr diff PR_NUMBER --repo REPO`
 - ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
 
 # コードレビューの実行
