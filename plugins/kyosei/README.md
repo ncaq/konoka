@@ -24,8 +24,6 @@ Or in project `.claude/settings.json`.
 }
 ```
 
-Get `CLAUDE_CODE_OAUTH_TOKEN` by `claude --bare setup-token`.
-
 ## 使い方
 
 ### ローカルでの実行
@@ -49,6 +47,8 @@ PRがopenされるか更新されると自動でレビューが実行され、
 結果がPRにインラインコメントとして投稿されます。
 
 `CLAUDE_CODE_OAUTH_TOKEN`シークレットの設定が必要です。
+
+`claude --bare setup-token`で取得してください。
 
 ## サブエージェント
 
