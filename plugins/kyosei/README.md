@@ -11,7 +11,7 @@ Before install [ncaq/konoka](../../README.md) marketplace.
 In Claude Code.
 
 ```text
-/plugin install kyosei@ncaq-konoka
+/plugin install kyosei@konoka
 ```
 
 Or In project `.claude/settings.json`.
