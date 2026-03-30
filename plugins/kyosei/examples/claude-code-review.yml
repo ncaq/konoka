@@ -49,7 +49,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # 通常のClaude Codeがセットアップするレビュープラグインではなく、Kyoseiプラグインを利用するための指定です。
-          prompt: "/kyosei REPO: ${{ github.repository }} PR_NUMBER: ${{ github.event.pull_request.number }}"
+          prompt: "/kyosei REPO:${{ github.repository }} PR_NUMBER:${{ github.event.pull_request.number }}"
           # botだからといって人間のコミットと危険性は特に変わらないはずなので許可します。
           allowed_bots: "*"
           # その時最適なモデルを切り替えて使用してください。
