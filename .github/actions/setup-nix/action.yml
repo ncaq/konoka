@@ -22,7 +22,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31
+    - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31.9.0
       with:
         # セルフホストランナーでうっかり外部からの悪意あるPRを実行許可してしまい、
         # flake.nixの設定を受け入れると好きなキャッシュを入れられたりしてセキュリティリスクがあるため、
