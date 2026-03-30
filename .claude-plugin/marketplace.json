@@ -9,5 +9,10 @@
     "version": "0.0.0",
     "pluginRoot": "./plugins"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "kyosei",
+      "source": "kyosei"
+    }
+  ]
 }
