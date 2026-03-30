@@ -28,25 +28,21 @@ model: inherit
 
 `$ARGUMENTS`に`REPO:`と`PR_NUMBER:`が含まれている場合、PRレビューとして実行します。
 
-## PRレビュー(ローカル)
-
-`gh pr view --json baseRefName --jq .baseRefName`が成功した場合、現在のブランチに紐づくPRが存在します。PRレビューとして実行します。
-
 ## ローカルレビュー
 
-上記のいずれにも該当しない場合、ベースブランチとの差分をレビューします。
+`$ARGUMENTS`がない場合、ローカルレビューとして実行します。
 
 # ベースブランチの特定
 
-- PRが存在する場合: `gh pr view --json baseRefName --jq .baseRefName`でベースブランチを取得
-- PRが存在しない場合: `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`でデフォルトブランチを使用
+1. `gh pr view --json baseRefName --jq .baseRefName`でPRのベースブランチを取得
+2. PRが存在しない場合(コマンドがエラーになった場合)は、
+   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`でデフォルトブランチを使用
 
 # 差分の取得
 
 コンテキストに応じて差分を取得します。
 
 - PRレビュー(CI経由): `gh pr diff PR_NUMBER --repo REPO`
-- PRレビュー(ローカル): `git diff <base>...HEAD` と `git log <base>...HEAD`
 - ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
 
 # コードレビューの実行
@@ -56,7 +52,7 @@ model: inherit
 - code-quality-reviewer
 - documentation-accuracy-reviewer
 - performance-reviewer
-- pr-conversation-collector(PRが存在する場合のみ)
+- pr-conversation-collector(PRレビューの場合のみ)
 - security-code-reviewer
 - test-coverage-reviewer
 
