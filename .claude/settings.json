@@ -11,7 +11,7 @@
     "kyosei@konoka": true
   },
   "permissions": {
-    "allow": ["Bash(npm exec --no:*)", "Bash(npm run fix:*)", "Bash(npm run lint:*)"],
+    "allow": ["Bash(agnix:*)", "Bash(npm exec --no:*)", "Bash(npm run fix:*)", "Bash(npm run lint:*)"],
     "deny": ["Bash(npx:*)", "Bash(pnpm:*)", "Bash(pnpx:*)", "Bash(yarn:*)"]
   },
   "hooks": {
