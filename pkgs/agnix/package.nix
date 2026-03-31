@@ -3,14 +3,16 @@
   rustPlatform,
   fetchCrate,
 }:
-
+let
+  version = "0.17.0";
+in
 rustPlatform.buildRustPackage {
   pname = "agnix";
-  version = "0.17.0";
+  inherit version;
 
   src = fetchCrate {
     pname = "agnix-cli";
-    version = "0.17.0";
+    inherit version;
     hash = "sha256-8aVeSGG1/fs2SFlt6PrFVwJSmmVD4x5w2Rv58QyBWVk=";
   };
 
