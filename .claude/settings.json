@@ -21,7 +21,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd $CLAUDE_PROJECT_DIR && nix fmt"
+            "command": "cd $CLAUDE_PROJECT_DIR && nix fmt",
+            "timeout": 120
           }
         ]
       }
