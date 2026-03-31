@@ -73,6 +73,20 @@
               '';
 
           agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
+
+          agnixSrc = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./.claude
+              ./.claude-plugin
+              ./.github
+              ./plugins
+
+              ./.agnix.toml
+              ./AGENTS.md
+              ./CLAUDE.md
+            ];
+          };
         in
         {
           treefmt.config = {
@@ -101,6 +115,16 @@
           };
 
           checks = {
+            lint-agnix =
+              pkgs.runCommand "lint-agnix"
+                {
+                  nativeBuildInputs = [ agnix ];
+                }
+                ''
+                  cp -r ${agnixSrc}/. .
+                  agnix --strict
+                  touch $out
+                '';
             lint-eslint = mkNpmCheck "lint-eslint" "lint:eslint";
             lint-prettier = mkNpmCheck "lint-prettier" "lint:prettier";
             lint-tsc = mkNpmCheck "lint-tsc" "lint:tsc";
