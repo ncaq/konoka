@@ -38,6 +38,10 @@ indent_size = unset
 # 設定やドキュメントのファイルはURLなど改行困難なものが多いため行幅制限を緩めます。
 max_line_length = 200
 
+# Agent Skills仕様のフロントマターは1行に書く必要があるため行幅制限を無効化。
+[plugins/**/SKILL.md]
+max_line_length = off
+
 [*.bat]
 charset = latin1
 end_of_line = crlf

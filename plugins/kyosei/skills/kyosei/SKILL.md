@@ -1,23 +1,8 @@
 ---
 name: kyosei
-description: Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security.
-argument-hint: "[REPO:<owner/repo> PR_NUMBER:<number>]"
-allowed-tools:
-  - Bash(gh pr checks:*)
-  - Bash(gh pr diff:*)
-  - Bash(gh pr list:*)
-  - Bash(gh pr status:*)
-  - Bash(gh pr view:*)
-  - Bash(gh repo view:*)
-  - Bash(git diff:*)
-  - Bash(git log:*)
-  - Bash(git rev-parse:*)
-  - Glob
-  - Grep
-  - Read
-  - Task
-  - mcp__github
-  - mcp__github_inline_comment__create_inline_comment
+description: Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
+argument-hint: "[REPO:owner/repo PR_NUMBER:N]"
+allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 model: inherit
 ---
 
@@ -31,7 +16,7 @@ model: inherit
 結果はGitHub PRにインラインコメントとして投稿されます。
 
 ```
-REPO:<owner/repo> PR_NUMBER:<number>
+REPO:owner/repo PR_NUMBER:N
 ```
 
 例: `REPO:ncaq/konoka PR_NUMBER:42`

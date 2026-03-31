@@ -1,3 +1,8 @@
+# Project
+
+konoka: AIコーディングアシスタント(Claude Code等)のプラグインマーケットプレイスリポジトリ。
+技術スタック: Nix(flake-parts, treefmt-nix), TypeScript, Node.js。
+
 # 出力設定
 
 ## 言語

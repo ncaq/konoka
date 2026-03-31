@@ -1,0 +1,27 @@
+target = "ClaudeCode"
+
+[rules]
+skills = true
+hooks = true
+agents = true
+memory = true
+plugins = true
+xml = true
+mcp = true
+imports = true
+cross_platform = true
+copilot = true
+prompt_engineering = true
+generic_instructions = true
+frontmatter_validation = true
+xml_balance = true
+import_references = true
+
+codex = false
+
+disabled_rules = [
+"CC-AG-009",                    # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
+"CC-SK-008",                    # 同上。スキルのallowed-toolsでも同じ理由。
+"VER-001",                      # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
+"XP-SK-001",                    # Claude Codeの固有機能が使いたいので互換性は犠牲にします。
+]
