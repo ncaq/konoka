@@ -71,6 +71,8 @@
                 npm run ${script}
                 touch $out
               '';
+
+          agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
         in
         {
           treefmt.config = {
@@ -129,6 +131,9 @@
 
               # Node.js
               nodejs
+
+              # AIコーディングアシスタント設定のリンター。
+              agnix
             ];
             packages = [ pkgs.importNpmLock.hooks.linkNodeModulesHook ];
             npmDeps = nodeModules;
