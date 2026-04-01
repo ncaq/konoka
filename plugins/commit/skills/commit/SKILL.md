@@ -2,6 +2,7 @@
 name: commit
 description: Generate a commit message from staged changes and open $EDITOR for review before committing. Use when the user wants to commit changes or create a git commit.
 allowed-tools: Bash($EDITOR:*), Bash(emacsclient:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(mkdir:*), Bash(mktemp:*), Glob, Grep, Read, Write
+model: inherit
 ---
 
 Gitリポジトリの変更をコミットします。
