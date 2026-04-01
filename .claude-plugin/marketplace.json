@@ -11,6 +11,10 @@
   },
   "plugins": [
     {
+      "name": "commit",
+      "source": "./plugins/commit"
+    },
+    {
       "name": "kyosei",
       "source": "./plugins/kyosei"
     }
