@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 50 # git logなどで多少過去の文脈を参考に出来るようにするため、ある程度の履歴を取ってきます。
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1.0.82
+        uses: anthropics/claude-code-action@bee87b3258c251f9279e5371b0cc3660f37f3f77 # v1.0.83
         # トークンが存在しない場合はスキップします。
         if: env.HAS_CLAUDE_TOKEN == 'true'
         # トークンが存在しない場合などで動かないことがありますが、
