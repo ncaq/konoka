@@ -144,18 +144,6 @@ $EDITOR <mktemp出力>/COMMIT_EDITMSG
 git commit --cleanup=scissors -F <mktemp出力>/COMMIT_EDITMSG
 ```
 
-## commit-msgフック失敗時の対応
-
-commit-msgフックが失敗した場合、
-プロジェクト固有のコミットメッセージ規約とグローバルなgitフックが衝突していることが原因であれば`--no-verify`で再試行してください。
-
-```bash
-git commit --no-verify --cleanup=scissors -F <mktemp出力>/COMMIT_EDITMSG
-```
-
-単純に書き方が間違っている場合は、
-コミットメッセージを生成することからやり直してください。
-
 ## コミット後の誤字チェック
 
 コミットが成功したら、
@@ -167,7 +155,6 @@ git log -1 --format=%B
 
 誤字があれば修正したメッセージを一時ファイルに書き出し、
 amendで上書きしてください。
-初回コミットで`--no-verify`を使った場合はamendでも同様に指定してください。
 
 ```bash
 git commit --amend --cleanup=scissors -F <mktemp出力>/COMMIT_EDITMSG
