@@ -127,7 +127,7 @@ mkdir -p /tmp/coding-agent-work/ && mktemp -d /tmp/coding-agent-work/commit.XXXX
 タイムアウトは最大の600秒(10分)に設定してください。
 
 ```bash
-$EDITOR <mktemp出力>/COMMIT_EDITMSG
+${EDITOR:-emacsclient --reuse-frame --alternate-editor=emacs} <mktemp出力>/COMMIT_EDITMSG
 ```
 
 エディタが正常終了したら次のステップに進んでください。
