@@ -19,8 +19,8 @@ Or in project `.claude/settings.json`.
   "extraKnownMarketplaces": {
     "konoka": {
       "source": {
-        "repo": "ncaq/konoka",
-        "source": "github"
+        "source": "github",
+        "repo": "ncaq/konoka"
       }
     }
   }
