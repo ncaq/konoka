@@ -30,8 +30,10 @@ pushしてCIの完了を待つことなく手元で即座にレビューを確�
 高速にイテレーションを回すことができます。
 
 またclaude-code-actionのエージェントに含まれている、
-プロジェクト特有のノイズを除外しています。
-そういったものは`CLAUDE.md`などで指定することを想定しています。
+プロジェクト固有のコーディング規約によるノイズを除外しています。
+例えばclaude-code-actionのcode-quality-reviewerエージェントには「Prefer `type` over `interface` as per project standards」というTypeScript固有の指示が含まれていますが、
+これはレビュー対象がTypeScriptを含まないプロジェクトであっても適用されてしまいます。
+そういったプロジェクト固有の規約は`CLAUDE.md`などで指定することを想定しています。
 
 ## インストール
 
