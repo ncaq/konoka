@@ -4,6 +4,35 @@ Code review for PRs or local changes. Covers code quality, performance, test cov
 
 専門サブエージェントを並列起動して包括的なコードレビューを行うClaude Codeプラグインです。
 
+## モチベーション
+
+Claude Codeの`install-github-app`でインストールされるClaude Code Reviewのワークフローは、
+同じPRに対してpush後の再レビューを行いません。
+初回のレビュー以降、コードを修正してpushしても新たなレビューが実行されないため、
+指摘事項への対応が正しく行われたかを自動で確認できないという致命的な問題があります。
+
+kyoseiは、
+[claude-code-action](https://github.com/anthropics/claude-code-action)
+リポジトリが採用しているレビューパターンをベースにこの問題を解決しています。
+
+ただしclaude-code-actionを直接使う場合にも以下の問題があるので、
+kyoseiではさらに改善を加えています。
+
+- 同じPRにpushを繰り返すと、既に指摘済みの同じコメントが何度も投稿される
+- 「意図的です」「仕様です」と返答済みの指摘に対しても、再度同じコメントが投稿される
+
+kyoseiはPRの既存会話(コメント、インラインコメント、レビューコメント)を事前に収集し、
+既に指摘済みの内容やresolvedされたコメント、意図的であると返答済みの指摘を除外することで、
+本当に必要な新しいフィードバックだけを提供します。
+
+さらにkyoseiはCIだけでなくローカルでも実行できるため、
+pushしてCIの完了を待つことなく手元で即座にレビューを確認でき、
+高速にイテレーションを回すことができます。
+
+またclaude-code-actionのエージェントに含まれている、
+プロジェクト特有のノイズを除外しています。
+そういったものは`CLAUDE.md`などで指定することを想定しています。
+
 ## インストール
 
 Before installing this plugin, first add the [ncaq/konoka](../../README.md) marketplace to Claude Code.
