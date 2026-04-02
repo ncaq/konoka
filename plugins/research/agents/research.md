@@ -19,6 +19,7 @@ tools:
   - mcp__backlog__get_pull_requests
   - mcp__backlog__get_wiki
   - mcp__backlog__get_wiki_pages
+  - mcp__cloudflare
   - mcp__deepwiki
   - mcp__github__get_file_contents
   - mcp__github__issue_read
@@ -42,6 +43,7 @@ tools:
   - 一般的なWeb検索(WebSearch)
   - 任意のURL取得(WebFetch)
 - ドキュメント
+  - [Cloudflare Docs](https://developers.cloudflare.com/)(MCP)
   - [MDN](https://developer.mozilla.org/)(MCP)
   - [Microsoft Learn](https://learn.microsoft.com/)(MCP)
 - リポジトリ
