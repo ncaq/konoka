@@ -56,7 +56,7 @@ tools:
   - [home-manager](https://github.com/nix-community/home-manager)(MCP)
   - [flakes](https://wiki.nixos.org/wiki/Flakes/ja)(MCP)
 - Haskell
-  - [Hackage](https://hackage.haskell.org/)
+  - [Hackage](https://hackage.haskell.org/)(WebFetch)
 
 # 検索戦略
 
