@@ -1,6 +1,6 @@
 ---
 name: research
-model: haiku
+model: sonnet
 description: Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
 tools:
   - Glob
