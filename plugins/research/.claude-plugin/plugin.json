@@ -1,0 +1,14 @@
+{
+  "name": "research",
+  "version": "0.1.0",
+  "description": "Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/research",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["research", "search", "documentation"]
+}

@@ -17,6 +17,10 @@
     {
       "name": "kyosei",
       "source": "./plugins/kyosei"
+    },
+    {
+      "name": "research",
+      "source": "./plugins/research"
     }
   ]
 }
