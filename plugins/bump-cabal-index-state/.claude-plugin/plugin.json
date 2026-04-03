@@ -1,0 +1,14 @@
+{
+  "name": "bump-cabal-index-state",
+  "version": "0.1.0",
+  "description": "Update Cabal project index-state to the latest timestamp. Runs cabal update, edits index-state in project files, verifies the build, and creates a commit with PR.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/bump-cabal-index-state",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["cabal", "haskell", "index-state", "dependencies"]
+}
