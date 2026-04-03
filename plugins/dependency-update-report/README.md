@@ -34,7 +34,7 @@ Claude Codeで`/dependency-update-report`スキルを呼び出してください
 プロジェクトのリンター実行時に、
 allowed-toolsに含まれないコマンドの場合は承認が必要になることがあります。
 
-初回利用時にGitHub MCPのOAuth認証がブラウザで求められることがあります。
+GitHub MCPの利用にはユーザー環境での認証設定が必要です。
 
 ## ライセンス
 
