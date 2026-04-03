@@ -124,4 +124,5 @@ CLAUDE.md -> .github/copilot-instructions.md
 
 ## リリース
 
-マーケットプレイスのリリースはmarketplace.jsonのバージョンを更新する個別のPRで行います。
+プラグインの追加・修正PRでは`marketplace.json`の`metadata.version`を変更しません。
+リリースは`metadata.version`のみを更新する専用のリリースPRで行います。

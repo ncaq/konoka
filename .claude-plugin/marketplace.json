@@ -6,13 +6,21 @@
   },
   "metadata": {
     "description": "Claude Code plugins by ncaq",
-    "version": "1.1.0",
+    "version": "2.0.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
     {
+      "name": "bump-cabal-index-state",
+      "source": "./plugins/bump-cabal-index-state"
+    },
+    {
       "name": "commit",
       "source": "./plugins/commit"
+    },
+    {
+      "name": "dependency-update-report",
+      "source": "./plugins/dependency-update-report"
     },
     {
       "name": "kyosei",
@@ -21,6 +29,10 @@
     {
       "name": "log-analyzer",
       "source": "./plugins/log-analyzer"
+    },
+    {
+      "name": "proofreading-ja",
+      "source": "./plugins/proofreading-ja"
     },
     {
       "name": "research",

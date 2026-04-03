@@ -37,15 +37,15 @@ pushしてCIの完了を待つことなく手元で即座にレビューを確�
 
 ## インストール
 
-Before installing this plugin, first add the [ncaq/konoka](../../README.md) marketplace to Claude Code.
+このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
-In Claude Code.
+Claude Codeで以下を実行します。
 
 ```text
 /plugin install kyosei@konoka
 ```
 
-Or in project `.claude/settings.json`.
+または`.claude/settings.json`に追加します。
 
 ```json
 {
