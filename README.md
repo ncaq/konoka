@@ -6,13 +6,13 @@ Claude Codeプラグインマーケットプレイスとして配布していま
 
 ## Install
 
-In Claude Code.
+Claude Codeで以下を実行します。
 
 ```text
 /plugin marketplace add ncaq/konoka
 ```
 
-Or in project `.claude/settings.json`.
+または`.claude/settings.json`に追加します。
 
 ```json
 {

@@ -6,15 +6,15 @@ Cross-source search for technical investigation, documentation lookup, library i
 
 ## インストール
 
-Before installing this plugin, first add the [ncaq/konoka](../../README.md) marketplace to Claude Code.
+このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
-In Claude Code.
+Claude Codeで以下を実行します。
 
 ```text
 /plugin install research@konoka
 ```
 
-Or in project `.claude/settings.json`.
+または`.claude/settings.json`に追加します。
 
 ```json
 {

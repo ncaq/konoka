@@ -9,15 +9,15 @@ haskell.nixの対応遅れにも対応しており、認識済みの最新値に
 
 ## インストール
 
-Before installing this plugin, first add the [ncaq/konoka](../../README.md) marketplace to Claude Code.
+このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
-In Claude Code.
+Claude Codeで以下を実行します。
 
 ```text
 /plugin install bump-cabal-index-state@konoka
 ```
 
-Or in project `.claude/settings.json`.
+または`.claude/settings.json`に追加します。
 
 ```json
 {
