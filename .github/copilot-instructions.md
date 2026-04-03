@@ -124,4 +124,4 @@ CLAUDE.md -> .github/copilot-instructions.md
 
 ## リリース
 
-マーケットプレイス自体のリリース(marketplace.jsonの更新等)は個別のPRで行います。
+マーケットプレイスのリリースはmarketplace.jsonのバージョンを更新する個別のPRで行います。
