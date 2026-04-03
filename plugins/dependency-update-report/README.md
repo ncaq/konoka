@@ -34,6 +34,9 @@ Claude Codeで`/dependency-update-report`スキルを呼び出してください
 プロジェクトのリンター実行時に、
 allowed-toolsに含まれないコマンドの場合は承認が必要になることがあります。
 
+GitHub MCPはユーザーの環境に設定されている場合のみ利用されます。
+設定されていない場合はWeb検索等で代替されます。
+
 ## ライセンス
 
 Apache-2.0
