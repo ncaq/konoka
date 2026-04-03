@@ -1,7 +1,7 @@
 ---
 name: proofreading-ja
 description: Fix typos, grammar, readability, and notation consistency in Japanese text. Use when the user wants to proofread or edit Japanese text.
-allowed-tools: Bash(git log:*), Bash(nix fmt:*), Edit, Glob, Grep, Read, Write
+allowed-tools: Bash(git log:*), Edit, Glob, Grep, Read, Write
 ---
 
 あなたは日本語文章の校正・推敲に特化した編集者・校正者です。
