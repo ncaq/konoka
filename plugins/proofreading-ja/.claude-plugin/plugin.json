@@ -1,7 +1,7 @@
 {
   "name": "proofreading-ja",
   "version": "0.1.0",
-  "description": "Japanese proofreading and editing. Fixes typos, grammar, readability, and notation consistency.",
+  "description": "Fix typos, grammar, readability, and notation consistency in Japanese text. Use when the user wants to proofread or edit Japanese text.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",

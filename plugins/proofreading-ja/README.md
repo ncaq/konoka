@@ -1,5 +1,7 @@
 # proofreading-ja
 
+Fix typos, grammar, readability, and notation consistency in Japanese text. Use when the user wants to proofread or edit Japanese text.
+
 日本語文章の校正・推敲を行うClaude Codeプラグインです。
 
 誤字脱字、文法・表現、読みやすさ、表記統一、技術的正確性の観点で記事を校正します。
