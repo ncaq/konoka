@@ -1,0 +1,14 @@
+{
+  "name": "dependency-update-report",
+  "version": "0.1.0",
+  "description": "Investigate dependency updates and report their changes and impact on the project.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/dependency-update-report",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["dependencies", "update", "report", "changelog"]
+}

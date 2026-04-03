@@ -1,0 +1,18 @@
+{
+  "deepwiki": {
+    "type": "http",
+    "url": "https://mcp.deepwiki.com/mcp"
+  },
+  "mdn": {
+    "type": "http",
+    "url": "https://mcp.mdn.mozilla.net/"
+  },
+  "microsoft-learn": {
+    "type": "http",
+    "url": "https://learn.microsoft.com/api/mcp"
+  },
+  "nixos": {
+    "type": "http",
+    "url": "https://mcp-nixos.ncaq.net/mcp"
+  }
+}
