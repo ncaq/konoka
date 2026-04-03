@@ -27,7 +27,7 @@ Or in project `.claude/settings.json`.
 
 ## セットアップ
 
-このプラグインはログファイルを`$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`に保存します。
+このプラグインはログファイルを`$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`配下にタイムスタンプ付きのサブディレクトリを作成して保存します。
 Claude Codeの自動承認ディレクトリに追加することを推奨します。
 
 ### 環境変数の確認
@@ -68,7 +68,7 @@ Claude Codeがlog-analyzerエージェントを自動的に利用可能になり
 ## 動作
 
 1. コマンドを実行して出力をキャプチャ、または既存のログファイルを読み込み
-2. `$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`にログファイルを保存
+2. `$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`配下のタイムスタンプ付きサブディレクトリにログファイルを保存
 3. 出力全体を解析
 4. 重大度別に整理したレポートを報告
 
