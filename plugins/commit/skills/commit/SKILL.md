@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and open $EDITOR for review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: Bash($EDITOR:*), Bash(emacsclient:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(mkdir:*), Bash(mktemp:*), Glob, Grep, Read, Write
+allowed-tools: Bash($EDITOR:*), Bash(emacsclient:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
 model: inherit
 ---
 
@@ -11,7 +11,7 @@ AIがコミットメッセージを生成し、
 
 # 作業ディレクトリ
 
-!`BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/commit" && mkdir -p "$BASE" && mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"`
+!`BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/commit" && install -d -m 700 "$BASE" && mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"`
 
 上記のパスを一時ファイルの保存先として使用する。
 
