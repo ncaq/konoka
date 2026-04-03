@@ -19,6 +19,10 @@
       "source": "./plugins/kyosei"
     },
     {
+      "name": "log-analyzer",
+      "source": "./plugins/log-analyzer"
+    },
+    {
       "name": "research",
       "source": "./plugins/research"
     }

@@ -1,6 +1,5 @@
 ---
 name: research
-model: sonnet
 description: Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
 tools:
   - Glob
@@ -33,6 +32,7 @@ tools:
   - mcp__mdn
   - mcp__microsoft-learn
   - mcp__nixos
+model: sonnet
 ---
 
 あらゆる情報ソースを横断検索して回答します。

@@ -119,3 +119,9 @@ CLAUDE.md -> .github/copilot-instructions.md
 ```
 
 これにより各種LLM向けのドキュメントを一元管理しています。
+
+# ワークフロー
+
+## リリース
+
+マーケットプレイスのリリースはmarketplace.jsonのバージョンを更新する個別のPRで行います。
