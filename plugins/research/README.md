@@ -31,26 +31,27 @@ Claude Codeがresearchエージェントを自動的に利用可能になりま�
 
 ## 情報ソース
 
-### プラグイン同梱(認証不要)
+### プラグイン同梱
 
-| ソース                                                | 内容                             |
-| ----------------------------------------------------- | -------------------------------- |
-| [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       |
-| [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
-| [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
-| [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
-| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
+| ソース                                                | 内容                             | 認証  |
+| ----------------------------------------------------- | -------------------------------- | ----- |
+| [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       | 不要  |
+| [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント | 不要  |
+| [GitHub](https://github.com/)                         | コード検索、Issue/PR確認         | OAuth |
+| [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              | 不要  |
+| [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            | 不要  |
+| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    | 不要  |
 
-これらはプラグインの`.mcp.json`でHTTPエンドポイントとして定義されており、追加設定なしで利用できます。
+これらはプラグインの`.mcp.json`でHTTPエンドポイントとして定義されています。
+GitHubは初回利用時にOAuth認証がブラウザで求められることがあります。
 
 ### ユーザー環境依存(要設定)
 
-| ソース                          | 内容                     |
-| ------------------------------- | ------------------------ |
-| [GitHub](https://github.com/)   | コード検索、Issue/PR確認 |
-| [Backlog](https://backlog.com/) | 課題、Wiki、PR           |
+| ソース                          | 内容           |
+| ------------------------------- | -------------- |
+| [Backlog](https://backlog.com/) | 課題、Wiki、PR |
 
-これらはユーザー環境にMCPサーバーが設定されている場合のみ利用されます。
+ユーザー環境にMCPサーバーが設定されている場合のみ利用されます。
 設定されていない場合は他のソース(Web検索等)で代替されます。
 
 ### 常時利用可能
