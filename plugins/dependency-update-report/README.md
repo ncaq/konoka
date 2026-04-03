@@ -34,7 +34,18 @@ Claude Codeで`/dependency-update-report`スキルを呼び出してください
 プロジェクトのリンター実行時に、
 allowed-toolsに含まれないコマンドの場合は承認が必要になることがあります。
 
-GitHub MCPの利用にはユーザー環境での認証設定が必要です。
+## MCPサーバー(要設定)
+
+ユーザー環境に設定されている場合、以下のMCPサーバーの利用を試みます。
+設定されていない場合はWeb検索等で代替されます。
+
+| ソース                                          | 用途                   |
+| ----------------------------------------------- | ---------------------- |
+| [deepwiki](https://deepwiki.com/)               | リポジトリドキュメント |
+| [GitHub](https://github.com/)                   | リリースノート、PR確認 |
+| [MDN](https://developer.mozilla.org/)           | Web技術リファレンス    |
+| [Microsoft Learn](https://learn.microsoft.com/) | Microsoftドキュメント  |
+| [NixOS](https://nixos.org/)                     | nixpkgs情報            |
 
 ## ライセンス
 
