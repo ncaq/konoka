@@ -1,7 +1,7 @@
 {
   "name": "bump-cabal-index-state",
   "version": "0.1.0",
-  "description": "Update Cabal project index-state to the latest timestamp. Runs cabal update, edits index-state in project files, verifies the build, commits, and optionally opens a GitHub PR creation page.",
+  "description": "Update Cabal index-state to latest. Edits project files, verifies build, commits, and optionally opens GitHub PR page.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",
