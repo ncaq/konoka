@@ -9,6 +9,12 @@ Gitリポジトリの変更をコミットします。
 AIがコミットメッセージを生成し、
 ユーザが`$EDITOR`で修正してからコミットします。
 
+# 作業ディレクトリ
+
+!`BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/commit" && mkdir -p "$BASE" && mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"`
+
+上記のパスを一時ファイルの保存先として使用する。
+
 # 手順
 
 ## リポジトリ状態の確認
@@ -94,18 +100,7 @@ GitHub向けのissueに関連付けるキーワードは`close`などの原形�
 
 ## 一時ファイルへの書き出し
 
-まず一時ディレクトリを作成します。
-`mktemp -d`でユニークなディレクトリを作り、
-その出力パスを以降のステップで使用してください。
-以降の`<mktemp出力>`は全てこのコマンドが標準出力に出力したディレクトリパスに置き換えてください。
-
-親ディレクトリが存在しない場合に備えて先に作成します。
-
-```bash
-mkdir -p /tmp/coding-agent-work/ && mktemp -d /tmp/coding-agent-work/commit.XXXXXX
-```
-
-生成したコミットメッセージをWriteツールで`<mktemp出力>/COMMIT_EDITMSG`に書き出してください。
+生成したコミットメッセージをWriteツールで`<作業ディレクトリ>/COMMIT_EDITMSG`に書き出してください。
 `git commit --verbose`と同様にエディタで差分を確認できるようにするため、
 コミットメッセージの後にシザーズライン(scissors line)と差分を付加します。
 
@@ -128,7 +123,7 @@ mkdir -p /tmp/coding-agent-work/ && mktemp -d /tmp/coding-agent-work/commit.XXXX
 タイムアウトは最大の600秒(10分)に設定してください。
 
 ```bash
-${EDITOR:-emacsclient --reuse-frame --alternate-editor=emacs} <mktemp出力>/COMMIT_EDITMSG
+${EDITOR:-emacsclient --reuse-frame --alternate-editor=emacs} <作業ディレクトリ>/COMMIT_EDITMSG
 ```
 
 エディタが正常終了したら次のステップに進んでください。
@@ -142,7 +137,7 @@ ${EDITOR:-emacsclient --reuse-frame --alternate-editor=emacs} <mktemp出力>/COM
 以下のコマンドでコミットを実行してください。
 
 ```bash
-git commit --cleanup=scissors -F <mktemp出力>/COMMIT_EDITMSG
+git commit --cleanup=scissors -F <作業ディレクトリ>/COMMIT_EDITMSG
 ```
 
 ## コミット後の誤字チェック
@@ -158,7 +153,7 @@ git log -1 --format=%B
 amendで上書きしてください。
 
 ```bash
-git commit --amend --cleanup=scissors -F <mktemp出力>/COMMIT_EDITMSG
+git commit --amend --cleanup=scissors -F <作業ディレクトリ>/COMMIT_EDITMSG
 ```
 
 # 完了報告
