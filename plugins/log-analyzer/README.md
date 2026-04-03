@@ -25,6 +25,41 @@ Or in project `.claude/settings.json`.
 }
 ```
 
+## セットアップ
+
+このプラグインはログファイルを`$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`に保存します。
+Claude Codeの自動承認ディレクトリに追加することを推奨します。
+
+### 環境変数の確認
+
+```bash
+echo $XDG_RUNTIME_DIR
+```
+
+典型的なデフォルト値:
+
+| ディストリビューション                     | パス                   |
+| ------------------------------------------ | ---------------------- |
+| systemd搭載Linux (NixOS, Ubuntu, Fedora等) | `/run/user/<uid>`      |
+| macOS                                      | 未設定(別途設定が必要) |
+
+### 自動承認ディレクトリの追加
+
+`~/.claude/settings.json`に以下を追加してください。
+`<uid>`は`id -u`の出力に置き換えてください。
+
+```json
+{
+  "permissions": {
+    "additionalDirectories": ["/run/user/<uid>/coding-agent-work/"]
+  }
+}
+```
+
+現時点ではClaude Codeの`additionalDirectories`は環境変数を展開しないため、絶対パスで指定する必要があります。
+
+`$XDG_RUNTIME_DIR`が未設定の環境では`/tmp`にフォールバックします。
+
 ## 使い方
 
 Claude Codeがlog-analyzerエージェントを自動的に利用可能になります。
@@ -33,7 +68,7 @@ Claude Codeがlog-analyzerエージェントを自動的に利用可能になり
 ## 動作
 
 1. コマンドを実行して出力をキャプチャ、または既存のログファイルを読み込み
-2. `/tmp/coding-agent-work/log-analyzer/`にログファイルを保存
+2. `$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`にログファイルを保存
 3. 出力全体を解析
 4. 重大度別に整理したレポートを報告
 

@@ -13,7 +13,7 @@ model: sonnet
 
 # 作業ディレクトリ
 
-!`mkdir -p /tmp/coding-agent-work/log-analyzer && mktemp -d /tmp/coding-agent-work/log-analyzer/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX`
+!`BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/log-analyzer" && mkdir -p "$BASE" && mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"`
 
 上記のパスをログ保存先として使用する。
 
