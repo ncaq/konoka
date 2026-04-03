@@ -1,0 +1,14 @@
+{
+  "name": "log-analyzer",
+  "version": "0.1.0",
+  "description": "Extract key information from verbose command output while keeping main conversation context lean.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/log-analyzer",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["log", "analyzer", "output"]
+}
