@@ -83,7 +83,7 @@ CIと同様にGitHub PRへインラインコメントとして投稿します。
 
 ### CI(GitHub Actions)での実行
 
-[.github/workflows/claude-code-review.yml](../../.github/workflows/claude-code-review.yml)
+[.github/workflows/kyosei.yml](../../.github/workflows/kyosei.yml)
 を参考に、
 リポジトリの`.github/workflows/`にワークフローを配置してください。
 PRがopenされるか更新されると自動でレビューが実行され、
