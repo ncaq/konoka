@@ -46,6 +46,41 @@ Claude Codeがresearchエージェントを自動的に利用可能になりま�
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
 | [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
 
+Backlogは公開HTTPエンドポイントが提供されていないため、MCPサーバーを自分でビルド・ホストする必要があります。
+
+`.mcp.json`の設定例(Backlog以外):
+
+```json
+{
+  "mcpServers": {
+    "cloudflare": {
+      "type": "http",
+      "url": "https://docs.mcp.cloudflare.com/mcp"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "mdn": {
+      "type": "http",
+      "url": "https://mcp.mdn.mozilla.net/"
+    },
+    "microsoft-learn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    },
+    "nixos": {
+      "type": "http",
+      "url": "https://mcp-nixos.ncaq.net/mcp"
+    }
+  }
+}
+```
+
 ### 常時利用可能
 
 | ソース           | 内容             |
