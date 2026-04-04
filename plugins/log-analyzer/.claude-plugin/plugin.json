@@ -1,6 +1,6 @@
 {
   "name": "log-analyzer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Extract key information from verbose command output while keeping main conversation context lean.",
   "author": {
     "name": "ncaq",

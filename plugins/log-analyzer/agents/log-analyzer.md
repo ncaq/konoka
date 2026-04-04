@@ -13,7 +13,7 @@ model: sonnet
 
 # 作業ディレクトリ
 
-!`BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/log-analyzer" && install -d -m 700 "$BASE" && mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/create-workdir"`
 
 上記のパスをログ保存先として使用する。
 
