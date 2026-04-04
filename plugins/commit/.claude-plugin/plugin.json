@@ -1,6 +1,6 @@
 {
   "name": "commit",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "AI-assisted git commit with editor review. Generates commit messages from staged changes and opens $EDITOR for user editing before committing.",
   "author": {
     "name": "ncaq",

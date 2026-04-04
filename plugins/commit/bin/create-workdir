@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/commit"
+install -d -m 700 "$BASE"
+mktemp -d "$BASE/$(date +%Y-%m-%dT%H-%M-%S)-XXXXXX"
