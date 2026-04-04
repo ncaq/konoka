@@ -52,29 +52,31 @@ Backlogは公開HTTPエンドポイントが提供されていないため、MCP
 
 ```json
 {
-  "cloudflare": {
-    "type": "http",
-    "url": "https://docs.mcp.cloudflare.com/mcp"
-  },
-  "deepwiki": {
-    "type": "http",
-    "url": "https://mcp.deepwiki.com/mcp"
-  },
-  "github": {
-    "type": "http",
-    "url": "https://api.githubcopilot.com/mcp/"
-  },
-  "mdn": {
-    "type": "http",
-    "url": "https://mcp.mdn.mozilla.net/"
-  },
-  "microsoft-learn": {
-    "type": "http",
-    "url": "https://learn.microsoft.com/api/mcp"
-  },
-  "nixos": {
-    "type": "http",
-    "url": "https://mcp-nixos.ncaq.net/mcp"
+  "mcpServers": {
+    "cloudflare": {
+      "type": "http",
+      "url": "https://docs.mcp.cloudflare.com/mcp"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "mdn": {
+      "type": "http",
+      "url": "https://mcp.mdn.mozilla.net/"
+    },
+    "microsoft-learn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    },
+    "nixos": {
+      "type": "http",
+      "url": "https://mcp-nixos.ncaq.net/mcp"
+    }
   }
 }
 ```

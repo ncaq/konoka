@@ -51,25 +51,27 @@ allowed-toolsに含まれないコマンドの場合は承認が必要になる�
 
 ```json
 {
-  "deepwiki": {
-    "type": "http",
-    "url": "https://mcp.deepwiki.com/mcp"
-  },
-  "github": {
-    "type": "http",
-    "url": "https://api.githubcopilot.com/mcp/"
-  },
-  "mdn": {
-    "type": "http",
-    "url": "https://mcp.mdn.mozilla.net/"
-  },
-  "microsoft-learn": {
-    "type": "http",
-    "url": "https://learn.microsoft.com/api/mcp"
-  },
-  "nixos": {
-    "type": "http",
-    "url": "https://mcp-nixos.ncaq.net/mcp"
+  "mcpServers": {
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "mdn": {
+      "type": "http",
+      "url": "https://mcp.mdn.mozilla.net/"
+    },
+    "microsoft-learn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    },
+    "nixos": {
+      "type": "http",
+      "url": "https://mcp-nixos.ncaq.net/mcp"
+    }
   }
 }
 ```
