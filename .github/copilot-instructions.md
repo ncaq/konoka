@@ -44,7 +44,7 @@ npmを使用します。
 
 ### nix fmt
 
-[treefmt-nix](https://github.com/numtide/treefmt-nix)が対応しているファイルは以下のコマンドでフォーマット出来ます。
+以下のコマンドでフォーマット出来ます。
 
 ```console
 nix fmt
