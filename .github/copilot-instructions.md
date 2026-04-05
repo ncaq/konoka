@@ -23,14 +23,6 @@ ASCIIに対応する全角形(Fullwidth Forms)は使用禁止。
 - 全角カンマ `，` → 半角 `,`
 - 全角数字 `０-９` → 半角 `0-9`
 
-# Nix言語
-
-## `writeShellApplication`
-
-デフォルトの安全性と分かりやすさの点で、
-基本的に`writeShellScript`などよりも、
-`writeShellApplication`を優先的に使用します。
-
 # TypeScript
 
 ## パッケージマネージャ
