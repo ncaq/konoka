@@ -14,8 +14,8 @@ fi
 # プロジェクトのルートディレクトリに移動します。
 cd "$CLAUDE_PROJECT_DIR"
 
-# flake.nixが存在しなければnix fmtができるNixプロジェクトではないと判断します。
-if [[ ! -f "flake.nix" ]]; then
+# flake.nixが読み込めなければnix fmtができるNixプロジェクトではないと判断します。
+if [[ ! -r "flake.nix" ]]; then
   exit 0
 fi
 
