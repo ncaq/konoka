@@ -1,0 +1,3 @@
+# Agent Skills仕様のフロントマターは1行に書く必要があるため行幅制限を無効化。
+[**/SKILL.md]
+max_line_length = off
