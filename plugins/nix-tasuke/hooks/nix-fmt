@@ -1,25 +1,31 @@
-#!/usr/bin/env nix
-#!nix shell nixpkgs#bash nixpkgs#git nixpkgs#findutils --command bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # nix fmtが実行可能なプロジェクトでのみフォーマットを実行します。
-# 条件を満たさない場合は即座に正常終了します。
 
-# CLAUDE_PROJECT_DIRが設定されていなければ異常終了します。
+# 必要なコマンドが存在するか検証します。
+# 基礎的なコマンドなので存在しないのは異常な環境です。
+for cmd in nix git xargs; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "Error: required command $cmd is not found" >&2
+    exit 1
+  fi
+done
+
+# CLAUDE_PROJECT_DIRはClaude Codeのhookで必ず設定されるはずの変数です。
 if [[ -z "${CLAUDE_PROJECT_DIR:-}" ]]; then
   echo "Error: CLAUDE_PROJECT_DIR is not set" >&2
   exit 1
 fi
 
-# プロジェクトのルートディレクトリに移動します。
 cd "$CLAUDE_PROJECT_DIR"
 
-# flake.nixが読み込めなければnix fmtができるNixプロジェクトではないと判断します。
+# Nixプロジェクトではなければフォーマットの対象外なので正常終了します。
 if [[ ! -r "flake.nix" ]]; then
   exit 0
 fi
 
-# gitリポジトリでなければflakeが動作しないため何もしません。
+# flakeはGitリポジトリでなければ動作しないので正常終了します。
 if ! git rev-parse --is-inside-work-tree &>/dev/null; then
   exit 0
 fi
