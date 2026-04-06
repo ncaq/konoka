@@ -5,7 +5,7 @@ set -euo pipefail
 
 # 必要なコマンドが存在するか検証します。
 # 基礎的なコマンドなので存在しないのは異常な環境です。
-for cmd in nix git xargs; do
+for cmd in nix git; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "Error: required command $cmd is not found" >&2
     exit 1
@@ -33,7 +33,7 @@ fi
 # nixはトラッキングしていないファイルを取り扱わないので、
 # 未追跡ファイルの存在だけをGitに登録します。
 # git add --allは削除もステージしてしまうため、未追跡ファイルのみを対象にします。
-git ls-files --others --exclude-standard -z | xargs -r -0 git add --intent-to-add --
+git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul
 
 # nix fmtを実行します。
 # 既にチェック済みのファイルはキャッシュされてチェックされないので、
