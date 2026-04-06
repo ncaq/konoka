@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# nix fmtが実行可能なプロジェクトでのみフォーマットを実行します。
+# 条件を満たさない場合は即座に正常終了します。
+
+# nixコマンドが利用できなければ何もしません。
+if ! command -v nix &>/dev/null; then
+  exit 0
+fi
+
+# flake.nixが存在しなければnix fmtができるNixプロジェクトではないと判断します。
+if [[ ! -f "$CLAUDE_PROJECT_DIR/flake.nix" ]]; then
+  exit 0
+fi
+
+# プロジェクトのルートディレクトリに移動します。
+cd "$CLAUDE_PROJECT_DIR"
+
+# nixはトラッキングしていないファイルを取り扱わないので、
+# 事前に差分はトラッキングしませんがファイルが存在することは全てトラッキングさせます。
+git add --all --intent-to-add
+
+# nix fmtを実行します。
+# フォーマットは自動適用され、
+# リンターのエラーがあればそのままClaude Codeに伝わります。
+nix fmt
