@@ -120,4 +120,3 @@ nix develop -L
 
 - `nix-shell -p pkg`: `nix shell nixpkgs#pkg`に置き換え
 - `nix-shell`(ビルド環境): `nix develop`に置き換え
-- `nix develop`はbashを起動する(ユーザのデフォルトシェルではない)
