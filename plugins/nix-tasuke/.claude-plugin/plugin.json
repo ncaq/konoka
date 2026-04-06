@@ -1,7 +1,7 @@
 {
   "name": "nix-tasuke",
   "version": "0.1.0",
-  "description": "Nix best practices, command patterns and etc guidance for AI coding assistants.",
+  "description": "Nix best practices, command patterns, and more guidance for AI coding assistants.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",

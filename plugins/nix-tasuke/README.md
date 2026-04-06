@@ -1,6 +1,6 @@
 # nix-tasuke
 
-Nix best practices, command patterns and etc guidance for AI coding assistants.
+Nix best practices, command patterns, and more guidance for AI coding assistants.
 
 Nixのベストプラクティスやコマンドのガイダンスなどを提供するClaude Codeプラグインです。
 
