@@ -16,7 +16,7 @@ treefmt-nixを組み込むと`nix fmt`の実体がtreefmtになり、
 設定されたすべてのプログラムが実行されます。
 
 FlakeはGitで追跡されているファイルのみを対象とするため、
-新規ファイルがある場合は事前に`git add --all --intent-to-add`を実行してください。
+新規ファイルがある場合は事前に`git ls-files --others --exclude-standard | xargs -r git add --intent-to-add --`を実行してください。
 
 ## フォーマッタだけではなくリンターも含む
 

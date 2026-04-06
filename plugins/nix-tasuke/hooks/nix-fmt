@@ -23,8 +23,9 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
 fi
 
 # nixはトラッキングしていないファイルを取り扱わないので、
-# 事前に差分はトラッキングしませんがファイルが存在することは全てトラッキングさせます。
-git add --all --intent-to-add
+# 未追跡ファイルの存在だけをGitに登録します。
+# git add --allは削除もステージしてしまうため、未追跡ファイルのみを対象にします。
+git ls-files --others --exclude-standard | xargs -r git add --intent-to-add --
 
 # nix fmtを実行します。
 # 既にチェック済みのファイルはキャッシュされてチェックされないので、
