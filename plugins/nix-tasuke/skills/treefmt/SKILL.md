@@ -55,28 +55,41 @@ flake-partsを使う場合の例です。
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs: {
-    # flake-partsでtreefmt-nix.flakeModuleをimport
-    imports = [ inputs.treefmt-nix.flakeModule ];
+  outputs =
+    inputs@{
+      flake-parts,
+      treefmt-nix,
+      ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        treefmt-nix.flakeModule
+      ];
 
-    perSystem = { pkgs, ... }: {
-      treefmt.config = {
-        projectRootFile = "flake.nix";
-        programs = {
-          nixfmt.enable = true;
-          prettier.enable = true;
-          shellcheck.enable = true;
-          shfmt.enable = true;
+      systems = [
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
+
+      perSystem = { pkgs, ... }: {
+        treefmt.config = {
+          projectRootFile = "flake.nix";
+          programs = {
+            nixfmt.enable = true;
+            prettier.enable = true;
+            shellcheck.enable = true;
+            shfmt.enable = true;
+          };
         };
       };
     };
-  };
 }
 ```
 
