@@ -75,7 +75,18 @@ CLAUDE.md -> .github/copilot-instructions.md
 
 # ワークフロー
 
-## リリース
+## バージョン管理
+
+このリポジトリには2種類のバージョンがあります。混同しないでください。
+
+- マーケットプレイスバージョン: `.claude-plugin/marketplace.json`の`metadata.version`。マーケットプレイス全体のリリースバージョン。
+- プラグインバージョン: 各`plugins/*/.claude-plugin/plugin.json`の`version`。個々のプラグインのバージョン。
+
+### プラグインバージョン
+
+プラグインに変更を加えるPRでは、そのプラグインの`plugin.json`の`version`を適切に更新してください。
+
+### マーケットプレイスリリース
 
 プラグインの追加・修正PRでは`marketplace.json`の`metadata.version`を変更しません。
 リリースは`metadata.version`のみを更新する専用のリリースPRで行います。
