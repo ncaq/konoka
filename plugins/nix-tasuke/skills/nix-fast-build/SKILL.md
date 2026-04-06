@@ -17,7 +17,7 @@ checksがビルドされるため、
 `nix flake check`と比べて評価が並列化されるため高速です。
 
 FlakeはGitで追跡されているファイルのみを対象とするため、
-新規ファイルがある場合は事前に`git ls-files --others --exclude-standard | xargs -r git add --intent-to-add --`を実行してください。
+新規ファイルがある場合は事前に`git ls-files --others --exclude-standard -z | xargs -r -0 git add --intent-to-add --`を実行してください。
 
 ## 典型的な使い方
 

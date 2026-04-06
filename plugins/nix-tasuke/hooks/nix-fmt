@@ -27,7 +27,7 @@ fi
 # nixはトラッキングしていないファイルを取り扱わないので、
 # 未追跡ファイルの存在だけをGitに登録します。
 # git add --allは削除もステージしてしまうため、未追跡ファイルのみを対象にします。
-git ls-files --others --exclude-standard | xargs -r git add --intent-to-add --
+git ls-files --others --exclude-standard -z | xargs -r -0 git add --intent-to-add --
 
 # nix fmtを実行します。
 # 既にチェック済みのファイルはキャッシュされてチェックされないので、
