@@ -15,6 +15,9 @@ user-invocable: false
 treefmt-nixを組み込むと`nix fmt`の実体がtreefmtになり、
 設定されたすべてのプログラムが実行されます。
 
+FlakeはGitで追跡されているファイルのみを対象とするため、
+新規ファイルがある場合は事前に`git add --all --intent-to-add`を実行してください。
+
 ## フォーマッタだけではなくリンターも含む
 
 `nix fmt`や`treefmt`という名前から「フォーマッタだけ」と誤解されがちですが、
