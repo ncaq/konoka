@@ -18,6 +18,7 @@ checksがビルドされるため、
 
 FlakeはGitで追跡されているファイルのみを対象とするため、
 新規ファイルがある場合は事前に`git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul`を実行してください。
+未追跡ファイルがなく空の入力でもエラーにはなりません。
 
 ## 典型的な使い方
 
