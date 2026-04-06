@@ -50,6 +50,10 @@ npmを使用します。
 nix fmt
 ```
 
+[nix-tasuke](https://github.com/ncaq/konoka/tree/master/plugins/nix-tasuke)プラグインにより、
+Claudeの応答完了時にStopフックで`nix fmt`が自動実行されます。
+ファイルの差分が出ることがあります。
+
 ## 統合チェック
 
 nix-fast-buildコマンドで統合チェックを実行できます。
