@@ -33,7 +33,11 @@ fi
 # nixはトラッキングしていないファイルを取り扱わないので、
 # 未追跡ファイルの存在だけをGitに登録します。
 # git add --allは削除もステージしてしまうため、未追跡ファイルのみを対象にします。
-git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul
+# 未追跡ファイルがなくても空入力で正常終了します。
+# hintメッセージを環境変数で抑制して想定外のエラーは残します。
+git ls-files --others --exclude-standard -z \
+  | GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=advice.addEmptyPathspec GIT_CONFIG_VALUE_0=false \
+    git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul
 
 # nix fmtを実行します。
 # 既にチェック済みのファイルはキャッシュされてチェックされないので、
