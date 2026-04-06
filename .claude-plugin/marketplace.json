@@ -31,6 +31,10 @@
       "source": "./plugins/log-analyzer"
     },
     {
+      "name": "nix-tasuke",
+      "source": "./plugins/nix-tasuke"
+    },
+    {
       "name": "proofreading-ja",
       "source": "./plugins/proofreading-ja"
     },

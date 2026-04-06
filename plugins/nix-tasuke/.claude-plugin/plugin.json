@@ -1,0 +1,14 @@
+{
+  "name": "nix-tasuke",
+  "version": "0.1.0",
+  "description": "Nix best practices, command patterns, and more guidance for AI coding assistants.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/nix-tasuke",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["nix", "nixos", "flake"]
+}
