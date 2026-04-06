@@ -46,6 +46,9 @@ Claude Codeがresearchエージェントを自動的に利用可能になりま�
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
 | [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
 
+NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインに同梱されています。
+nix-tasukeを導入している場合はnixosの`.mcp.json`設定は不要です。
+
 Backlogは公開HTTPエンドポイントが提供されていないため、MCPサーバーを自分でビルド・ホストする必要があります。
 
 `.mcp.json`の設定例(Backlog以外):

@@ -47,6 +47,9 @@ allowed-toolsに含まれないコマンドの場合は承認が必要になる�
 | [Microsoft Learn](https://learn.microsoft.com/) | Microsoftドキュメント  |
 | [NixOS](https://nixos.org/)                     | nixpkgs情報            |
 
+NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインに同梱されています。
+nix-tasukeを導入している場合はnixosの`.mcp.json`設定は不要です。
+
 `.mcp.json`の設定例:
 
 ```json
