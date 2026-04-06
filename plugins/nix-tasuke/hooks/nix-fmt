@@ -5,13 +5,19 @@ set -euo pipefail
 # nix fmtが実行可能なプロジェクトでのみフォーマットを実行します。
 # 条件を満たさない場合は即座に正常終了します。
 
-# flake.nixが存在しなければnix fmtができるNixプロジェクトではないと判断します。
-if [[ ! -f "$CLAUDE_PROJECT_DIR/flake.nix" ]]; then
-  exit 0
+# CLAUDE_PROJECT_DIRが設定されていなければ異常終了します。
+if [[ -z "${CLAUDE_PROJECT_DIR:-}" ]]; then
+  echo "Error: CLAUDE_PROJECT_DIR is not set" >&2
+  exit 1
 fi
 
 # プロジェクトのルートディレクトリに移動します。
 cd "$CLAUDE_PROJECT_DIR"
+
+# flake.nixが存在しなければnix fmtができるNixプロジェクトではないと判断します。
+if [[ ! -f "flake.nix" ]]; then
+  exit 0
+fi
 
 # gitリポジトリでなければflakeが動作しないため何もしません。
 if ! git rev-parse --is-inside-work-tree &>/dev/null; then
