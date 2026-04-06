@@ -8,7 +8,8 @@
     }
   },
   "enabledPlugins": {
-    "kyosei@konoka": true
+    "kyosei@konoka": true,
+    "nix-tasuke@konoka": true
   },
   "permissions": {
     "allow": ["Bash(agnix:*)", "Bash(npm exec --no:*)", "Bash(npm run fix:*)", "Bash(npm run lint:*)"],
