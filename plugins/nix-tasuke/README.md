@@ -37,7 +37,7 @@ Claude Codeで以下を実行します。
 
 バックエンドの実装には[utensils/mcp-nixos](https://github.com/utensils/mcp-nixos)を使用しています。
 
-### ホスティングについて
+#### ホスティングについて
 
 MCPサーバーはncaqの自宅サーバーでホスティングしています。
 認証なしのパブリックなHTTPエンドポイントです。
