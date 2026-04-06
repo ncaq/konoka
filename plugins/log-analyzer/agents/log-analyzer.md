@@ -13,7 +13,7 @@ model: sonnet
 
 # 作業ディレクトリ
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/create-workdir"`
+!`create-workdir`
 
 上記のパスをログ保存先として使用する。
 

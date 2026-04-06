@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and open $EDITOR for review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/create-workdir"), Bash("${CLAUDE_PLUGIN_ROOT}/bin/editor":*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
+allowed-tools: Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -10,7 +10,7 @@ AIがコミットメッセージを生成し、
 
 # 作業ディレクトリ
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/create-workdir"`
+!`create-workdir`
 
 上記のパスを一時ファイルの保存先として使用する。
 
@@ -122,7 +122,7 @@ GitHub向けのissueに関連付けるキーワードは`close`などの原形�
 タイムアウトは最大の600秒(10分)に設定してください。
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/editor" <作業ディレクトリ>/COMMIT_EDITMSG
+editor <作業ディレクトリ>/COMMIT_EDITMSG
 ```
 
 エディタが正常終了したら次のステップに進んでください。
