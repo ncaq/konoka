@@ -139,19 +139,6 @@ treefmt.config = {
       command = pkgs.editorconfig-checker;
       includes = [ "*" ];
     };
-    my-custom-linter = {
-      command = "${pkgs.bash}/bin/bash";
-      options = [
-        "-euc"
-        ''
-          for file in "$@"; do
-            # ここにカスタム処理
-          done
-        ''
-        "--"
-      ];
-      includes = [ "*.ext" ];
-    };
   };
 };
 ```
