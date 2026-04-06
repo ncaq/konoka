@@ -22,7 +22,7 @@ treefmt-nixの`programs`にはリンターやチェッカーが多数含まれ�
 
 フォーマッタの例: `nixfmt`, `prettier`, `shfmt`, `rustfmt`
 リンターの例: `actionlint`, `deadnix`, `shellcheck`, `statix`, `hlint`, `mypy`
-その他: `typos`(スペルチェック), `zizmor`(GitHub Actionsセキュリティ), `editorconfig-checker`
+その他: `typos`(スペルチェック), `zizmor`(GitHub Actionsセキュリティ)
 
 treefmtのフォーマッタ仕様は「ファイルパスのリストを受け取り、変更があればファイルに書き戻す」というものです。
 リンターはファイルを変更しませんが、エラー時に非ゼロ終了するためtreefmtがエラーとして検出します。
