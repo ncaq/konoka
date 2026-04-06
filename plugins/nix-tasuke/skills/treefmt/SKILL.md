@@ -166,10 +166,14 @@ treefmt.config = {
 | `excludes` | list of string         | 除外ファイルのglobパターン              |
 | `priority` | int                    | 実行順序(値が小さいほど先、デフォルト0) |
 
-`includes`/`excludes`のglobパターンはファイル名のみに対してマッチします。
-`src/*.rs`のようなディレクトリを含むパターンは機能しません。
-`*.rs`のように拡張子だけで指定してください。
-ディレクトリ単位の除外はグローバルの`settings.global.excludes`で行います。
+globパターンは[gobwas/glob](https://github.com/gobwas/glob)ライブラリで処理され、
+ツリールートからの相対パスに対してマッチします。
+`*`はパス区切り`/`を含む任意の文字列にマッチするため、`*.rs`だけでリポジトリ全体の`.rs`ファイルに再帰的にマッチします。
+`src/*.rs`のようなディレクトリを含むパターンも機能し、`src/`以下の全`.rs`ファイルに再帰的にマッチします。
+`**`も使えますが`*`と実質同じ動作です。
+
+`settings.global.excludes`を使うと全フォーマッタ共通でファイルを除外できます。
+global excludesは各フォーマッタのincludes/excludesより先に処理されます。
 
 treefmtのフォーマッタ仕様を満たす必要があります。
 CLIが`<command> [options] [...<files>]`の形式で、変更があればファイルに書き戻し、エラー時は非ゼロ終了です。
