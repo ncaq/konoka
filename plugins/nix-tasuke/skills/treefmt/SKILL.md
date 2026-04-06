@@ -32,7 +32,6 @@ treefmt-nixの`programs`にはリンターやチェッカーが多数含まれ�
 - `actionlint`
 - `deadnix`
 - `hlint`
-- `mypy`
 - `shellcheck`
 - `statix`
 
