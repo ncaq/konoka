@@ -68,7 +68,7 @@ type AsyncState<T> = { status: "loading" } | { status: "error"; error: Error } |
 
 `status`フィールドで分岐することで、各状態で利用可能なフィールドが型レベルで保証されます。
 
-```typescript
+```tsx
 function renderState(state: AsyncState<User[]>) {
   switch (state.status) {
     case "loading":
