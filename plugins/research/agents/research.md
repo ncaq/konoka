@@ -31,7 +31,7 @@ tools:
   - mcp__github__search_repositories
   - mcp__mdn
   - mcp__microsoft-learn
-  - mcp__nixos
+  - mcp__plugin_nix-tasuke_nixos
 model: sonnet
 ---
 

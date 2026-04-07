@@ -1,7 +1,7 @@
 ---
 name: dependency-update-report
 description: Investigate dependency updates and report changes and impact. Use when the user wants to review or understand dependency updates in a PR or commit.
-allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(nix-fast-build:*), Bash(npm run lint:*), Edit, Glob, Grep, Read, WebFetch, WebSearch, Write, mcp__deepwiki, mcp__github__get_file_contents, mcp__github__issue_read, mcp__github__list_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read, mcp__github__search_code, mcp__github__search_issues, mcp__github__search_pull_requests, mcp__github__search_repositories, mcp__mdn, mcp__microsoft-learn, mcp__nixos
+allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(nix-fast-build:*), Bash(npm run lint:*), Edit, Glob, Grep, Read, WebFetch, WebSearch, Write, mcp__deepwiki, mcp__github__get_file_contents, mcp__github__issue_read, mcp__github__list_issues, mcp__github__list_pull_requests, mcp__github__pull_request_read, mcp__github__search_code, mcp__github__search_issues, mcp__github__search_pull_requests, mcp__github__search_repositories, mcp__mdn, mcp__microsoft-learn, mcp__plugin_nix-tasuke_nixos
 ---
 
 依存関係の更新に対して、
