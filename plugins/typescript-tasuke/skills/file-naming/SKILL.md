@@ -39,8 +39,8 @@ React公式もチュートリアルでそのような名前を使うこともあ
 ```
 src/
   components/
-    UserList.tsx        # UserListコンポーネントをエクスポート
     SearchDialog.tsx    # SearchDialogコンポーネントをエクスポート
+    UserList.tsx        # UserListコンポーネントをエクスポート
 ```
 
 しかし全てをkebab-caseに統一するのも問題ありません。
