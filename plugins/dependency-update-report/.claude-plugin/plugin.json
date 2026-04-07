@@ -1,6 +1,6 @@
 {
   "name": "dependency-update-report",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Investigate dependency updates and report their changes and impact on the project.",
   "author": {
     "name": "ncaq",
