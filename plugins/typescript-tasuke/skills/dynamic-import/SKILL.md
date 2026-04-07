@@ -1,5 +1,5 @@
 ---
-name: avoid-dynamic-import
+name: dynamic-import
 description: Prefer static import over dynamic import() in TypeScript/JavaScript. Use when writing or reviewing import statements.
 user-invocable: false
 ---

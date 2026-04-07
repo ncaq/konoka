@@ -1,5 +1,5 @@
 ---
-name: prefer-undefined
+name: nullish-undefined-null
 description: Prefer undefined over null in TypeScript/JavaScript. Use == null for nullish checks. Use when writing or reviewing code that handles absent values.
 user-invocable: false
 ---
