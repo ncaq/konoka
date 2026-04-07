@@ -41,6 +41,10 @@
     {
       "name": "research",
       "source": "./plugins/research"
+    },
+    {
+      "name": "typescript-tasuke",
+      "source": "./plugins/typescript-tasuke"
     }
   ]
 }
