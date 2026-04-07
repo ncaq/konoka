@@ -31,7 +31,7 @@ iOS Safariでは`history.pushState()`で追加された履歴エントリにブ�
 
 このバグはiOS 9.3頃から報告されており、
 iOS 18時点でも修正されていません。
-WebKit Bugzillaに公開チケットはなく、
+alert/confirm/promptが無視される問題そのもののWebKit Bugzillaの公開チケットはなく、
 Apple内部のRadarで管理されていると推測されています。
 WebKitチームはユーザーインタラクションなしの`pushState`エントリのスキップを、
 意図的なセキュリティ強化として扱っている面もあり、
