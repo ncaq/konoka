@@ -1,6 +1,6 @@
 {
   "name": "typescript-tasuke",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "TypeScript best practices, patterns, and guidance for AI coding assistants.",
   "author": {
     "name": "ncaq",
