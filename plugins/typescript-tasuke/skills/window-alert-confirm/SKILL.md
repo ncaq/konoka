@@ -36,8 +36,11 @@ WebKitチームはユーザーインタラクションなしの`pushState`エン
 意図的なセキュリティ強化として扱っている面もあり、
 根本的な修正の見通しは不明です。
 
-- [Alert, confirm, and prompt not working - Apple Developer Forums](https://developer.apple.com/forums/thread/684407)
-- [REGRESSION (iOS 16): popstate events are not fired for swipe-back gesture - WebKit Bug #248303](https://bugs.webkit.org/show_bug.cgi?id=248303)
+Apple Developer Forumでの[報告](https://developer.apple.com/forums/thread/684407)で、
+iOS 17/18でも再現が確認されています。
+WebKit Bugzillaの[#248303](https://bugs.webkit.org/show_bug.cgi?id=248303)は、
+直接にはpopstateイベントの問題ですが、
+`pushState`エントリのスキップという根本原因が共通しています。
 
 SPA的なhistory操作を行うアプリケーションでは、
 この問題に該当する可能性があるため注意が必要です。
