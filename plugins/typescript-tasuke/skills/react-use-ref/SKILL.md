@@ -48,7 +48,7 @@ const showPopover = () => popoverRef.current?.showPopover();
 
 // Good: popover属性とpopoverTargetで宣言的に表現
 <button popoverTarget="my-popover">開く</button>
-<div id="my-popover" popover="">ポップオーバーの内容</div>
+<div id="my-popover" popover="auto">ポップオーバーの内容</div>
 ```
 
 `<details>`、`<dialog>`、`popover`属性、`<input type="date">`など、
