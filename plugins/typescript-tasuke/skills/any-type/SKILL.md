@@ -51,23 +51,6 @@ function first<T>(arr: T[]): T | undefined {
 }
 ```
 
-### 適切な型定義を書く
-
-面倒でも具体的な型を定義してください。
-`any`で逃げると、その値を使うすべての箇所で型安全性が失われます。
-
-```typescript
-// Bad
-const response: any = await fetch("/api/users").then((r) => r.json());
-
-// Good
-type User = {
-  id: string;
-  name: string;
-};
-const response: User[] = await fetch("/api/users").then((r) => r.json());
-```
-
 ### バリデーションライブラリを使う
 
 外部からのデータ(APIレスポンス、フォーム入力など)はバリデーションライブラリでパースしてください。
