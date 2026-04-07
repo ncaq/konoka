@@ -43,8 +43,8 @@
       "source": "./plugins/research"
     },
     {
-      "name": "typescript-tasuke",
-      "source": "./plugins/typescript-tasuke"
+      "name": "web-tasuke",
+      "source": "./plugins/web-tasuke"
     }
   ]
 }

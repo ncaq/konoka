@@ -1,11 +1,11 @@
-# typescript-tasuke
+# web-tasuke
 
-TypeScript best practices, patterns, and guidance for AI coding assistants.
+Web development best practices, patterns, and guidance for AI coding assistants.
 
-TypeScriptのベストプラクティスやパターンなどを提供するClaude Codeプラグインです。
+Web開発のベストプラクティスやパターンなどを提供するClaude Codeプラグインです。
 
-純粋にTypeScriptだけではなく、
-web技術についても触れます。
+HTML, TypeScript, JavaScript, React, アクセシビリティなど、
+Web技術全般をカバーします。
 
 ## インストール
 
@@ -14,7 +14,7 @@ web技術についても触れます。
 Claude Codeで以下を実行します。
 
 ```text
-/plugin install typescript-tasuke@konoka
+/plugin install web-tasuke@konoka
 ```
 
 または`.claude/settings.json`に追加します。
@@ -22,7 +22,7 @@ Claude Codeで以下を実行します。
 ```json
 {
   "enabledPlugins": {
-    "typescript-tasuke@konoka": true
+    "web-tasuke@konoka": true
   }
 }
 ```
@@ -31,10 +31,9 @@ Claude Codeで以下を実行します。
 
 ### スキル(背景知識)
 
-TypeScriptの型の活用、命名規則などのベストプラクティスをスキルとして提供します。
-
-直接TypeScriptに結びつく内容だけではなく、
-webやReactなどの周辺技術に関する知識も含まれます。
+HTMLのより良い書き方、
+TypeScriptの型の活用や命名規則のベストプラクティスと言った、
+Web開発の知識をスキルとして提供します。
 
 Claudeが関連するコンテキストを検出すると自動的に参照するため、
 ユーザーが明示的に呼び出す必要はありません。
