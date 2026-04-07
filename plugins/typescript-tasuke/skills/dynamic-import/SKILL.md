@@ -12,10 +12,10 @@ TypeScript/JavaScriptコードでは通常の静的`import`を使うこと。
 `import()`(dynamic import)はデフォルトでは使用禁止。
 
 ```typescript
-// ✅ 良い
+// Good
 import { foo } from "./foo";
 
-// ❌ 悪い: 読み込まれることが確定しているのにdynamic importしている
+// Bad: 読み込まれることが確定しているのにdynamic importしている
 const { foo } = await import("./foo");
 ```
 
