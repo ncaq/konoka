@@ -13,8 +13,7 @@ user-invocable: false
 ```
 src/
   api/
-    query/
-      customer-queries.ts
+    customer-query.ts
 ```
 
 kebab-caseを基本とする理由は以下の通りです。
