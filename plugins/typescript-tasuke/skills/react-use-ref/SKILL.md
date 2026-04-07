@@ -109,20 +109,29 @@ useEffect(() => {
 カスタムフックに抽出してDOM操作の詳細を隠蔽してください。
 利用側のコンポーネントは宣言的なインターフェースで使えるようになります。
 
+以下は説明のための簡易的な例です。
+実際には同等の機能を提供するライブラリがないか先に探してください。
+
 ```tsx
 // カスタムフックに抽出
-function useAutoFocus<T extends HTMLElement>() {
+function useResizeObserver<T extends HTMLElement>(callback: (entry: ResizeObserverEntry) => void) {
   const ref = useRef<T>(null);
   useEffect(() => {
-    ref.current?.focus();
-  }, []);
+    const element = ref.current;
+    if (element == null) return;
+    const observer = new ResizeObserver(([entry]) => callback(entry));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [callback]);
   return ref;
 }
 
 // 利用側は宣言的
-function SearchInput() {
-  const inputRef = useAutoFocus<HTMLInputElement>();
-  return <input ref={inputRef} />;
+function ResizablePanel() {
+  const ref = useResizeObserver<HTMLDivElement>((entry) => {
+    console.log(entry.contentRect.width);
+  });
+  return <div ref={ref}>...</div>;
 }
 ```
 
