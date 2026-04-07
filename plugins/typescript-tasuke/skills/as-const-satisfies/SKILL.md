@@ -110,6 +110,8 @@ type MutableConfig = {
 type ShallowReadonlyConfig = Readonly<MutableConfig>;
 
 // 深い`readonly`化が必要な場合は自前で定義
+// この定義はプレーンオブジェクトと配列のみを対象としています。
+// Map/Set/Date等のビルトインオブジェクトを含む型には専用の対応が必要です。
 type DeepReadonly<T> = T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [P in keyof T]: DeepReadonly<T[P]> } : T;
 
 type ReadonlyConfig = DeepReadonly<MutableConfig>;
