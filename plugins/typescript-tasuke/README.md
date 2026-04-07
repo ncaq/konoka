@@ -53,7 +53,12 @@ Context7はAPIキーなしでも利用可能ですが、
 export CONTEXT7_API_KEY="ctx7sk-..."
 ```
 
-プラグインの`.mcp.json`は`${CONTEXT7_API_KEY:-}`でデフォルト空文字を使用しています。
+プラグインの`.mcp.json`では`${CONTEXT7_API_KEY:-}`という記法を使用しています。
+Claude Codeの`.mcp.json`ではbash風の`${VAR:-default}`構文がサポートされており、
+環境変数が未設定の場合にデフォルト値が使われます。
+`${CONTEXT7_API_KEY:-}`はデフォルト値が空文字列なので、
+未設定時は`Authorization: Bearer `(空トークン)がヘッダーに送信されます。
+
 Context7は空のBearerトークンを受け取った場合でもエラーにならず、
 匿名アクセスとして扱います。
 そのためAPIキー未設定でもMCPサーバーの接続自体は正常に動作します。
