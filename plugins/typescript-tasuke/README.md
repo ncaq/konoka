@@ -4,6 +4,9 @@ TypeScript best practices, patterns, and guidance for AI coding assistants.
 
 TypeScriptのベストプラクティスやパターンなどを提供するClaude Codeプラグインです。
 
+純粋にTypeScriptだけではなく、
+web技術についても触れます。
+
 ## インストール
 
 このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
