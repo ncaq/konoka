@@ -136,6 +136,15 @@ type Items2 = ReadonlyArray<string>;
 const items = ["a", "b", "c"] as const satisfies readonly string[];
 ```
 
+### 型の`readonly`化があまりにも複雑になる場合
+
+`DeepReadonly`やビルトインオブジェクトの対応など、
+`as const satisfies`のために型側の調整が複雑になりすぎる場合は、
+無理に`as const`にこだわらず、
+通常の型推論や型ヒントで済ませて構いません。
+
+リテラル型のために可読性を大きく犠牲にする必要はありません。
+
 ## 文字列ユニオン型は`as const`配列から導きます
 
 文字列ユニオン型を定義するときは、
