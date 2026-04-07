@@ -128,9 +128,10 @@ function useResizeObserver<T extends HTMLElement>(callback: (entry: ResizeObserv
 
 // 利用側は宣言的
 function ResizablePanel() {
-  const ref = useResizeObserver<HTMLDivElement>((entry) => {
+  const handleResize = useCallback((entry: ResizeObserverEntry) => {
     console.log(entry.contentRect.width);
-  });
+  }, []);
+  const ref = useResizeObserver<HTMLDivElement>(handleResize);
   return <div ref={ref}>...</div>;
 }
 ```
