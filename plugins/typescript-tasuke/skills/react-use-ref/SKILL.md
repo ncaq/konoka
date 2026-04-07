@@ -27,17 +27,26 @@ Reactの宣言的なモデルと相性がよくありません。
 
 ```tsx
 // Bad: useRefで開閉を命令的に管理
-const dialogRef = useRef<HTMLDialogElement>(null);
-const openDialog = () => dialogRef.current?.showModal();
-const closeDialog = () => dialogRef.current?.close();
+const detailsRef = useRef<HTMLDetailsElement>(null);
+const toggle = () => {
+  if (detailsRef.current) {
+    detailsRef.current.open = !detailsRef.current.open;
+  }
+};
 
-// Good: HTML標準の要素で宣言的に表現
+// Good: HTML標準の<details>要素なら宣言的に開閉できる
 <details>
   <summary>詳細を表示</summary>
   <p>ここに詳細が表示されます。</p>
-</details>
+</details>;
+```
 
-// Good: popover属性を使う
+```tsx
+// Bad: useRefでポップオーバーの表示を命令的に管理
+const popoverRef = useRef<HTMLDivElement>(null);
+const showPopover = () => popoverRef.current?.showPopover();
+
+// Good: popover属性とpopovertargetで宣言的に表現
 <button popovertarget="my-popover">開く</button>
 <div id="my-popover" popover>ポップオーバーの内容</div>
 ```
