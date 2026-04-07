@@ -57,7 +57,7 @@ function first<T>(arr: T[]): T | undefined {
 `unknown`からの手動type guardよりも安全かつ宣言的です。
 
 ```typescript
-// Good: effect-schemaの例
+// Good: EffectのSchemaモジュールの例
 import { Schema } from "effect";
 
 const User = Schema.Struct({
