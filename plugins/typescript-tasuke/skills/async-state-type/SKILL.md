@@ -81,8 +81,10 @@ function renderState(state: AsyncState<User[]>) {
 }
 ```
 
-[Effect](https://effect.website/)
-を使って型を組み立てるのも良いでしょう。
+[Effect](https://effect.website/)の`Schema`を使えば、
+APIレスポンスのデコード時に型を確定させつつ、
+失敗を`Exit`や`Either`で型安全に表現できます。
+判別共用体を手書きする代わりにEffectの仕組みに乗せるのも良いでしょう。
 
 ## ライブラリの関数選定時の注意
 
