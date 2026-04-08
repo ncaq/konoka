@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(cat .github/git-commit-instructions.md*), Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Glob, Grep, Write
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Glob, Grep, Write
 ---
 
 Gitリポジトリの変更をコミットします。
