@@ -1,9 +1,8 @@
 # commit
 
-AI-assisted git commit with editor review.
-
 ステージ済みの変更からAIがコミットメッセージを生成し、
-`$EDITOR`で編集してからコミットするClaude Codeプラグインです。
+ユーザが確認してからコミットするClaude Codeプラグインです。
+
 プロジェクト固有のコミットメッセージガイドライン(`.github/git-commit-instructions.md`)にも対応しています。
 
 ## インストール
