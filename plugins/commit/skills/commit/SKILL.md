@@ -47,9 +47,9 @@ git diff --cached
 
 ## 既存コミットスタイルの把握
 
-!`git log -20`
+!`git log --no-merges -20`
 
-上記のgit logの内容から、
+上記の`git log --no-merges -20`の内容から、
 既存のコミットメッセージのスタイルを把握してください。
 
 ## コミットメッセージの生成
