@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
+allowed-tools: AskUserQuestion, Bash(cat .github/git-commit-instructions.md*), Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Glob, Grep, Write
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -18,9 +18,7 @@ AIがコミットメッセージを生成し、
 
 ## リポジトリ状態の確認
 
-!`git status`
-
-上記の内容が現状のgit statusです。
+会話開始時に`gitStatus`として提供されている内容を確認してください。
 
 ## ステージング
 
@@ -42,8 +40,10 @@ git diff --cached
 
 ## コミットメッセージのガイドラインの確認
 
-プロジェクトに`.github/git-commit-instructions.md`が存在する場合はReadツールで読み込んでください。
-存在しない場合はスキップしてください。
+!`cat .github/git-commit-instructions.md 2>/dev/null`
+
+上記の内容が空でなければプロジェクト固有のコミットメッセージガイドラインです。
+内容に従ってください。
 
 ## 既存コミットスタイルの把握
 
