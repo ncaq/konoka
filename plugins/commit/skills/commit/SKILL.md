@@ -18,9 +18,9 @@ AIがコミットメッセージを生成し、
 
 ## リポジトリ状態の確認
 
-```bash
-git status
-```
+!`git status`
+
+上記の内容が現状のgit statusです。
 
 ## ステージング
 
@@ -47,10 +47,9 @@ git diff --cached
 
 ## 既存コミットスタイルの把握
 
-```bash
-git log --oneline -10
-```
+!`git log --oneline -10`
 
+上記のgit logの内容から、
 既存のコミットメッセージのスタイルを把握してください。
 
 ## コミットメッセージの生成
