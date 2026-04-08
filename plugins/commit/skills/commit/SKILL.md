@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(cat:*), Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status), Glob, Grep, Write
+allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status), Bash(read-commit-instructions), Glob, Grep, Write
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -29,7 +29,7 @@ AIがコミットメッセージを生成し、
 
 # コミットメッセージのガイドライン
 
-!`cat .github/git-commit-instructions.md 2>/dev/null`
+!`read-commit-instructions`
 
 上記の内容が空でなければプロジェクト固有のコミットメッセージガイドラインです。
 内容に従ってください。
