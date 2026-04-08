@@ -1,12 +1,12 @@
 ---
 name: commit
-description: Generate a commit message from staged changes and open $EDITOR for review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
+description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
+allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
 ---
 
 Gitリポジトリの変更をコミットします。
 AIがコミットメッセージを生成し、
-ユーザが`$EDITOR`で修正してからコミットします。
+ユーザが確認してからコミットします。
 
 # 作業ディレクトリ
 
@@ -116,7 +116,28 @@ GitHub向けのissueに関連付けるキーワードは`close`などの原形�
 差分を入力
 ```
 
-## ユーザによるコミットメッセージの編集
+## コミットメッセージの確認
+
+`AskUserQuestion`ツールを使って、
+生成したコミットメッセージの扱いをユーザに確認してください。
+
+質問文にはコミットメッセージの全文を含めてください。
+ユーザがメッセージの内容を見て判断できるようにするためです。
+
+選択肢は以下の2つを設定してください。
+
+1. このままコミットする(Recommended): 生成されたメッセージをそのままコミットする。
+2. テキストエディタで編集する: エディタでコミットメッセージを編集してからコミットする。エディタが使える環境向け。
+
+`AskUserQuestion`ツールはこれらに加えてOther(自由テキスト入力)の選択肢を自動的に追加します。
+Otherが選ばれた場合はユーザがコミットメッセージの修正指示を入力したものとして扱います。
+
+### このままコミットする場合
+
+一時ファイルに書き出したコミットメッセージをそのまま使用して、
+コミットの実行に進んでください。
+
+### テキストエディタで編集する場合
 
 以下のコマンドでユーザにコミットメッセージを編集してもらいます。
 タイムアウトは最大の600秒(10分)に設定してください。
@@ -125,9 +146,20 @@ GitHub向けのissueに関連付けるキーワードは`close`などの原形�
 editor <作業ディレクトリ>/COMMIT_EDITMSG
 ```
 
-エディタが正常終了したら次のステップに進んでください。
+エディタが正常終了したらコミットの実行に進んでください。
 
 エディタが異常終了した場合、
+ユーザがコミットをキャンセルしたいという意思表示であると解釈して、
+コミット作業をキャンセルしてください。
+
+### Other(修正指示)の場合
+
+ユーザの修正指示に従ってコミットメッセージを修正してください。
+修正後のメッセージで一時ファイルを上書きしてから、
+コミットメッセージの確認に戻ってください。
+
+### 選択がキャンセルされた場合
+
 ユーザがコミットをキャンセルしたいという意思表示であると解釈して、
 コミット作業をキャンセルしてください。
 

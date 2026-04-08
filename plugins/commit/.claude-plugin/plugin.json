@@ -1,7 +1,7 @@
 {
   "name": "commit",
-  "version": "2.0.3",
-  "description": "AI-assisted git commit with editor review. Generates commit messages from staged changes and opens $EDITOR for user editing before committing.",
+  "version": "2.1.0",
+  "description": "Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",
