@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Glob, Grep, Read, Write
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Glob, Grep, Write
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -12,17 +12,34 @@ AIがコミットメッセージを生成し、
 
 !`create-workdir`
 
-上記のパスを一時ファイルの保存先として使用する。
+上記のパスを一時ファイルの保存先として使用します。
 
-# 手順
-
-## リポジトリ状態の確認
+# リポジトリ状態
 
 !`git status`
 
 上記の内容が現状のgit statusです。
 
+# 既存コミットスタイル
+
+!`git log --no-merges -20`
+
+上記の`git log --no-merges -20`の内容から、
+既存のコミットメッセージのスタイルを把握してください。
+
+# コミットメッセージのガイドライン
+
+!`cat .github/git-commit-instructions.md 2>/dev/null`
+
+上記の内容が空でなければプロジェクト固有のコミットメッセージガイドラインです。
+内容に従ってください。
+
+# 手順
+
 ## ステージング
+
+既にステージ済みの変更がある場合はそのまま使用します。
+ステージングはスキップして次の差分の取得に進んでください。
 
 ステージ済みの変更がない場合は全ての変更をステージングします。
 
@@ -30,27 +47,13 @@ AIがコミットメッセージを生成し、
 git add --all
 ```
 
-既にステージ済みの変更がある場合はそのまま使用します。
-
 ## 差分の取得
 
 ```bash
 git diff --cached
 ```
 
-差分がなければ「コミットする変更がありません」と報告して終了してください。
-
-## コミットメッセージのガイドラインの確認
-
-プロジェクトに`.github/git-commit-instructions.md`が存在する場合はReadツールで読み込んでください。
-存在しない場合はスキップしてください。
-
-## 既存コミットスタイルの把握
-
-!`git log --no-merges -20`
-
-上記の`git log --no-merges -20`の内容から、
-既存のコミットメッセージのスタイルを把握してください。
+差分がなければ「コミットする変更がありません」と報告してスキルを終了してください。
 
 ## コミットメッセージの生成
 
