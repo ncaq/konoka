@@ -30,7 +30,7 @@ IDEで開いているファイル/ユーザーが直前に話題にしたコン�
 
 1. デザイン定義 — `sva`/`cva`/`css`などのstyled-system呼び出し
 2. props定義 — `type Props = ...`や`interface Props { ... }`
-3. Functional Component定義 — `export const Foo: React.FC<Props> = ...`
+3. Functional Component定義 — `export const Foo: React.FC<Props> = ...`や`export function Foo(props: Props): React.ReactElement { ... }`
 
 import群は当然この前に置きます。
 純粋な振る舞いだけのコンポーネントならデザイン定義は省略可能ですが、
