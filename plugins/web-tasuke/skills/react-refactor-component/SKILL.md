@@ -75,33 +75,6 @@ const DeviceRow: React.FC<{ device: Device }> = ({ device }) => (
 呼び出し側から渡される関数でなく通常のJSXの一部として使っている、など)は、
 必ず別ファイルに切り出してください。
 
-### コンポーネント内に`useEffect`を書かない
-
-Functional Componentの本体に`useEffect`が直接現れることは禁止です。
-
-`useEffect`が必要になるのは典型的には次のようなケースですが、
-いずれもカスタムフックに切り出してください。
-コンポーネント側はそのフックを呼ぶだけの形に保ちます。
-
-- DOMへの直接的な副作用(focus制御、scroll同期、`document.title`更新など)
-- `window`/`document`/`EventTarget`等のグローバルなものへのハンドラ登録
-- 外部購読 (WebSocket, EventSource, ResizeObserver, IntersectionObserver, etc.)
-- ライフサイクルに紐づくクリーンアップが必要な操作
-
-カスタムフックにする際は、責務を表す名前をつけます
-(`useDocumentTitle`, `useWindowResize`, `useDeviceListSubscription`など)。
-フック自体は`src/hooks/`配下、
-もしくはそのコンポーネントに固有のものであれば同じディレクトリの別ファイルに置きます。
-
-「データ取得結果から派生した値を`setState`する」
-「propsが変わったら別のstateを初期化し直す」等は、
-そもそも`useEffect`不要なケースが多いので、
-まず [そのエフェクトは不要かも](https://ja.react.dev/learn/you-might-not-need-an-effect) の発想で見直してください。
-
-- 派生値は`useMemo`か単なる式で表現する
-- props変化で内部状態をリセットしたい場合は、親側で`key`を付け替えてアンマウント/再マウントさせる
-- 関連する複数のstateは1つのstateに統合する
-
 ### コンポーネントが肥大化してきたら分割する
 
 「関数の始まりからJSXが登場するまでに30行程度かかっている」状態は、
@@ -138,7 +111,6 @@ Functional Componentの本体に`useEffect`が直接現れることは禁止で�
 - [ ] 構造順序: import → デザイン定義 → props定義 → コンポーネントの順序になっているか
 - [ ] 1ファイル1コンポーネント: ファイル内のコンポーネントは1つだけか
 - [ ] 1ファイル1コンポーネント(補足): ファイル名が`index.tsx`/`index.ts`ではないか(新規/大幅書き換え対象の場合)
-- [ ] useEffect: コンポーネント本体に`useEffect`が直接書かれていないか
 - [ ] 肥大化: 関数の冒頭から最初のJSX(`return (`直前)までが肥大化していないか
 - [ ] 肥大化: JSX内に「読みづらさ」が同居していないか(重複する構造、深い条件分岐、外側の準備変数の多さなど)
 
@@ -156,7 +128,6 @@ Functional Componentの本体に`useEffect`が直接現れることは禁止で�
 
 - 切り出す予定のカスタムフック/子コンポーネントとそのファイル名
 - 元ファイルの最終的な構成(デザイン定義/props/コンポーネント)
-- 既存の`useEffect`をどのフックに移すか
 - リネームが発生する場合は旧ファイル名 → 新ファイル名のマッピング
 
 ユーザーの方針判断が必要な箇所 (フック名・ファイル名の好み、分割粒度) があれば、

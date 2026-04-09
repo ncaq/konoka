@@ -93,3 +93,14 @@ const result = useSuspenseQuery({ queryKey: ["data", id], queryFn: () => fetchDa
 
 これらの場合でも、
 より高抽象度なhooksやライブラリが使えないか検討してください。
+
+## useEffectを使う場合はカスタムフックに切り出す
+
+コンポーネント本体に`useEffect`を直接書くことは禁止です。
+必ずカスタムフックに切り出し、コンポーネント側はそのフックを呼ぶだけにしてください。
+
+カスタムフックには責務を表す名前をつけます。
+`useDocumentTitle`, `useWindowResize`, `useDeviceListSubscription`など。
+フックの配置場所はプロジェクトの規約に従ってください。
+典型的には`src/hooks/`のような共有ディレクトリか、
+そのコンポーネントに固有のものであれば同じディレクトリの別ファイルに置きます。
