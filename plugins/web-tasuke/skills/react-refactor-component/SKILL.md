@@ -10,7 +10,7 @@ argument-hint: "[file-path or component-name]"
 
 ## 使い方
 
-```bash
+```text
 /react-refactor-component <ファイルパス または コンポーネント名>
 ```
 
