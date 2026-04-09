@@ -1,7 +1,7 @@
 ---
 name: react-refactor-component
 description: Refactor React components to follow project conventions. Use when reorganizing, splitting, or cleaning up existing React component files.
-argument-hint: <ファイルパス または コンポーネント名>
+argument-hint: "[file-path or component-name]"
 ---
 
 # React コンポーネントリファクタリング
