@@ -1,6 +1,6 @@
 ---
 name: react-refactor-component
-description: React コンポーネントを本プロジェクトの規約 (デザイン定義 → props → FC の順序、1 ファイル 1 コンポーネント、useEffect の直接使用禁止、肥大化時の分割) に沿ってリファクタリングする。ユーザーが既存コンポーネントの整理・分割・規約準拠を依頼したときに使う。
+description: Refactor React components to follow project conventions. Use when reorganizing, splitting, or cleaning up existing React component files.
 argument-hint: <ファイルパス または コンポーネント名>
 ---
 
@@ -14,7 +14,7 @@ argument-hint: <ファイルパス または コンポーネント名>
 /react-refactor-component <ファイルパス または コンポーネント名>
 ```
 
-引数で指定されたコンポーネント（およびその周辺で同じファイルに同居している関連コンポーネント）を読み取り、ルール違反を検出してリファクタリングを行います。引数が省略された場合は、IDE で開いているファイル / ユーザーが直前に話題にしたコンポーネントを対象とします。
+`$ARGUMENTS`で指定されたコンポーネント（およびその周辺で同じファイルに同居している関連コンポーネント）を読み取り、ルール違反を検出してリファクタリングを行います。`$ARGUMENTS`が省略された場合は、IDE で開いているファイル / ユーザーが直前に話題にしたコンポーネントを対象とします。
 
 ## リファクタリングの絶対ルール
 
@@ -98,7 +98,7 @@ Functional Component の本体に `useEffect` が直接現れることは禁止�
 
 ### 1. 対象を読む
 
-引数で指定されたコンポーネントファイルを Read で開きます。ファイル名から責務がわからない場合は、import 元 (使用箇所) もあわせて確認します。
+`$ARGUMENTS`で指定されたコンポーネントファイルを Read で開きます。ファイル名から責務がわからない場合は、import 元 (使用箇所) もあわせて確認します。
 
 ### 2. 違反項目を洗い出す
 
