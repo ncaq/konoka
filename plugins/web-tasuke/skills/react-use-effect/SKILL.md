@@ -1,6 +1,6 @@
 ---
 name: react-use-effect
-description: Avoid unnecessary useEffect in React. Prefer direct computation, event handlers, key props, useMemo, or data fetching libraries. Use when writing or reviewing React components.
+description: Rules for useEffect usage in React including when to avoid it and when to extract it into custom hooks. Use when writing or reviewing React components that contain or might need useEffect.
 user-invocable: false
 ---
 
