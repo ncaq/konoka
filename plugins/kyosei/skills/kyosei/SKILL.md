@@ -17,7 +17,8 @@ allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bas
 例: `/kyosei https://github.com/ncaq/konoka/pull/42`
 
 URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
-URLが`https://github.com/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
+URLが`https://<host>/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
+ホストは`github.com`に限らずGitHub Enterpriseのドメインでも構いません。
 末尾スラッシュ、サブパス(`/files`、`/commits`等)、クエリパラメータが付いていても問題ありません。
 抽出した値は後続のコマンドで使用します。
 
