@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status), Bash(read-commit-instructions), Glob, Grep, Write
+allowed-tools: AskUserQuestion, Bash(create-workdir), Bash(editor:*), Bash(git add:*), Bash(git commit:*), Bash(git diff:*), Bash(git log:*), Bash(git status), Glob, Grep, Skill(commit-style), Write
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -20,19 +20,10 @@ AIがコミットメッセージを生成し、
 
 上記の内容が現状のgit statusです。
 
-# 既存コミットスタイル
+# スタイルガイドラインの適用
 
-!`git log --no-merges -20`
-
-上記の`git log --no-merges -20`の内容から、
-既存のコミットメッセージのスタイルを把握してください。
-
-# コミットメッセージのガイドライン
-
-!`read-commit-instructions`
-
-上記の内容が空でなければプロジェクト固有のコミットメッセージガイドラインです。
-内容に従ってください。
+Skillツールで`commit-style`スキルを呼び出し、
+スタイルガイドラインに従ってください。
 
 # 手順
 
@@ -59,45 +50,6 @@ git diff --cached
 
 ステージ済みの差分を分析し、
 適切なコミットメッセージを生成してください。
-
-### コミットメッセージのスタイル
-
-プロジェクト固有のガイドラインと衝突するスタイルがある場合はそちらを優先してください。
-以下はデフォルトのスタイルとして使用してください。
-
-丁寧語とですます調で書いてください。
-
-英単語と日本語が混在する場合は、
-英単語の前後にスペースを入れないでください。
-中国語の風習では普通スペースを入れますが、
-日本語ではスペースを入れないのも一般的で、
-私は基本的にスペースなしのスタイルを採用しています。
-
-1行目はタイトルなので簡潔に変更の要約をしてください。
-タイトルは68文字以内に収めることが推奨されます。
-
-必要に応じて空行の後に本文を追加してください。
-
-本文の行長はできる限り120文字以内に収めてください。
-URLなど改行できないものを挿入する場合は例外です。
-行長が100文字程度なのは普通の行長で全く問題ないです。
-行長が120文字になっても問題はありません。
-
-改行位置は句読点の後など、
-自然な場所を選んでください。
-不自然な場所で改行はしないでください。
-改行位置が不自然になるぐらいなら文章を練りなおしてください。
-日本語は英語と違い好きに改行して良い言語ではないので、
-改行位置には十分注意してください。
-
-コードのシンボル(関数名や変数名など)をメッセージに含める場合は、
-Markdownのインラインコード記法であるバッククォートで囲んでください。
-
-GitHub向けのissueに関連付けるキーワードは`close`などの原形を使ってください。
-
-本文には変更の内容だけではなく、
-なぜその変更が必要だったのか、
-理由をなるべく書いてください。
 
 ## 一時ファイルへの書き出し
 
