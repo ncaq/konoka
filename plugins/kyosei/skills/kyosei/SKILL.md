@@ -1,7 +1,7 @@
 ---
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
-argument-hint: "[REPO:owner/repo PR_NUMBER:N]"
+argument-hint: "[pr-url]"
 allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 ---
 
@@ -11,16 +11,18 @@ allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bas
 
 ## PRレビュー(GitHub投稿モード)
 
-`$ARGUMENTS`が以下の形式の場合、PRレビューとして実行します。
+`$ARGUMENTS`がGitHub PRのURLの場合、PRレビューとして実行します。
 結果はGitHub PRにインラインコメントとして投稿されます。
 
-```
-REPO:owner/repo PR_NUMBER:N
-```
+例: `/kyosei https://github.com/ncaq/konoka/pull/42`
 
-例: `REPO:ncaq/konoka PR_NUMBER:42`
+URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
+URLが`https://<host>/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
+ホストは`github.com`に限らずGitHub Enterpriseのドメインでも構いません。
+末尾スラッシュ、サブパス(`/files`、`/commits`等)、クエリパラメータが付いていても問題ありません。
+抽出した値は後続のコマンドで使用します。
 
-CI経由でもローカルからでも、この引数を渡せばPRレビューモードで実行されます。
+CI経由でもローカルからでも、PR URLを渡せばPRレビューモードで実行されます。
 
 ## ローカルレビュー
 
@@ -37,7 +39,7 @@ CI経由でもローカルからでも、この引数を渡せばPRレビュー�
 
 コンテキストに応じて差分を取得します。
 
-- PRレビュー(GitHub投稿モード): `gh pr diff PR_NUMBER --repo REPO`
+- PRレビュー(GitHub投稿モード): `gh pr diff <pr-number> --repo <owner>/<repo>`(URLから抽出した値を使用)
 - ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
 
 # コードレビューの実行
