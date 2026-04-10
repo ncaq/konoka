@@ -23,13 +23,13 @@ model: sonnet
 呼び出し元からこれらの情報が渡されない場合は、
 `gh pr view --json number,url`で現在のブランチに紐づくPRの情報を取得してください。
 
-以下のコマンドを使ってPRの会話を網羅的に取得してください:
+以下のコマンドを使ってPRの会話を網羅的に取得してください。
+コマンド例の`PR_NUMBER`と`REPO`は実際のPR番号と`owner/repo`形式のリポジトリに置き換えてください(これらはシェル変数ではなく単なるプレースホルダです)。
 
 1. `gh pr view PR_NUMBER --repo REPO --json reviews,comments,latestReviews,body`でコメントと返信を取得。
 2. `mcp__github__pull_request_read`でPR情報とインラインコメントを取得。
 3. 2の方法でうまく取得できなかったり、情報が足りない場合は、
    `gh api 'repos/{owner}/{REPO}/pulls/{PR_NUMBER}/comments'`で取得。
-   変数は適宜置き換えてください。
 
 漏れがないようにしてください。
 

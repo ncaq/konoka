@@ -71,12 +71,14 @@ PRが紐づいたブランチでも、
 
 ### ローカルからのPRレビュー(GitHub投稿モード)
 
-引数にリポジトリとPR番号を渡すと、
+引数にPRのURLを渡すと、
 CIと同様にGitHub PRへインラインコメントとして投稿します。
 
 ```
-/kyosei REPO:owner/repo PR_NUMBER:123
+/kyosei https://github.com/owner/repo/pull/123
 ```
+
+ブラウザからPRのURLをそのままコピペするだけで実行できます。
 
 外部からのPRでシークレットを渡す用意をしてない時に、
 ローカルから直接PRレビューを実行したい場合に使えます。
