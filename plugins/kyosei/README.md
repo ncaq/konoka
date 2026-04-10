@@ -74,8 +74,10 @@ PRが紐づいたブランチでも、
 引数にPRのURLを渡すと、
 CIと同様にGitHub PRへインラインコメントとして投稿します。
 
+例:
+
 ```
-/kyosei https://github.com/owner/repo/pull/123
+/kyosei https://github.com/ncaq/konoka/pull/42
 ```
 
 ブラウザからPRのURLをそのままコピペするだけで実行できます。

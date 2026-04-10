@@ -16,8 +16,8 @@ allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bas
 
 例: `/kyosei https://github.com/ncaq/konoka/pull/42`
 
-URLからリポジトリ(`owner/repo`)とPR番号を抽出してください。
-`https://github.com/<owner>/<repo>/pull/<number>`の形式です。
+URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
+URLの形式は`https://github.com/<owner>/<repo>/pull/<pr-number>`です。
 抽出した値は後続のコマンドで使用します。
 
 CI経由でもローカルからでも、PR URLを渡せばPRレビューモードで実行されます。
@@ -37,7 +37,7 @@ CI経由でもローカルからでも、PR URLを渡せばPRレビューモー�
 
 コンテキストに応じて差分を取得します。
 
-- PRレビュー(GitHub投稿モード): `gh pr diff <pr-number> --repo <owner/repo>`(URLから抽出した値を使用)
+- PRレビュー(GitHub投稿モード): `gh pr diff <pr-number> --repo <owner>/<repo>`(URLから抽出した値を使用)
 - ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
 
 # コードレビューの実行
