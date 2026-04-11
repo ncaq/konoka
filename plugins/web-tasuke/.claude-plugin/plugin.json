@@ -10,5 +10,12 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/web-tasuke",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": ["web", "html", "typescript", "javascript", "react", "accessibility"]
+  "keywords": [
+    "web",
+    "html",
+    "typescript",
+    "javascript",
+    "react",
+    "accessibility"
+  ]
 }
