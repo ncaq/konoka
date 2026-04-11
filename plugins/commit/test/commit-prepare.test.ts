@@ -25,6 +25,10 @@ describe("hasStagedChanges", () => {
     expect(hasStagedChanges("R  old-name.ts -> new-name.ts")).toBe(true);
   });
 
+  test("ステージ済みのコピーファイルを検出する", () => {
+    expect(hasStagedChanges("C  src.ts -> dest.ts")).toBe(true);
+  });
+
   test("未追跡ファイルのみの場合はfalse", () => {
     expect(hasStagedChanges("?? untracked-file.ts")).toBe(false);
   });
@@ -40,6 +44,10 @@ describe("hasStagedChanges", () => {
 
   test("空文字列の場合はfalse", () => {
     expect(hasStagedChanges("")).toBe(false);
+  });
+
+  test("末尾に空行がある場合でも正しく検出する", () => {
+    expect(hasStagedChanges("M  file.ts\n")).toBe(true);
   });
 });
 
