@@ -25,6 +25,10 @@ Claude Codeで以下を実行します。
 }
 ```
 
+## 要件
+
+- Node.js >= 23.6.0(TypeScriptファイルのフラグなし実行に必要)
+
 ## セットアップ
 
 このプラグインは一時ファイルを`$XDG_RUNTIME_DIR/coding-agent-work/commit/`配下にタイムスタンプ付きのサブディレクトリを作成して保存します。

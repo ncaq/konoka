@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-file=".github/git-commit-instructions.md"
-
-if [[ -r "$file" ]]; then
-  cat "$file"
-fi
