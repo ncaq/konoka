@@ -9,7 +9,8 @@
   },
   "enabledPlugins": {
     "kyosei@konoka": true,
-    "nix-tasuke@konoka": true
+    "nix-tasuke@konoka": true,
+    "web-tasuke@konoka": true
   },
   "enableAllProjectMcpServers": true,
   "permissions": {
