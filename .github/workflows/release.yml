@@ -7,12 +7,14 @@ on:
     types: [completed]
     branches: [master, main]
 
-permissions:
-  contents: write # タグ作成のため
+permissions: {}
 
 jobs:
   release:
+    name: release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # タグ作成のため
     concurrency:
       group: release-${{ github.ref }}
       cancel-in-progress: false
