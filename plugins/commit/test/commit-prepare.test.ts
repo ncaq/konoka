@@ -61,10 +61,14 @@ describe("hasStagedChanges", () => {
 
 describe("buildEditmsgTemplate", () => {
   test("scissors lineとdiffを含むテンプレートを生成する", () => {
-    const diff = "diff --git a/file.ts b/file.ts\n+added line";
+    const diff = "diff --git a/file.ts b/file.ts\n+added line" as const;
     const template = buildEditmsgTemplate(diff);
-    expect(template).toContain("# ------------------------ >8 ------------------------");
+    const scissors = "# ------------------------ >8 ------------------------" as const;
+    expect(template).toContain(scissors);
     expect(template).toContain(diff);
+    const scissorsIndex = template.indexOf(scissors);
+    const diffIndex = template.indexOf(diff);
+    expect(scissorsIndex).toBeLessThan(diffIndex);
   });
 
   test("テンプレートの先頭は空行で始まる", () => {
