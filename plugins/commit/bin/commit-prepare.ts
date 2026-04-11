@@ -20,7 +20,7 @@ const execFileAsync = promisify(execFile);
 
 /** Run a git command and return its stdout with trailing whitespace trimmed. */
 async function git(...args: readonly string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", [...args]);
+  const { stdout } = await execFileAsync("git", [...args], { maxBuffer: 10 * 1024 * 1024 });
   return stdout.trimEnd();
 }
 
