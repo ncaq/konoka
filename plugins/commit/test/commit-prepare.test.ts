@@ -76,4 +76,9 @@ describe("EmptyCommitError", () => {
     const error = new EmptyCommitError("No changes to commit.");
     expect(error.message).toBe("No changes to commit.");
   });
+
+  test("nameプロパティが正しい", () => {
+    const error = new EmptyCommitError("test");
+    expect(error.name).toBe("EmptyCommitError");
+  });
 });
