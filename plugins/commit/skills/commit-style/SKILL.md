@@ -1,7 +1,7 @@
 ---
 name: commit-style
 description: Commit message style guidelines. Use when writing or proposing git commit messages, including direct git commit commands outside the /commit skill.
-allowed-tools: Bash(git log:*), Bash(read-commit-instructions)
+allowed-tools: Bash(git log:*), Bash(node:*)
 user-invocable: false
 ---
 
@@ -18,7 +18,7 @@ user-invocable: false
 
 # コミットメッセージのガイドライン
 
-!`read-commit-instructions`
+!`node "${CLAUDE_PLUGIN_ROOT}/bin/read-commit-instructions.ts"`
 
 上記の内容が空でなければプロジェクト固有のコミットメッセージガイドラインです。
 内容に従ってください。
