@@ -22,7 +22,6 @@ codex = false
 disabled_rules = [
 "CC-AG-009",                    # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
 "CC-SK-008",                    # 同上。スキルのallowed-toolsでも同じ理由。
-"CC-SK-009",                    # dynamic injection上限3はシステム制約ではなくパフォーマンスガイドライン。commitスキルで4つ必要。
 "VER-001",                      # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
 "XP-SK-001",                    # Claude Codeの固有機能が使いたいので互換性は犠牲にします。
 ]
