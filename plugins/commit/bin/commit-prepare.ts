@@ -70,9 +70,18 @@ async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<
 
 /** Stage changes, write COMMIT_EDITMSG template, and print its path. */
 async function main(): Promise<void> {
-  const [workdirPath, diff] = await Promise.all([createWorkdirPath(), stageThenDiff()]);
-  const editmsgPath = await writeEditmsgTemplate(workdirPath, diff);
-  console.log(editmsgPath);
+  try {
+    const [workdirPath, diff] = await Promise.all([createWorkdirPath(), stageThenDiff()]);
+    const editmsgPath = await writeEditmsgTemplate(workdirPath, diff);
+    console.log(editmsgPath);
+  } catch (err: unknown) {
+    if (err instanceof EmptyCommitError) {
+      console.error(err.message);
+      process.exitCode = 1;
+    } else {
+      throw err;
+    }
+  }
 }
 
 await main();
