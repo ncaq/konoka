@@ -1,5 +1,6 @@
 /** Thrown when there is nothing to commit. */
 export class EmptyCommitError extends Error {
+  override name = "EmptyCommitError" as const;
   constructor(message: string) {
     super(message);
   }
