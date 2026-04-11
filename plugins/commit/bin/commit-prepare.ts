@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import process from "node:process";
 import { promisify } from "node:util";
+import { EmptyCommitError, buildEditmsgTemplate, hasStagedChanges, timestamp } from "../lib/commit-prepare.ts";
 
 /**
  * Prepare for commit: stage changes, write COMMIT_EDITMSG template.
@@ -17,26 +18,10 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-/** Thrown when there is nothing to commit. */
-class EmptyCommitError extends Error {
-  constructor(message: string) {
-    super(message);
-  }
-}
-
 /** Run a git command and return its stdout with trailing whitespace trimmed. */
 async function git(...args: readonly string[]): Promise<string> {
   const { stdout } = await execFileAsync("git", [...args]);
   return stdout.trimEnd();
-}
-
-/** Generate an ISO 8601-like timestamp for use in directory names. */
-function timestamp(): string {
-  const d = new Date();
-  const pad = (n: number): string => String(n).padStart(2, "0");
-  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const time = `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
-  return `${date}T${time}`;
 }
 
 /** Create a secure temporary working directory under $XDG_RUNTIME_DIR. */
@@ -44,14 +29,6 @@ async function createWorkdirPath(): Promise<string> {
   const basePath = join(process.env["XDG_RUNTIME_DIR"] ?? "/tmp", "coding-agent-work", "commit");
   await mkdir(basePath, { recursive: true, mode: 0o700 });
   return mkdtemp(join(basePath, `${timestamp()}-`));
-}
-
-/** Check whether git status --porcelain output contains staged entries. */
-function hasStagedChanges(status: string): boolean {
-  return status.split("\n").some((line) => {
-    const index = line[0];
-    return index != null && index !== " " && index !== "?";
-  });
 }
 
 /** Stage all changes if nothing is staged yet. Throws if there are no changes at all. */
@@ -81,8 +58,7 @@ async function getStagedDiff(): Promise<string> {
 /** Write a COMMIT_EDITMSG file with scissors line and diff as template. */
 async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<string> {
   const editmsgPath = join(workdirPath, "COMMIT_EDITMSG");
-  const template = `\n# ------------------------ >8 ------------------------\n${diff}\n`;
-  await writeFile(editmsgPath, template);
+  await writeFile(editmsgPath, buildEditmsgTemplate(diff));
   return editmsgPath;
 }
 
