@@ -64,8 +64,7 @@ async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<
 
 /** Stage changes, write COMMIT_EDITMSG template, and print its path. */
 async function main(): Promise<void> {
-  const workdirPath = await createWorkdirPath();
-  await ensureStaged();
+  const [workdirPath, _] = await Promise.all([createWorkdirPath(), ensureStaged()]);
   const diff = await getStagedDiff();
   const editmsgPath = await writeEditmsgTemplate(workdirPath, diff);
   console.log(editmsgPath);
