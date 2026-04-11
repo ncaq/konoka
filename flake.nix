@@ -107,6 +107,7 @@
                 command = pkgs.editorconfig-checker;
                 includes = [ "*" ];
               };
+              zizmor.options = [ "--pedantic" ];
             };
           };
 

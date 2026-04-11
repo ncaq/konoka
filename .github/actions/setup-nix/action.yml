@@ -26,7 +26,10 @@ runs:
       with:
         # セルフホストランナーでうっかり外部からの悪意あるPRを実行許可してしまい、
         # flake.nixの設定を受け入れると好きなキャッシュを入れられたりしてセキュリティリスクがあるため、
-        # GitHubホストランナーでのみflake.nixの設定を自動で受け入れるようにしています。
+        # GitHubホステッドランナーでのみflake.nixの設定を自動で受け入れるようにしています。
+        # GitHubホステッドランナーでは`runner.environment`は`github-hosted`になります。
+        # 仮にならなくてもキャッシュリストが読み込まれないだけなのでアクションの実行でわかるため、
+        # セキュリティのリスクはありません。
         extra_nix_config: |
           ${{ runner.environment == 'github-hosted' && 'accept-flake-config = true' || '' }}
           ${{ inputs.extra-nix-config }}
