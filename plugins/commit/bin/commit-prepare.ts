@@ -55,6 +55,12 @@ async function getStagedDiff(): Promise<string> {
   return diff;
 }
 
+/** Ensure changes are staged and return the staged diff. */
+async function stageThenDiff(): Promise<string> {
+  await ensureStaged();
+  return getStagedDiff();
+}
+
 /** Write a COMMIT_EDITMSG file with scissors line and diff as template. */
 async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<string> {
   const editmsgPath = join(workdirPath, "COMMIT_EDITMSG");
@@ -64,8 +70,7 @@ async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<
 
 /** Stage changes, write COMMIT_EDITMSG template, and print its path. */
 async function main(): Promise<void> {
-  const [workdirPath, _] = await Promise.all([createWorkdirPath(), ensureStaged()]);
-  const diff = await getStagedDiff();
+  const [workdirPath, diff] = await Promise.all([createWorkdirPath(), stageThenDiff()]);
   const editmsgPath = await writeEditmsgTemplate(workdirPath, diff);
   console.log(editmsgPath);
 }
