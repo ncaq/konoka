@@ -4,7 +4,9 @@ description: |
   Review dependency updates for changes and impact.
   Use when analyzing PR dependency version bumps.
 tools:
-  - Bash
+  - Bash(git diff:*)
+  - Bash(git log:*)
+  - Bash(git show:*)
   - Glob
   - Grep
   - Read
