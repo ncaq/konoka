@@ -1,7 +1,7 @@
 {
   "name": "kyosei",
-  "version": "2.1.1",
-  "description": "Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security.",
+  "version": "2.2.0",
+  "description": "Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",
@@ -10,5 +10,13 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/kyosei",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": ["review"]
+  "keywords": [
+    "dependencies",
+    "documentation",
+    "performance",
+    "quality",
+    "review",
+    "security",
+    "test"
+  ]
 }

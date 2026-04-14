@@ -1,6 +1,6 @@
 # kyosei
 
-Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security.
+Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.
 
 専門サブエージェントを並列起動して包括的なコードレビューを行うClaude Codeプラグインです。
 
@@ -102,15 +102,21 @@ PRがopenされるか更新されると自動でレビューが実行され、
 | エージェント                    | 観点                                       |
 | ------------------------------- | ------------------------------------------ |
 | code-quality-reviewer           | コード品質、命名、DRY原則、SOLID原則       |
+| dependency-update-reviewer      | 依存関係の更新内容とプロジェクトへの影響   |
+| documentation-accuracy-reviewer | ドキュメントと実装の整合性                 |
 | performance-reviewer            | アルゴリズム計算量、N+1問題、メモリリーク  |
+| pr-conversation-collector       | PR既存会話の収集(重複コメント回避用)       |
 | security-code-reviewer          | OWASP Top 10、インジェクション、認証/認可  |
 | test-coverage-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
-| documentation-accuracy-reviewer | ドキュメントと実装の整合性                 |
-| pr-conversation-collector       | PR既存会話の収集(重複コメント回避用)       |
 
 pr-conversation-collectorはCI経由のPRレビュー時のみ実行されます。
 収集した既存会話と照合し、
 既に指摘済みの内容やresolvedされたコメントと同じ内容は除外されます。
+
+dependency-update-reviewerは差分に依存関係の変更が含まれている場合に、
+リリースノートやコミュニティの反応を調査して影響を評価します。
+[research@konoka](../research/)プラグインが利用可能な場合は`/research`スキルを活用し、
+利用できない場合は直接Web検索やMCPで調査します。
 
 ## ライセンス
 

@@ -1,6 +1,6 @@
 ---
 name: kyosei
-description: Code review for PRs or local changes. Covers code quality, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
+description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
 allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 ---
@@ -47,6 +47,7 @@ CI経由でもローカルからでも、PR URLを渡せばPRレビューモー�
 以下の主要領域について専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
 - code-quality-reviewer
+- dependency-update-reviewer
 - documentation-accuracy-reviewer
 - performance-reviewer
 - security-code-reviewer
@@ -59,8 +60,12 @@ LLMは1回のレビューでは指摘漏れが発生しやすく、
 同じエージェントでも独立した実行になるため、
 得られる指摘は毎回少しずつ異なります。
 
+ただし以下のエージェントはLLMの揺らぎが結果に影響しにくいため、1回のみの起動で十分です:
+
+- dependency-update-reviewer
+- pr-conversation-collector
+
 PRレビューの場合は`pr-conversation-collector`も並列で起動します。
-こちらは既存会話の収集が目的でLLMの出力揺らぎによる差分を狙うものではないため、1回のみの起動で十分です。
 
 各レビューエージェントには特筆すべきフィードバックのみを提供するよう指示します。
 
