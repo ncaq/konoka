@@ -65,7 +65,11 @@ model: inherit
 
 各指摘について:
 
-- 重大度: Critical / High / Medium / Low
+- 重大度
+  - Critical
+  - High
+  - Medium
+  - Low
 - 場所: ファイルパスと行番号
 - 問題: 問題の説明(推定される計算量やリソース使用量を含む)
 - 推奨: 具体的な改善案(可能ならコード例を含む)
