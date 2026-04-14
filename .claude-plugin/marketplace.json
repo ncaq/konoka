@@ -19,10 +19,6 @@
       "source": "./plugins/commit"
     },
     {
-      "name": "dependency-update-report",
-      "source": "./plugins/dependency-update-report"
-    },
-    {
       "name": "kyosei",
       "source": "./plugins/kyosei"
     },
