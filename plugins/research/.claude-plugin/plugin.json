@@ -1,6 +1,6 @@
 {
   "name": "research",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.",
   "author": {
     "name": "ncaq",

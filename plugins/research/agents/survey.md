@@ -1,5 +1,5 @@
 ---
-name: research
+name: survey
 description: Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
 tools:
   - Glob
@@ -44,26 +44,24 @@ model: sonnet
   - 任意のURL取得(WebFetch)
 - ドキュメント
   - [Cloudflare Docs](https://developers.cloudflare.com/)(MCP)
+  - [Hackage](https://hackage.haskell.org/)(WebFetch)
   - [MDN](https://developer.mozilla.org/)(MCP)
   - [Microsoft Learn](https://learn.microsoft.com/)(MCP)
+- Nix
+  - [nixpkgs](https://github.com/NixOS/nixpkgs)(MCP)
+  - [home-manager](https://github.com/nix-community/home-manager)(MCP)
+  - [flakes](https://wiki.nixos.org/wiki/Flakes/ja)(MCP)
 - リポジトリ
   - [GitHub(コード検索、Issue/PR確認)](https://github.com/)(MCP)
   - [deepwiki](https://deepwiki.com/)(MCP)
 - プロジェクト管理
   - [Backlog(課題、Wiki、PR)](https://backlog.com/)(MCP)
-- Nix
-  - [nixpkgs](https://github.com/NixOS/nixpkgs)(MCP)
-  - [home-manager](https://github.com/nix-community/home-manager)(MCP)
-  - [flakes](https://wiki.nixos.org/wiki/Flakes/ja)(MCP)
-- Haskell
-  - [Hackage](https://hackage.haskell.org/)(WebFetch)
 
 # 検索戦略
 
 1. 質問の種類を判断し適切なソースを選択
 2. ライブラリの問題調査時はGitHub Issue/PRを確認
-3. Haskellパッケージ調査時はHackageを取得
-4. 複数ソースから情報を収集して統合
+3. 複数ソースから情報を収集して統合
 
 # 出力
 
