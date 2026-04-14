@@ -1,5 +1,5 @@
 ---
-name: research
+name: survey
 description: Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
 tools:
   - Glob
