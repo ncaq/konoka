@@ -50,7 +50,7 @@ CI経由でもローカルからでも、PR URLを渡せばPRレビューモー�
 - [performance-reviewer](../../agents/performance-reviewer.md)
 - [security-code-reviewer](../../agents/security-code-reviewer.md)
 - [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
-- [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ)
+- [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ実行します)
 
 上記のレビューエージェントを並列で起動してください。
 
