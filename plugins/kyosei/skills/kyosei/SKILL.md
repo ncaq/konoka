@@ -14,8 +14,6 @@ allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bas
 `$ARGUMENTS`がGitHub PRのURLの場合、PRレビューとして実行します。
 結果はGitHub PRにインラインコメントとして投稿されます。
 
-例: `/kyosei https://github.com/ncaq/konoka/pull/42`
-
 URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
 URLが`https://<host>/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
 ホストは`github.com`に限らずGitHub Enterpriseのドメインでも構いません。
