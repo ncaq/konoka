@@ -44,13 +44,13 @@ CI経由でもローカルからでも、PR URLを渡せばPRレビューモー�
 
 以下の主要領域について専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
-- code-quality-reviewer
-- dependency-update-reviewer
-- documentation-accuracy-reviewer
-- performance-reviewer
-- security-code-reviewer
-- test-coverage-reviewer
-- pr-conversation-collector (PRレビューの場合のみ)
+- [code-quality-reviewer](../../agents/code-quality-reviewer.md)
+- [dependency-update-reviewer](../../agents/dependency-update-reviewer.md)
+- [documentation-accuracy-reviewer](../../agents/documentation-accuracy-reviewer.md)
+- [performance-reviewer](../../agents/performance-reviewer.md)
+- [security-code-reviewer](../../agents/security-code-reviewer.md)
+- [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
+- [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ)
 
 上記のレビューエージェントを並列で起動してください。
 
