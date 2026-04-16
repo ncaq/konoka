@@ -40,6 +40,7 @@
               ./package-lock.json
             ];
           };
+
           nodeModules = pkgs.importNpmLock.buildNodeModules {
             inherit
               nodejs
@@ -53,9 +54,11 @@
               ./.editorconfig
               ./.gitignore
               ./eslint.config.ts
+
               ./package.json
-              ./plugins
               ./tsconfig.json
+
+              ./plugins
             ];
           };
 
@@ -69,6 +72,47 @@
               ''
                 cp -r ${tsSrc}/. .
                 ln -s ${nodeModules}/node_modules node_modules
+                npm run ${script}
+                touch $out
+              '';
+
+          npmRootKyosei = lib.fileset.toSource {
+            root = ./plugins/kyosei;
+            fileset = lib.fileset.unions [
+              ./plugins/kyosei/package.json
+              ./plugins/kyosei/package-lock.json
+            ];
+          };
+
+          nodeModulesKyosei = pkgs.importNpmLock.buildNodeModules {
+            inherit
+              nodejs
+              ;
+            npmRoot = npmRootKyosei;
+          };
+
+          tsSrcKyosei = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./.editorconfig
+              ./.gitignore
+              ./eslint.config.ts
+
+              ./plugins/kyosei
+            ];
+          };
+
+          # npm run経由でスクリプト実行を簡単にするためのヘルパー。
+          mkNpmCheckKyosei =
+            name: script:
+            pkgs.runCommand name
+              {
+                nativeBuildInputs = [ nodejs ];
+              }
+              ''
+                cp -r ${tsSrcKyosei}/. .
+                ln -s ${nodeModulesKyosei}/node_modules node_modules
+                cd plugins/kyosei
                 npm run ${script}
                 touch $out
               '';
@@ -127,6 +171,10 @@
             lint-prettier = mkNpmCheck "lint-prettier" "lint:prettier";
             lint-tsc = mkNpmCheck "lint-tsc" "lint:tsc";
             test = mkNpmCheck "test" "test";
+
+            lint-eslint-kyosei = mkNpmCheckKyosei "lint-eslint-kyosei" "lint:eslint";
+            lint-prettier-kyosei = mkNpmCheckKyosei "lint-prettier-kyosei" "lint:prettier";
+            lint-tsc-kyosei = mkNpmCheckKyosei "lint-tsc-kyosei" "lint:tsc";
           };
 
           packages = {
