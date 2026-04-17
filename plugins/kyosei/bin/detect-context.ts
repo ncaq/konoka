@@ -11,9 +11,18 @@ import process from "node:process";
 import { detectReviewContext } from "../src/context.js";
 
 function main(): void {
-  const argument = process.argv[2];
-  const reviewContext = detectReviewContext(argument);
-  process.stdout.write(JSON.stringify(reviewContext));
+  try {
+    const argument = process.argv[2];
+    const reviewContext = detectReviewContext(argument);
+    process.stdout.write(JSON.stringify(reviewContext));
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      process.stderr.write(`Error: ${err.message}`);
+    } else {
+      process.stderr.write(`Error: ${String(err)}`);
+    }
+    process.exitCode = 1;
+  }
 }
 
 main();
