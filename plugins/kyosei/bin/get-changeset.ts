@@ -23,9 +23,8 @@ async function main(): Promise<void> {
 main().catch((err: unknown) => {
   if (err instanceof Error) {
     process.stderr.write(`Error: ${err.message}`);
-    process.exitCode = 1;
-    return;
+  } else {
+    process.stderr.write(`Error: ${String(err)}`);
   }
-  process.stderr.write(`Error: ${String(err)}`);
   process.exitCode = 1;
 });
