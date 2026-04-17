@@ -109,7 +109,7 @@ PRがopenされるか更新されると自動でレビューが実行され、
 | security-code-reviewer          | OWASP Top 10、インジェクション、認証/認可  |
 | test-coverage-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
 
-pr-conversation-collectorはCI経由のPRレビュー時のみ実行されます。
+pr-conversation-collectorはPRレビュー時のみ実行されます。
 収集した既存会話と照合し、
 既に指摘済みの内容やresolvedされたコメントと同じ内容は除外されます。
 
