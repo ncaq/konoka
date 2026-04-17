@@ -20,7 +20,7 @@
   "devDependencies": {
     "@eslint/compat": "2.0.5",
     "@eslint/js": "10.0.1",
-    "@types/git-url-parse": "16.0.0",
+    "@types/git-url-parse": "16.0.2",
     "@types/node": "20.19.39",
     "eslint": "10.2.0",
     "eslint-config-prettier": "10.1.8",
