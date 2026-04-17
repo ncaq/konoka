@@ -10,7 +10,8 @@
     "lint": "run-p lint:*",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --check .",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "git-url-parse": "^16.1.0",
