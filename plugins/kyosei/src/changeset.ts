@@ -8,7 +8,7 @@
 import type { Octokit } from "octokit";
 import type { PrReviewContext, ReviewContext } from "./context.js";
 import { execFileAsync } from "./exec.js";
-import { getRemoteRepo } from "./remote.js";
+import { getRemoteRepo, type RemoteRepo } from "./remote.js";
 
 /**
  * レビュー対象の変更セット。
@@ -65,6 +65,17 @@ async function getCurrentBranch(): Promise<string> {
 }
 
 /**
+ * リポジトリのデフォルトブランチを取得します。
+ */
+async function getDefaultBranch(octokit: Octokit, remoteRepo: RemoteRepo): Promise<string> {
+  const repoResponse = await octokit.rest.repos.get({
+    owner: remoteRepo.owner,
+    repo: remoteRepo.repo,
+  });
+  return repoResponse.data.default_branch;
+}
+
+/**
  * ローカルブランチのベースブランチを特定します。
  * まず現在のブランチに対応するPRがあればそのベースブランチを使い、
  * なければリポジトリのデフォルトブランチにフォールバックします。
@@ -82,15 +93,19 @@ async function getLocalBaseBranch(octokit: Octokit): Promise<string> {
     const pr = prListResponse.data[0];
     if (pr != null) {
       return pr.base.ref;
+    } else {
+      // PRが見つからない場合はデフォルトブランチにフォールバックします。
+      return getDefaultBranch(octokit, remoteRepo);
     }
-  } catch {
-    // PRが見つからない場合はデフォルトブランチにフォールバックします。
+  } catch (err: unknown) {
+    // 他の何かしらのエラーが発生した場合は警告を出した上でデフォルトブランチにフォールバックします。
+    if (err instanceof Error) {
+      console.warn(`failed to get base branch for current branch, fallback to default branch: ${err.message}`);
+    } else {
+      console.warn(`failed to get base branch for current branch, fallback to default branch: ${String(err)}`);
+    }
+    return getDefaultBranch(octokit, remoteRepo);
   }
-  const repoResponse = await octokit.rest.repos.get({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-  });
-  return repoResponse.data.default_branch;
 }
 
 /**
