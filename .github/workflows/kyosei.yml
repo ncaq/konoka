@@ -19,5 +19,6 @@ jobs:
     uses: ncaq/kyosei-action/.github/workflows/review.yml@b382b91e7bc94738d7de5f6fa41b4299e83bf126 # v1.2.0
     with:
       display_report: "true" # もともと大して危険ではないし、kyoseiの動きを見るために有効にします。
+      additional_allowed_tools: "Bash(node:*)" # 新規パーミッションとして必要になったかもしれません。
     secrets:
       claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
