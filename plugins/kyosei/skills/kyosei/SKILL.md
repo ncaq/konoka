@@ -19,6 +19,7 @@ allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bas
 ### PRレビュー(GitHub投稿モード): `mode` が `"pr"` の場合
 
 結果はGitHub PRにインラインコメントとして投稿されます。
+
 JSONから主に以下の値を後続のコマンドで使用します:
 
 - `owner`: リポジトリの所有者
