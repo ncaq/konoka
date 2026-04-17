@@ -1,6 +1,6 @@
 {
   "name": "kyosei",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.",
   "author": {
     "name": "ncaq",
