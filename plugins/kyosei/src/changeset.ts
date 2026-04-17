@@ -36,7 +36,7 @@ async function getPrChangeset(octokit: Octokit, context: PrReviewContext): Promi
       owner: context.owner,
       repo: context.repo,
       pull_number: context.prNumber,
-      per_page: 200, // コミットログは200件以上は追いません。なくてもレビューは可能ですし。
+      per_page: 100, // コミットログは100件以上は追いません。なくてもレビューは可能ですし。
     }),
   ]);
   const log = commitsResponse.data
