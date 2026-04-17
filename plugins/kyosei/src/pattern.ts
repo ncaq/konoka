@@ -3,13 +3,6 @@
  */
 
 /**
- * GitHub PRのURLパターン。
- * `https://<host>/<owner>/<repo>/pull/<number>`形式にマッチします。
- * 末尾のサブパス(/files, /commits等)やクエリパラメータは無視します。
- */
-export const prUrlPattern: RegExp = /^https?:\/\/([^/]+)\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
-
-/**
  * Gitリモートの各種URL形式にマッチするパターン。
  * HTTPS, SSH, git+ssh形式に対応しています。
  *

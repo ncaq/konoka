@@ -4,8 +4,6 @@
  * PRレビューの場合はURLからowner, repo, PR番号を抽出します。
  */
 
-import { prUrlPattern } from "./pattern.js";
-
 /**
  * PRレビューのコンテキスト。
  * GitHub PRのURLから抽出された情報を保持します。
@@ -38,22 +36,32 @@ export type ReviewContext = PrReviewContext | LocalReviewContext;
 /**
  * 引数文字列を解析してPR URLからコンテキスト情報を抽出します。
  * PR URLでない場合はundefinedを返します。
+ *
+ * `https://<host>/<owner>/<repo>/pull/<number>`形式を想定しています。
+ * 末尾のサブパス(/files, /commits等)やクエリパラメータがあっても問題ありません。
  */
 function parsePrUrl(argument: string): PrReviewContext | undefined {
-  const match = prUrlPattern.exec(argument.trim());
-  if (match == null) {
-    return undefined;
+  try {
+    const url = new URL(argument.trim());
+    const [owner, repo, pullLiteral, prNumberStr] = url.pathname.split("/").filter((s) => s !== "");
+    if (owner == null || repo == null || pullLiteral !== "pull" || prNumberStr == null) {
+      return undefined;
+    }
+    const prNumber = Number.parseInt(prNumberStr, 10);
+    if (!Number.isFinite(prNumber) || prNumber <= 0) {
+      return undefined;
+    }
+    return { mode: "pr", host: url.hostname, owner, repo, prNumber };
+  } catch (err: unknown) {
+    // new URL()がURLとして解釈できない文字列で投げるTypeErrorは想定通りなのでローカルモードとして扱います。
+    if (err instanceof TypeError) {
+      return undefined;
+    }
+    if (err instanceof Error) {
+      throw new Error(`failed to parse PR URL: ${err.message}`, { cause: err });
+    }
+    throw new Error("failed to parse PR URL", { cause: err });
   }
-  const [, host, owner, repo, prNumberStr] = match;
-  // 正規表現のキャプチャグループは全て必須なので型安全のためにチェックします。
-  if (host == null || owner == null || repo == null || prNumberStr == null) {
-    return undefined;
-  }
-  const prNumber = Number.parseInt(prNumberStr, 10);
-  if (!Number.isFinite(prNumber) || prNumber <= 0) {
-    return undefined;
-  }
-  return { mode: "pr", host, owner, repo, prNumber };
 }
 
 /**
