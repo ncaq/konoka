@@ -8,7 +8,6 @@ description: |
   - Completing a logical chunk of code that needs documentation review
   - Preparing code for review/release
 tools:
-  - Bash
   - Glob
   - Grep
   - Read

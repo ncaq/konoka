@@ -11,7 +11,6 @@ description: |
   The agent should be called proactively after completing security-sensitive
   code sections like login systems, data validation layers, or permission checks.
 tools:
-  - Bash
   - Glob
   - Grep
   - Read

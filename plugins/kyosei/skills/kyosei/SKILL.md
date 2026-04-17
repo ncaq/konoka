@@ -44,7 +44,7 @@ JSONから主に以下の値を後続のコマンドで使用します:
 
 # コードレビューの実行
 
-以下の主要領域について専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
+主要領域について以下の専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
 - [code-quality-reviewer](../../agents/code-quality-reviewer.md)
 - [dependency-update-reviewer](../../agents/dependency-update-reviewer.md)
@@ -54,9 +54,11 @@ JSONから主に以下の値を後続のコマンドで使用します:
 - [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
 - [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ実行します)
 
-上記のレビューエージェントを並列で起動してください。
+サブエージェントは一度に全て並列に起動してください。
 
-各レビューエージェントには特筆すべきフィードバックのみを提供するよう指示します。
+各レビューエージェントのプロンプトには取得済みの差分を含めてください。
+レビューエージェントは差分を取得するためのツールを原則として持たないため、
+自分で差分を取得しないようになっています。
 
 # 並列実行結果のマージ
 

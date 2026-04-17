@@ -9,7 +9,6 @@ description: |
   - Before committing significant changes
   - When uncertain about code quality
 tools:
-  - Bash
   - Glob
   - Grep
   - Read
