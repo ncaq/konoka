@@ -63,10 +63,12 @@ function getUrlEnvironmentVariable(name: string): URL | undefined {
   if (value == null) {
     return undefined;
   }
-  // URLとして解釈できない値が環境変数に入っている時は変なことが置きていそうなので、
-  // 素直にURLコンストラクタに任せて例外をそのままスローさせます。
-  // 他のコードでも同様です。
-  return new URL(value);
+  try {
+    return new URL(value);
+  } catch (err: unknown) {
+    // 環境変数の内部は機密情報がある可能性があるので、値を直接エラーメッセージに含めないようにしています。
+    throw new Error(`environment variable ${name} contains an invalid URL`, { cause: err });
+  }
 }
 
 /**
