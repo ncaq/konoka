@@ -29,18 +29,17 @@ JSONから主に以下の値を後続のコマンドで使用します:
 
 結果はターミナルに直接出力されます。
 
-# ベースブランチの特定
+# 変更セットの取得
 
-1. `gh pr view --json baseRefName --jq .baseRefName`でPRのベースブランチを取得
-2. PRが存在しない場合(コマンドがエラーになった場合)は、
-   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`でデフォルトブランチを使用
+以下のコマンドで変更セットを取得します。
+結果はJSONで返されます。
 
-# 差分の取得
+!`node ${CLAUDE_PLUGIN_ROOT}/dist/src/get-changeset.js $ARGUMENTS`
 
-コンテキストに応じて差分を取得します。
+## JSONの解釈
 
-- PRレビュー(GitHub投稿モード): `gh pr diff <pr-number> --repo <owner>/<repo>`(URLから抽出した値を使用)
-- ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
+- `diff`: 差分(diffフォーマット)
+- `log`: コミットログ
 
 # コードレビューの実行
 
