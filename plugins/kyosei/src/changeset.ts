@@ -82,27 +82,20 @@ async function getDefaultBranch(octokit: Octokit, remoteRepo: RemoteRepo): Promi
  */
 async function getLocalBaseBranch(octokit: Octokit): Promise<{ remoteRepo: RemoteRepo; baseBranch: string }> {
   const [remoteRepo, currentBranch] = await Promise.all([getRemoteRepo(), getCurrentBranch()]);
-  try {
-    const prListResponse = await octokit.rest.pulls.list({
-      owner: remoteRepo.owner,
-      repo: remoteRepo.repo,
-      head: `${remoteRepo.owner}:${currentBranch}`,
-      state: "open",
-      per_page: 1,
-    });
-    const pr = prListResponse.data[0];
-    if (pr != null) {
-      return { remoteRepo, baseBranch: pr.base.ref };
-    } else {
-      // PRが見つからない場合はデフォルトブランチにフォールバックします。
-      const baseBranch = await getDefaultBranch(octokit, remoteRepo);
-      return { remoteRepo, baseBranch };
-    }
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      throw new Error(`failed to get base branch for current branch: ${err.message}`, { cause: err });
-    }
-    throw new Error("failed to get base branch for current branch", { cause: err });
+  const prListResponse = await octokit.rest.pulls.list({
+    owner: remoteRepo.owner,
+    repo: remoteRepo.repo,
+    head: `${remoteRepo.owner}:${currentBranch}`,
+    state: "open",
+    per_page: 1,
+  });
+  const pr = prListResponse.data[0];
+  if (pr != null) {
+    return { remoteRepo, baseBranch: pr.base.ref };
+  } else {
+    // PRが見つからない場合はデフォルトブランチにフォールバックします。
+    const baseBranch = await getDefaultBranch(octokit, remoteRepo);
+    return { remoteRepo, baseBranch };
   }
 }
 
