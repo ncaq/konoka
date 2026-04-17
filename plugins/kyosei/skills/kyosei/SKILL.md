@@ -22,9 +22,10 @@ allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_in
 
 JSONから主に以下の値を後続のコマンドで使用します:
 
-- `owner`: リポジトリの所有者
-- `repo`: リポジトリ名
-- `prNumber`: PR番号
+- `host`: GitHubのホスト。GitHub Enterpriseの場合のみ考慮してください。
+- `owner`: リポジトリの所有者。
+- `repo`: リポジトリ名。
+- `prNumber`: PR番号。
 
 ### ローカルレビュー: `mode` が `"local"` の場合
 
