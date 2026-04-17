@@ -2,32 +2,31 @@
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
-allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 ---
 
 # コンテキストの判定
 
-以下の順序でレビュー対象のコンテキストを判定します。
+以下のコマンドでレビューコンテキストを判定します。
+結果はJSONで返されます。
 
-## PRレビュー(GitHub投稿モード)
+!`node ${CLAUDE_PLUGIN_ROOT}/dist/src/detect-context.js $ARGUMENTS`
 
-`$ARGUMENTS`がGitHub PRのURLの場合、
-PRレビューとして実行します。
+## JSONの解釈
+
+`mode`フィールドでレビューモードを判別します。
+
+### PRレビュー(GitHub投稿モード): `mode` が `"pr"` の場合
+
 結果はGitHub PRにインラインコメントとして投稿されます。
+JSONから主に以下の値を後続のコマンドで使用します:
 
-URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
-URLが`https://<host>/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
-ホストは`github.com`に限らずGitHub Enterpriseのドメインでも構いません。
-末尾スラッシュ、サブパス(`/files`、`/commits`等)、クエリパラメータが付いていても問題ありません。
-抽出した値は後続のコマンドで使用します。
+- `owner`: リポジトリの所有者
+- `repo`: リポジトリ名
+- `prNumber`: PR番号
 
-CI経由でもローカルからでも、
-PR URLを渡せばPRレビューモードで実行されます。
+### ローカルレビュー: `mode` が `"local"` の場合
 
-## ローカルレビュー
-
-`$ARGUMENTS`がない場合、
-ローカルレビューとして実行します。
 結果はターミナルに直接出力されます。
 
 # ベースブランチの特定
