@@ -2,67 +2,72 @@
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
-allowed-tools: Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 ---
 
 # コンテキストの判定
 
-以下の順序でレビュー対象のコンテキストを判定します。
+以下のコマンドでレビューコンテキストを判定します。
+結果はJSONで返されます。
 
-## PRレビュー(GitHub投稿モード)
+!`node ${CLAUDE_PLUGIN_ROOT}/dist/bin/detect-context.js $ARGUMENTS`
 
-`$ARGUMENTS`がGitHub PRのURLの場合、PRレビューとして実行します。
+## JSONの解釈
+
+`mode`フィールドでレビューモードを判別します。
+
+### PRレビュー(GitHub投稿モード): `mode` が `"pr"` の場合
+
 結果はGitHub PRにインラインコメントとして投稿されます。
 
-例: `/kyosei https://github.com/ncaq/konoka/pull/42`
+JSONから主に以下の値を後続のコマンドで使用します:
 
-URLから所有者`<owner>`、リポジトリ名`<repo>`、PR番号`<pr-number>`を抽出してください。
-URLが`https://<host>/<owner>/<repo>/pull/<pr-number>`を含んでいればPR URLとみなします。
-ホストは`github.com`に限らずGitHub Enterpriseのドメインでも構いません。
-末尾スラッシュ、サブパス(`/files`、`/commits`等)、クエリパラメータが付いていても問題ありません。
-抽出した値は後続のコマンドで使用します。
+- `host`: GitHubのホスト。GitHub Enterpriseの場合のみ考慮してください。
+- `owner`: リポジトリの所有者。
+- `repo`: リポジトリ名。
+- `prNumber`: PR番号。
 
-CI経由でもローカルからでも、PR URLを渡せばPRレビューモードで実行されます。
+### ローカルレビュー: `mode` が `"local"` の場合
 
-## ローカルレビュー
-
-`$ARGUMENTS`がない場合、ローカルレビューとして実行します。
 結果はターミナルに直接出力されます。
 
-# ベースブランチの特定
+# 変更セットの取得
 
-1. `gh pr view --json baseRefName --jq .baseRefName`でPRのベースブランチを取得
-2. PRが存在しない場合(コマンドがエラーになった場合)は、
-   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`でデフォルトブランチを使用
+以下のコマンドで変更セットを取得します。
+結果はJSONで返されます。
 
-# 差分の取得
+!`node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS`
 
-コンテキストに応じて差分を取得します。
+## JSONの解釈
 
-- PRレビュー(GitHub投稿モード): `gh pr diff <pr-number> --repo <owner>/<repo>`(URLから抽出した値を使用)
-- ローカルレビュー: `git diff <base>...HEAD` と `git log <base>...HEAD`
+- `diff`: 差分(diffフォーマット)
+- `log`: コミットログ
 
 # コードレビューの実行
 
-以下の主要領域について専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
+主要領域について以下の専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
-- code-quality-reviewer
-- dependency-update-reviewer
-- documentation-accuracy-reviewer
-- performance-reviewer
-- security-code-reviewer
-- test-coverage-reviewer
-- pr-conversation-collector (PRレビューの場合のみ)
+- [code-quality-reviewer](../../agents/code-quality-reviewer.md)
+- [dependency-update-reviewer](../../agents/dependency-update-reviewer.md)
+- [documentation-accuracy-reviewer](../../agents/documentation-accuracy-reviewer.md)
+- [performance-reviewer](../../agents/performance-reviewer.md)
+- [security-code-reviewer](../../agents/security-code-reviewer.md)
+- [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
+- [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ実行します)
 
-上記のレビューエージェントを並列で起動してください。
+サブエージェントは一度に全て並列に起動してください。
 
-各レビューエージェントには特筆すべきフィードバックのみを提供するよう指示します。
+各レビューエージェントのプロンプトには取得済みの差分を含めてください。
+レビューエージェントは差分を取得するためのツールを原則として持たないため、
+自分で差分を取得しないようになっています。
 
 # 並列実行結果のマージ
 
-複数エージェントからのレビュー結果を集約し、重複する指摘は1つにまとめてください。
+複数エージェントからのレビュー結果を集約し、
+重複する指摘は1つにまとめてください。
 
-以下の3条件を全て満たす指摘は同一とみなし、1つにまとめてください:
+以下の3条件を全て満たす指摘は同一とみなし、
+1つにまとめてください:
 
 - 同じファイルである
 - 概ね同じ行である(数行程度のずれは同一とみなす)
@@ -78,13 +83,15 @@ CI経由でもローカルからでも、PR URLを渡せばPRレビューモー�
 
 # 重複コメントの除外
 
-`pr-conversation-collector`の結果がある場合、レビューフィードバックと照合し、以下に該当するものは除外します:
+`pr-conversation-collector`の結果がある場合、
+レビューフィードバックと照合し、
+以下に該当するものは除外します:
 
 - 既に同じ指摘が既存コメントに含まれている
 - 指摘に対して「対応しない」「意図的」「仕様」等の返答がある
 - 既にresolvedされたレビューコメントと同じ内容
 
-除外後、残った特筆すべきフィードバックのみを出力します。
+除外後に残った特筆すべきフィードバックのみを出力します。
 
 # フィードバックの出力
 

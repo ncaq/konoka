@@ -1,6 +1,7 @@
 # kyosei
 
-Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.
+Code review for PRs or local changes.
+Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.
 
 専門サブエージェントを並列起動して包括的なコードレビューを行うClaude Codeプラグインです。
 
@@ -31,9 +32,18 @@ pushしてCIの完了を待つことなく手元で即座にレビューを確�
 
 またclaude-code-actionのエージェントに含まれている、
 プロジェクト固有のコーディング規約によるノイズを除外しています。
-例えばclaude-code-actionのcode-quality-reviewerエージェントには「Prefer `type` over `interface` as per project standards」というTypeScript固有の指示が含まれていますが、
+例えばclaude-code-actionのcode-quality-reviewerエージェントには
+「Prefer `type` over `interface` as per project standards」
+というTypeScript固有の指示が含まれていますが、
 これはレビュー対象がTypeScriptを含まないプロジェクトであっても適用されてしまいます。
 そういったプロジェクト固有の規約は`CLAUDE.md`などで指定することを想定しています。
+
+## 前提条件
+
+- Node.js 24以上
+- npm
+
+セッション開始時にビルド済みでなければ`npm ci`と`npm run build`が自動実行されます。
 
 ## インストール
 
@@ -109,7 +119,7 @@ PRがopenされるか更新されると自動でレビューが実行され、
 | security-code-reviewer          | OWASP Top 10、インジェクション、認証/認可  |
 | test-coverage-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
 
-pr-conversation-collectorはCI経由のPRレビュー時のみ実行されます。
+pr-conversation-collectorはPRレビュー時のみ実行されます。
 収集した既存会話と照合し、
 既に指摘済みの内容やresolvedされたコメントと同じ内容は除外されます。
 

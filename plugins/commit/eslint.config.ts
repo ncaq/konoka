@@ -14,7 +14,7 @@ const __filename: string = fileURLToPath(import.meta.url);
 /** ES Modulesだと使用できない変数のエミュレート。 */
 const __dirname: string = path.dirname(__filename);
 /** そのプロジェクトの.gitignoreのパス。 */
-const gitignorePath: string = path.resolve(__dirname, ".gitignore");
+const gitignorePath: string = path.resolve(__dirname, "../", "../", ".gitignore");
 
 /** ESLintが使用する設定を定義。 */
 const config: ReturnType<typeof defineConfig> = defineConfig(
@@ -120,6 +120,7 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
     },
   },
 );
+
 // ESLintの設定をエクスポート。
 // 型定義とdefault exportが両立できないため分けています。
 export default config;

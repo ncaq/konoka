@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# `dist/`が存在すればビルド済みなので何もしません。
+# プラグイン更新時は`CLAUDE_PLUGIN_ROOT`ごと入れ替わり`dist/`も消えるため、
+# この存在チェックだけで初回・更新後の両方を検知できます。
+[ -d "${CLAUDE_PLUGIN_ROOT}/dist" ] && exit 0
+
+# ビルドされていなかったのでビルドとインストールを行います。
+echo "Installing dependencies and building kyosei plugin..."
+
+# プロジェクトのディレクトリに移動。
+cd "${CLAUDE_PLUGIN_ROOT}"
+# 依存関係をインストール。
+npm ci
+# プログラムをビルド。
+npm run build

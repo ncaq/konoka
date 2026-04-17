@@ -10,7 +10,6 @@ description: |
   - When completing code that involves loops, network requests,
     or memory-intensive operations
 tools:
-  - Bash
   - Glob
   - Grep
   - Read

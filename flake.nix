@@ -33,45 +33,60 @@
         let
           nodejs = pkgs.nodejs_24;
 
-          npmRoot = lib.fileset.toSource {
-            root = ./.;
-            fileset = lib.fileset.unions [
-              ./package.json
-              ./package-lock.json
-            ];
-          };
-          nodeModules = pkgs.importNpmLock.buildNodeModules {
-            inherit
-              nodejs
-              npmRoot
-              ;
-          };
-
-          tsSrc = lib.fileset.toSource {
-            root = ./.;
-            fileset = lib.fileset.unions [
-              ./.editorconfig
-              ./.gitignore
-              ./eslint.config.ts
-              ./package.json
-              ./plugins
-              ./tsconfig.json
-            ];
-          };
-
-          # npm run経由でスクリプト実行を簡単にするためのヘルパー。
-          mkNpmCheck =
-            name: script:
-            pkgs.runCommand name
-              {
-                nativeBuildInputs = [ nodejs ];
-              }
-              ''
-                cp -r ${tsSrc}/. .
-                ln -s ${nodeModules}/node_modules node_modules
-                npm run ${script}
-                touch $out
-              '';
+          # プラグインディレクトリのリストから全チェックのattrsetを生成する。
+          pluginChecks =
+            let
+              scriptList = [
+                "lint:eslint"
+                "lint:prettier"
+                "lint:tsc"
+                "test"
+              ];
+              mkPluginChecks =
+                pluginDir:
+                let
+                  pluginName = builtins.baseNameOf pluginDir;
+                  npmRoot = lib.fileset.toSource {
+                    root = pluginDir;
+                    fileset = lib.fileset.unions [
+                      (pluginDir + "/package.json")
+                      (pluginDir + "/package-lock.json")
+                    ];
+                  };
+                  nodeModules = pkgs.importNpmLock.buildNodeModules {
+                    inherit nodejs npmRoot;
+                  };
+                  tsSrc = lib.fileset.toSource {
+                    root = ./.;
+                    fileset = lib.fileset.unions [
+                      ./.editorconfig
+                      ./.gitignore
+                      pluginDir
+                    ];
+                  };
+                  mkCheck =
+                    script:
+                    let
+                      checkName = "${builtins.replaceStrings [ ":" ] [ "-" ] script}-${pluginName}";
+                    in
+                    lib.nameValuePair checkName (
+                      pkgs.runCommand checkName { nativeBuildInputs = [ nodejs ]; } ''
+                        cp -r ${tsSrc}/. .
+                        ln -s ${nodeModules}/node_modules node_modules
+                        cd plugins/${pluginName}
+                        npm run ${script}
+                        touch $out
+                      ''
+                    );
+                in
+                lib.listToAttrs (map mkCheck scriptList);
+            in
+            lib.foldl' lib.mergeAttrs { } (
+              map mkPluginChecks [
+                ./plugins/commit
+                ./plugins/kyosei
+              ]
+            );
 
           agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
 
@@ -123,11 +138,8 @@
                   agnix --strict
                   touch $out
                 '';
-            lint-eslint = mkNpmCheck "lint-eslint" "lint:eslint";
-            lint-prettier = mkNpmCheck "lint-prettier" "lint:prettier";
-            lint-tsc = mkNpmCheck "lint-tsc" "lint:tsc";
-            test = mkNpmCheck "test" "test";
-          };
+          }
+          // pluginChecks;
 
           packages = {
             # flake.lockの管理バージョンをre-exportすることで安定した利用を促進。
@@ -158,8 +170,6 @@
               # AIコーディングアシスタント設定のリンター。
               agnix
             ];
-            packages = [ pkgs.importNpmLock.hooks.linkNodeModulesHook ];
-            npmDeps = nodeModules;
           };
         };
     };

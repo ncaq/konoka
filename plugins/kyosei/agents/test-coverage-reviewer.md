@@ -8,7 +8,6 @@ description: |
   When refactoring code, use this agent to ensure tests still adequately cover all scenarios.
   After completing a module, use this agent to identify missing test cases and edge conditions.
 tools:
-  - Bash
   - Glob
   - Grep
   - Read
