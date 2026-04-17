@@ -76,11 +76,11 @@ async function getDefaultBranch(octokit: Octokit, remoteRepo: RemoteRepo): Promi
 }
 
 /**
- * ローカルブランチのベースブランチを特定します。
+ * ローカルブランチのベースブランチを特定し、リモート名と合わせて返します。
  * まず現在のブランチに対応するPRがあればそのベースブランチを使い、
  * なければリポジトリのデフォルトブランチにフォールバックします。
  */
-async function getLocalBaseBranch(octokit: Octokit): Promise<string> {
+async function getLocalBaseBranch(octokit: Octokit): Promise<{ remoteRepo: RemoteRepo; baseBranch: string }> {
   const [remoteRepo, currentBranch] = await Promise.all([getRemoteRepo(), getCurrentBranch()]);
   try {
     const prListResponse = await octokit.rest.pulls.list({
@@ -92,19 +92,17 @@ async function getLocalBaseBranch(octokit: Octokit): Promise<string> {
     });
     const pr = prListResponse.data[0];
     if (pr != null) {
-      return pr.base.ref;
+      return { remoteRepo, baseBranch: pr.base.ref };
     } else {
       // PRが見つからない場合はデフォルトブランチにフォールバックします。
-      return getDefaultBranch(octokit, remoteRepo);
+      const baseBranch = await getDefaultBranch(octokit, remoteRepo);
+      return { remoteRepo, baseBranch };
     }
   } catch (err: unknown) {
-    // 他の何かしらのエラーが発生した場合は警告を出した上でデフォルトブランチにフォールバックします。
     if (err instanceof Error) {
-      console.warn(`failed to get base branch for current branch, fallback to default branch: ${err.message}`);
-    } else {
-      console.warn(`failed to get base branch for current branch, fallback to default branch: ${String(err)}`);
+      throw new Error(`failed to get base branch for current branch: ${err.message}`, { cause: err });
     }
-    return getDefaultBranch(octokit, remoteRepo);
+    throw new Error("failed to get base branch for current branch", { cause: err });
   }
 }
 
@@ -112,8 +110,8 @@ async function getLocalBaseBranch(octokit: Octokit): Promise<string> {
  * ローカルレビューモードの変更セットを取得します。
  */
 async function getLocalChangeset(octokit: Octokit): Promise<Changeset> {
-  const baseBranch = await getLocalBaseBranch(octokit);
-  const range = `${baseBranch}...HEAD`;
+  const { remoteRepo, baseBranch } = await getLocalBaseBranch(octokit);
+  const range = `${remoteRepo.remoteName}/${baseBranch}...HEAD`;
   const [gitDiffOutput, gitLogOutput] = await Promise.all([
     execFileAsync("git", ["diff", range]),
     execFileAsync("git", ["log", range]),
