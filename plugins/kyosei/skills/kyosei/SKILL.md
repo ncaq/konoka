@@ -8,9 +8,11 @@ allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_in
 # コンテキストの判定
 
 以下のコマンドでレビューコンテキストを判定します。
-結果はJSONで返されます。
+結果はJSONで返されるので、そのまま解釈してください。
 
-!`node ${CLAUDE_PLUGIN_ROOT}/dist/bin/detect-context.js $ARGUMENTS`
+```
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/detect-context.js $ARGUMENTS
+```
 
 ## JSONの解釈
 
@@ -34,9 +36,11 @@ JSONから主に以下の値を後続のコマンドで使用します:
 # 変更セットの取得
 
 以下のコマンドで変更セットを取得します。
-結果はJSONで返されます。
+結果はJSONで返されるので、そのまま解釈してください。
 
-!`node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS`
+```
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS
+```
 
 ## JSONの解釈
 
