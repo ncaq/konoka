@@ -166,6 +166,7 @@
             lint-eslint-kyosei = mkNpmCheckKyosei "lint-eslint-kyosei" "lint:eslint";
             lint-prettier-kyosei = mkNpmCheckKyosei "lint-prettier-kyosei" "lint:prettier";
             lint-tsc-kyosei = mkNpmCheckKyosei "lint-tsc-kyosei" "lint:tsc";
+            test-kyosei = mkNpmCheckKyosei "test-kyosei" "test";
           };
 
           packages = {
