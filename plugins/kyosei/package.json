@@ -1,5 +1,5 @@
 {
-  "name": "kyosei",
+  "name": "konoka-kyosei",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,5 +29,8 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "dependencies": {
+    "octokit": "^5.0.5"
   }
 }

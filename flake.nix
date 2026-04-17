@@ -33,45 +33,39 @@
         let
           nodejs = pkgs.nodejs_24;
 
-          npmRoot = lib.fileset.toSource {
-            root = ./.;
+          npmRootCommit = lib.fileset.toSource {
+            root = ./plugins/commit;
             fileset = lib.fileset.unions [
-              ./package.json
-              ./package-lock.json
+              ./plugins/commit/package.json
+              ./plugins/commit/package-lock.json
             ];
           };
 
-          nodeModules = pkgs.importNpmLock.buildNodeModules {
-            inherit
-              nodejs
-              npmRoot
-              ;
+          nodeModulesCommit = pkgs.importNpmLock.buildNodeModules {
+            inherit nodejs;
+            npmRoot = npmRootCommit;
           };
 
-          tsSrc = lib.fileset.toSource {
+          tsSrcCommit = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
               ./.editorconfig
               ./.gitignore
-              ./eslint.config.ts
 
-              ./package.json
-              ./tsconfig.json
-
-              ./plugins
+              ./plugins/commit
             ];
           };
 
-          # npm run経由でスクリプト実行を簡単にするためのヘルパー。
-          mkNpmCheck =
+          mkNpmCheckCommit =
             name: script:
             pkgs.runCommand name
               {
                 nativeBuildInputs = [ nodejs ];
               }
               ''
-                cp -r ${tsSrc}/. .
-                ln -s ${nodeModules}/node_modules node_modules
+                cp -r ${tsSrcCommit}/. .
+                ln -s ${nodeModulesCommit}/node_modules node_modules
+                cd plugins/commit
                 npm run ${script}
                 touch $out
               '';
@@ -85,9 +79,7 @@
           };
 
           nodeModulesKyosei = pkgs.importNpmLock.buildNodeModules {
-            inherit
-              nodejs
-              ;
+            inherit nodejs;
             npmRoot = npmRootKyosei;
           };
 
@@ -96,13 +88,11 @@
             fileset = lib.fileset.unions [
               ./.editorconfig
               ./.gitignore
-              ./eslint.config.ts
 
               ./plugins/kyosei
             ];
           };
 
-          # npm run経由でスクリプト実行を簡単にするためのヘルパー。
           mkNpmCheckKyosei =
             name: script:
             pkgs.runCommand name
@@ -167,10 +157,11 @@
                   agnix --strict
                   touch $out
                 '';
-            lint-eslint = mkNpmCheck "lint-eslint" "lint:eslint";
-            lint-prettier = mkNpmCheck "lint-prettier" "lint:prettier";
-            lint-tsc = mkNpmCheck "lint-tsc" "lint:tsc";
-            test = mkNpmCheck "test" "test";
+
+            lint-eslint-commit = mkNpmCheckCommit "lint-eslint-commit" "lint:eslint";
+            lint-prettier-commit = mkNpmCheckCommit "lint-prettier-commit" "lint:prettier";
+            lint-tsc-commit = mkNpmCheckCommit "lint-tsc-commit" "lint:tsc";
+            test-commit = mkNpmCheckCommit "test-commit" "test";
 
             lint-eslint-kyosei = mkNpmCheckKyosei "lint-eslint-kyosei" "lint:eslint";
             lint-prettier-kyosei = mkNpmCheckKyosei "lint-prettier-kyosei" "lint:prettier";
@@ -206,8 +197,6 @@
               # AIコーディングアシスタント設定のリンター。
               agnix
             ];
-            packages = [ pkgs.importNpmLock.hooks.linkNodeModulesHook ];
-            npmDeps = nodeModules;
           };
         };
     };
