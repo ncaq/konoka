@@ -20,4 +20,12 @@ async function main(): Promise<void> {
   process.stdout.write(JSON.stringify(changeset));
 }
 
-await main();
+main().catch((err: unknown) => {
+  if (err instanceof Error) {
+    process.stderr.write(`Error: ${err.message}`);
+    process.exitCode = 1;
+    return;
+  }
+  process.stderr.write(`Error: ${String(err)}`);
+  process.exitCode = 1;
+});
