@@ -2,15 +2,9 @@
  * GitHubへ認証してクライアントを生成するためのモジュール。
  */
 
-import { execFile } from "node:child_process";
 import process from "node:process";
-import { promisify } from "node:util";
 import { Octokit } from "octokit";
-
-/**
- * `execFile`のPromise版を作成。
- */
-const execFileAsync: typeof execFile.__promisify__ = promisify(execFile);
+import { execFileAsync } from "./exec.js";
 
 /**
  * GitHubに認証するための情報。
