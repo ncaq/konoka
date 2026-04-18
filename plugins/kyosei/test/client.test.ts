@@ -113,7 +113,7 @@ describe("createOctokitClient", () => {
           const url = new URL(urlString);
           expect(url.origin).toBe(expectedOrigin);
           if (expectedPathPrefix != null) {
-            expect(url.pathname).toMatch(new RegExp(`^${expectedPathPrefix}`));
+            expect(url.pathname).toSatisfy((p: string) => p.startsWith(expectedPathPrefix));
           }
         }
       } finally {
