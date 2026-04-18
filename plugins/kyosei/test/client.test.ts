@@ -1,3 +1,4 @@
+import process from "node:process";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createOctokitClient } from "../src/client.js";
 
