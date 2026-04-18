@@ -1,5 +1,5 @@
 import process from "node:process";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client.js";
 
 /**
@@ -33,19 +33,16 @@ describe("createOctokitClient", () => {
   // テスト後に復元します。
   const envKeysToClean = [...tokenEnvironmentVariableNameList, "GH_HOST", "GITHUB_API_URL", "GITHUB_SERVER_URL"];
 
-  let restoreEnv: () => void;
-
   beforeEach(() => {
     const overrides: Record<string, undefined> = {};
     for (const key of envKeysToClean) {
       overrides[key] = undefined;
     }
-    restoreEnv = withEnv(overrides);
-  });
-
-  afterEach(() => {
-    restoreEnv();
-    vi.restoreAllMocks();
+    const restoreEnv = withEnv(overrides);
+    return () => {
+      restoreEnv();
+      vi.restoreAllMocks();
+    };
   });
 
   describe("baseUrlの末尾スラッシュによるダブルスラッシュの防止", () => {
