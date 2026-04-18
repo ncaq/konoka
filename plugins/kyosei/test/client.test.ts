@@ -4,7 +4,7 @@ import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/cl
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。
- * 元の値を保存して、afterEachで復元します。
+ * 元の値を保存し、返却されたクリーンアップ関数を呼ぶことで復元します。
  */
 function withEnv(overrides: Record<string, string | undefined>): () => void {
   const saved: Record<string, string | undefined> = {};
