@@ -2,7 +2,7 @@
 
 Cross-source research via parallel survey agents. Use when the user asks to research or investigate.
 
-複数の情報ソースを横断検索して技術調査を行うClaude Codeプラグインです。
+並列surveyエージェントを活用して複数の情報ソースを横断的に調査するClaude Codeプラグインです。
 
 ## インストール
 
