@@ -24,7 +24,7 @@ interface GitHubAuthOptions {
  * どれかがヒットすればそれで問題ないと思うので、
  * 順番はあまり重要ではないと考えています。
  */
-const tokenEnvironmentVariableNameList = [
+export const tokenEnvironmentVariableNameList = [
   "GH_ENTERPRISE_TOKEN",
   "GH_TOKEN",
   "GITHUB_API_TOKEN",

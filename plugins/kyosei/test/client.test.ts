@@ -1,6 +1,6 @@
 import process from "node:process";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createOctokitClient } from "../src/client.js";
+import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client.js";
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。
@@ -31,19 +31,7 @@ function withEnv(overrides: Record<string, string | undefined>): () => void {
 describe("createOctokitClient", () => {
   // GitHub ActionsのCI環境で設定される典型的な環境変数をテスト前にクリアして、
   // テスト後に復元します。
-  const envKeysToClean = [
-    "GH_ENTERPRISE_TOKEN",
-    "GH_HOST",
-    "GH_TOKEN",
-    "GITHUB_API_TOKEN",
-    "GITHUB_API_URL",
-    "GITHUB_ENTERPRISE_TOKEN",
-    "GITHUB_PAT",
-    "GITHUB_PERSONAL_ACCESS_TOKEN",
-    "GITHUB_SERVER_URL",
-    "GITHUB_TOKEN",
-    "INPUT_GITHUB_TOKEN",
-  ];
+  const envKeysToClean = [...tokenEnvironmentVariableNameList, "GH_HOST", "GITHUB_API_URL", "GITHUB_SERVER_URL"];
 
   let restoreEnv: () => void;
 
