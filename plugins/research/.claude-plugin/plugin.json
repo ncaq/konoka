@@ -1,7 +1,7 @@
 {
   "name": "research",
-  "version": "1.1.0",
-  "description": "Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.",
+  "version": "1.1.1",
+  "description": "Cross-source research via parallel survey agents. Use when the user asks to research or investigate.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/research",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": ["research", "search", "documentation"]
+  "keywords": ["research", "search", "survey"]
 }

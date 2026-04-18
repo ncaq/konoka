@@ -1,6 +1,6 @@
 # research
 
-Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
+Cross-source research via parallel survey agents. Use when the user asks to research or investigate.
 
 複数の情報ソースを横断検索して技術調査を行うClaude Codeプラグインです。
 

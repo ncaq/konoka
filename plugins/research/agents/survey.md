@@ -1,6 +1,6 @@
 ---
 name: survey
-description: Cross-source search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval.
+description: Internal agent for the research skill. Do NOT call this agent directly — use the /research skill instead, which orchestrates parallel survey agents for efficient cross-source search.
 tools:
   - Glob
   - Grep
