@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git commit:*), Bash(node:*), Edit, Read, Skill(commit-style), Write
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git commit:*), Bash(node:*), Edit, Read, Skill(commit-style)
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -30,9 +30,15 @@ AIがコミットメッセージを生成し、
 `COMMIT_EDITMSG`ファイルから読み取った差分を分析し、
 適切なコミットメッセージを生成してください。
 
-生成したコミットメッセージを`COMMIT_EDITMSG`パスのファイルに書き出してください。
-前処理でテンプレート(scissors line + diff)は既に書き出し済みなので、
-コミットメッセージをファイルの先頭に挿入する形で上書きしてください。
+生成したコミットメッセージを`COMMIT_EDITMSG`ファイルの先頭に挿入してください。
+前処理でテンプレート(scissors line + diff)は既に書き出し済みです。
+`Edit`ツールでファイルの1行目(空行)をコミットメッセージで置換してください。
+
+テンプレート部分を残したまま編集してください。
+テンプレートの差分情報はテキストエディタでの編集時にコード補完の参考になるため、
+削除してはいけません。
+`git commit --verbose --cleanup=scissors`がscissors line以降を自動的に除去するので、
+差分がコミットメッセージに混入することはありません。
 
 # コミットメッセージの確認
 
@@ -76,8 +82,9 @@ editor <editmsgのパス>
 ## `Other`(修正指示)の場合
 
 ユーザの修正指示に従ってコミットメッセージを修正してください。
-修正後のメッセージで一時ファイルを上書きしてから、
-コミットメッセージの確認に戻ってください。
+`Edit`ツールでコミットメッセージ部分のみを修正し、
+テンプレート(scissors line + diff)は保持してください。
+修正後、コミットメッセージの確認に戻ってください。
 
 ## 選択がキャンセルされた場合
 
@@ -89,7 +96,7 @@ editor <editmsgのパス>
 以下のコマンドでコミットを実行してください。
 
 ```bash
-git commit --cleanup=scissors -F <COMMIT_EDITMSGのパス>
+git commit --verbose --cleanup=scissors -F <COMMIT_EDITMSGのパス>
 ```
 
 # 完了報告
