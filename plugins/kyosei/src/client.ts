@@ -198,7 +198,7 @@ export async function createOctokitClient(): Promise<Octokit> {
   try {
     const githubAuthOptions = await createGitHubAuthOptions();
     const githubBaseUrl = getGitHubBaseUrl();
-    // baseURLが設定されている場合はオプションに追加します。そうでない場合は空のオブジェクトを展開して何もしないようにします。
+    // baseUrlが設定されている場合はオプションに追加します。そうでない場合は空のオブジェクトを展開して何もしないようにします。
     // URL.toString()は末尾スラッシュを付けます(例: new URL("https://api.github.com").toString() → "https://api.github.com/")。
     // baseUrlとエンドポイントパスを結合する際、末尾スラッシュがあるとダブルスラッシュになり404エラーが発生します。
     const githubBaseUrlOptions = githubBaseUrl == null ? {} : { baseUrl: githubBaseUrl.toString().replace(/\/+$/, "") };
