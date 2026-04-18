@@ -132,7 +132,7 @@ describe("createOctokitClient", () => {
       { label: "GH_HOST(github.com)", env: { GH_HOST: "github.com" } },
       { label: "GH_HOST(GHE)", env: { GH_HOST: "ghe.example.com" } },
       { label: "デフォルト", env: {} },
-    ])("$labelが設定されている場合、APIリクエストのURLにダブルスラッシュが含まれない", async ({ env }) => {
+    ])("$labelの場合、APIリクエストのURLにダブルスラッシュが含まれない", async ({ env }) => {
       const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
       try {
         const requestedUrls = mockFetchAndCaptureUrls();
