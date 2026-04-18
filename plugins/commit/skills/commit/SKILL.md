@@ -37,7 +37,7 @@ AIがコミットメッセージを生成し、
 テンプレート部分を残したまま編集してください。
 テンプレートの差分情報はテキストエディタでの編集時にコード補完の参考になるため、
 削除してはいけません。
-`git commit --cleanup=scissors`がscissors line以降を自動的に除去するので、
+`git commit --verbose --cleanup=scissors`がscissors line以降を自動的に除去するので、
 差分がコミットメッセージに混入することはありません。
 
 # コミットメッセージの確認
@@ -96,7 +96,7 @@ editor <editmsgのパス>
 以下のコマンドでコミットを実行してください。
 
 ```bash
-git commit --cleanup=scissors -F <COMMIT_EDITMSGのパス>
+git commit --verbose --cleanup=scissors -F <COMMIT_EDITMSGのパス>
 ```
 
 # 完了報告
