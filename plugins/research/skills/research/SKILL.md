@@ -1,6 +1,6 @@
 ---
 name: research
-description: Cross-source research via parallel survey agents. documentation lookup, library issue/PR tracking, and package information retrieval. Use when the user asks to research or investigate.
+description: Cross-source research via parallel survey agents. Use when the user asks to research or investigate.
 argument-hint: "query"
 context: fork
 agent: general-purpose
