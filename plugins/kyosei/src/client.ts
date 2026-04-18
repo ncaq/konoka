@@ -24,7 +24,7 @@ interface GitHubAuthOptions {
  * どれかがヒットすればそれで問題ないと思うので、
  * 順番はあまり重要ではないと考えています。
  */
-const tokenEnvironmentVariableNameList = [
+export const tokenEnvironmentVariableNameList = [
   "GH_ENTERPRISE_TOKEN",
   "GH_TOKEN",
   "GITHUB_API_TOKEN",
@@ -198,8 +198,13 @@ export async function createOctokitClient(): Promise<Octokit> {
   try {
     const githubAuthOptions = await createGitHubAuthOptions();
     const githubBaseUrl = getGitHubBaseUrl();
-    // baseURLが設定されている場合はオプションに追加します。そうでない場合は空のオブジェクトを展開して何もしないようにします。
-    const githubBaseUrlOptions = githubBaseUrl == null ? {} : { baseUrl: githubBaseUrl.toString() };
+    // baseUrlが設定されている場合はオプションに追加します。そうでない場合は空のオブジェクトを展開して何もしないようにします。
+    // `URL.toString()`はパスが空の場合末尾スラッシュを付けます。
+    // 例: `new URL("https://api.github.com").toString()` → `"https://api.github.com/"`
+    // baseUrlとエンドポイントパスを結合する際、
+    // 末尾スラッシュがあるとダブルスラッシュになり404エラーが発生するので、
+    // 末尾のスラッシュがあれば削除してからOctokitに渡すようにしています。
+    const githubBaseUrlOptions = githubBaseUrl == null ? {} : { baseUrl: githubBaseUrl.toString().replace(/\/+$/, "") };
 
     return new Octokit({
       auth: githubAuthOptions.token,
