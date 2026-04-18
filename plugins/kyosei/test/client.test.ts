@@ -45,15 +45,15 @@ describe("createOctokitClient", () => {
     };
   });
 
+  // URL.toString()は末尾スラッシュを付けるため、
+  // そのままOctokitに渡すとダブルスラッシュのURLが生成されて404になる。
   describe("baseUrlの末尾スラッシュによるダブルスラッシュの防止", () => {
-    test("GITHUB_API_URLが設定されている場合、APIリクエストのURLにダブルスラッシュが含まれない", async () => {
-      // GitHub Actionsでは GITHUB_API_URL=https://api.github.com が設定される。
-      // URL.toString()は末尾スラッシュを付けるため、
-      // そのままOctokitに渡すとダブルスラッシュのURLが生成されて404になる。
-      const restore = withEnv({
-        GITHUB_TOKEN: "ghp_test_token",
-        GITHUB_API_URL: "https://api.github.com",
-      });
+    test.each([
+      { label: "GITHUB_API_URL", env: { GITHUB_API_URL: "https://api.github.com" } },
+      { label: "GITHUB_SERVER_URL", env: { GITHUB_SERVER_URL: "https://github.com" } },
+      { label: "GitHub Enterprise", env: { GITHUB_API_URL: "https://ghe.example.com/api/v3" } },
+    ])("$labelが設定されている場合、APIリクエストのURLにダブルスラッシュが含まれない", async ({ env }) => {
+      const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
       try {
         const requestedUrls: string[] = [];
         const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
@@ -73,68 +73,6 @@ describe("createOctokitClient", () => {
         expect(requestedUrls.length).toBeGreaterThan(0);
         for (const url of requestedUrls) {
           // プロトコル部分(https://)の後にダブルスラッシュがないことを確認します。
-          const afterProtocol = url.replace(/^https?:\/\//, "");
-          expect(afterProtocol).not.toContain("//");
-        }
-      } finally {
-        restore();
-      }
-    });
-
-    test("GITHUB_SERVER_URLが設定されている場合、APIリクエストのURLにダブルスラッシュが含まれない", async () => {
-      const restore = withEnv({
-        GITHUB_TOKEN: "ghp_test_token",
-        GITHUB_SERVER_URL: "https://github.com",
-      });
-      try {
-        const requestedUrls: string[] = [];
-        const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
-          requestedUrls.push(url.toString());
-          return Promise.resolve(
-            new Response(JSON.stringify({ default_branch: "main" }), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            }),
-          );
-        });
-        vi.stubGlobal("fetch", mockFetch);
-
-        const octokit = await createOctokitClient();
-        await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
-
-        expect(requestedUrls.length).toBeGreaterThan(0);
-        for (const url of requestedUrls) {
-          const afterProtocol = url.replace(/^https?:\/\//, "");
-          expect(afterProtocol).not.toContain("//");
-        }
-      } finally {
-        restore();
-      }
-    });
-
-    test("GitHub Enterpriseの場合もAPIリクエストのURLにダブルスラッシュが含まれない", async () => {
-      const restore = withEnv({
-        GITHUB_TOKEN: "ghp_test_token",
-        GITHUB_API_URL: "https://ghe.example.com/api/v3",
-      });
-      try {
-        const requestedUrls: string[] = [];
-        const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
-          requestedUrls.push(url.toString());
-          return Promise.resolve(
-            new Response(JSON.stringify({ default_branch: "main" }), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            }),
-          );
-        });
-        vi.stubGlobal("fetch", mockFetch);
-
-        const octokit = await createOctokitClient();
-        await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
-
-        expect(requestedUrls.length).toBeGreaterThan(0);
-        for (const url of requestedUrls) {
           const afterProtocol = url.replace(/^https?:\/\//, "");
           expect(afterProtocol).not.toContain("//");
         }
