@@ -45,27 +45,97 @@ describe("createOctokitClient", () => {
     };
   });
 
+  /**
+   * fetchをモックして、リクエストされたURLを記録するヘルパー。
+   * 返されたURL配列を検証に使います。
+   */
+  function mockFetchAndCaptureUrls(): string[] {
+    const requestedUrls: string[] = [];
+    const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
+      requestedUrls.push(url.toString());
+      return Promise.resolve(
+        new Response(JSON.stringify({ default_branch: "main" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    return requestedUrls;
+  }
+
+  // getGitHubBaseUrlはexportされていないため、
+  // createOctokitClient経由でfetchのリクエスト先URLを検証することで間接的にテストしています。
+  describe("getGitHubBaseUrlの解決", () => {
+    test.each([
+      {
+        label: "GITHUB_API_URLが直接指定",
+        env: { GITHUB_API_URL: "https://api.github.com" },
+        expectedOrigin: "https://api.github.com",
+      },
+      {
+        label: "GITHUB_SERVER_URLがgithub.com",
+        env: { GITHUB_SERVER_URL: "https://github.com" },
+        expectedOrigin: "https://api.github.com",
+      },
+      {
+        label: "GITHUB_SERVER_URLがGHE",
+        env: { GITHUB_SERVER_URL: "https://ghe.example.com" },
+        expectedOrigin: "https://ghe.example.com",
+        expectedPathPrefix: "/api/v3",
+      },
+      {
+        label: "GH_HOSTがgithub.com",
+        env: { GH_HOST: "github.com" },
+        expectedOrigin: "https://api.github.com",
+      },
+      {
+        label: "GH_HOSTがGHE",
+        env: { GH_HOST: "ghe.example.com" },
+        expectedOrigin: "https://ghe.example.com",
+        expectedPathPrefix: "/api/v3",
+      },
+      {
+        label: "何も設定なし(デフォルト)",
+        env: {},
+        expectedOrigin: "https://api.github.com",
+      },
+    ])("$labelの場合、$expectedOriginにリクエストが送られる", async ({ env, expectedOrigin, expectedPathPrefix }) => {
+      const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
+      try {
+        const requestedUrls = mockFetchAndCaptureUrls();
+
+        const octokit = await createOctokitClient();
+        await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
+
+        expect(requestedUrls.length).toBeGreaterThan(0);
+        for (const urlString of requestedUrls) {
+          const url = new URL(urlString);
+          expect(url.origin).toBe(expectedOrigin);
+          if (expectedPathPrefix != null) {
+            expect(url.pathname).toMatch(new RegExp(`^${expectedPathPrefix}`));
+          }
+        }
+      } finally {
+        restore();
+      }
+    });
+  });
+
   // URL.toString()は末尾スラッシュを付けるため、
   // そのままOctokitに渡すとダブルスラッシュのURLが生成されて404になる。
   describe("baseUrlの末尾スラッシュによるダブルスラッシュの防止", () => {
     test.each([
       { label: "GITHUB_API_URL", env: { GITHUB_API_URL: "https://api.github.com" } },
-      { label: "GITHUB_SERVER_URL", env: { GITHUB_SERVER_URL: "https://github.com" } },
-      { label: "GitHub Enterprise", env: { GITHUB_API_URL: "https://ghe.example.com/api/v3" } },
+      { label: "GITHUB_SERVER_URL(github.com)", env: { GITHUB_SERVER_URL: "https://github.com" } },
+      { label: "GITHUB_SERVER_URL(GHE)", env: { GITHUB_SERVER_URL: "https://ghe.example.com" } },
+      { label: "GH_HOST(github.com)", env: { GH_HOST: "github.com" } },
+      { label: "GH_HOST(GHE)", env: { GH_HOST: "ghe.example.com" } },
+      { label: "デフォルト", env: {} },
     ])("$labelが設定されている場合、APIリクエストのURLにダブルスラッシュが含まれない", async ({ env }) => {
       const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
       try {
-        const requestedUrls: string[] = [];
-        const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
-          requestedUrls.push(url.toString());
-          return Promise.resolve(
-            new Response(JSON.stringify({ default_branch: "main" }), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            }),
-          );
-        });
-        vi.stubGlobal("fetch", mockFetch);
+        const requestedUrls = mockFetchAndCaptureUrls();
 
         const octokit = await createOctokitClient();
         await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
