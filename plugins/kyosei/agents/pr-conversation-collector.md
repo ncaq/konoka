@@ -9,7 +9,9 @@ tools:
   - Bash(gh api *pulls/*/comments*)
   - Bash(gh api *pulls/*/reviews*)
   - Bash(gh pr view:*)
-  - mcp__github
+  - mcp__github__issue_read
+  - mcp__github__pull_request_read
+  - mcp__github__list_pull_requests
 model: sonnet
 ---
 
