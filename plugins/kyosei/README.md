@@ -115,13 +115,8 @@ PRがopenされるか更新されると自動でレビューが実行され、
 | dependency-update-reviewer      | 依存関係の更新内容とプロジェクトへの影響   |
 | documentation-accuracy-reviewer | ドキュメントと実装の整合性                 |
 | performance-reviewer            | アルゴリズム計算量、N+1問題、メモリリーク  |
-| pr-conversation-collector       | PR既存会話の収集(重複コメント回避用)       |
 | security-code-reviewer          | OWASP Top 10、インジェクション、認証/認可  |
 | test-coverage-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
-
-pr-conversation-collectorはPRレビュー時のみ実行されます。
-収集した既存会話と照合し、
-既に指摘済みの内容やresolvedされたコメントと同じ内容は除外されます。
 
 dependency-update-reviewerは差分に依存関係の変更が含まれている場合に、
 リリースノートやコミュニティの反応を調査して影響を評価します。

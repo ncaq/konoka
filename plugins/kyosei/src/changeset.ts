@@ -6,7 +6,7 @@
  */
 
 import type { Octokit } from "octokit";
-import type { PrReviewContext, ReviewContext } from "./context.js";
+import type { GitHubOutputContext, ReviewContext } from "./context.js";
 import { execFileAsync } from "./exec.js";
 import { getRemoteRepo, type RemoteRepo } from "./remote.js";
 
@@ -24,18 +24,18 @@ export interface Changeset {
  * GitHub APIからdiff形式で差分を取得し、
  * コミット一覧もAPIから取得します。
  */
-async function getPrChangeset(octokit: Octokit, context: PrReviewContext): Promise<Changeset> {
+async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Promise<Changeset> {
   const [diffResponse, commitsResponse] = await Promise.all([
     octokit.rest.pulls.get({
-      owner: context.owner,
-      repo: context.repo,
-      pull_number: context.prNumber,
+      owner: context.pr.owner,
+      repo: context.pr.repo,
+      pull_number: context.pr.prNumber,
       mediaType: { format: "diff" },
     }),
     octokit.rest.pulls.listCommits({
-      owner: context.owner,
-      repo: context.repo,
-      pull_number: context.prNumber,
+      owner: context.pr.owner,
+      repo: context.pr.repo,
+      pull_number: context.pr.prNumber,
       per_page: 100, // コミットログは100件以上は追いません。なくてもレビューは可能ですし。
     }),
   ]);
@@ -119,7 +119,7 @@ async function getLocalChangeset(octokit: Octokit): Promise<Changeset> {
  * レビューコンテキストに応じて変更セットを取得します。
  */
 export async function getChangeset(octokit: Octokit, context: ReviewContext): Promise<Changeset> {
-  if (context.mode === "pr") {
+  if (context.output === "github") {
     return getPrChangeset(octokit, context);
   }
   return getLocalChangeset(octokit);

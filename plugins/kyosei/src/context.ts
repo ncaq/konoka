@@ -1,17 +1,19 @@
 /**
  * レビューコンテキストの判定モジュール。
- * 引数からPRレビューかローカルレビューかを判定し、
- * PRレビューの場合はURLからowner, repo, PR番号を抽出します。
+ * 引数から出力先がGitHubかローカルかを判定し、
+ * GitHub出力の場合はURLからowner, repo, PR番号を抽出します。
+ * ローカル出力の場合もブランチに紐付くPRをOctokitで検索します。
  */
 
+import type { Octokit } from "octokit";
+import { execFileAsync } from "./exec.js";
+import { getRemoteRepo } from "./remote.js";
+
 /**
- * PRレビューのコンテキスト。
- * GitHub PRのURLから抽出された情報を保持します。
+ * PRの識別情報。
+ * owner, repo, PR番号の組み合わせでPRを一意に特定します。
  */
-export interface PrReviewContext {
-  readonly mode: "pr";
-  /** GitHubのホスト名。github.comまたはGitHub Enterpriseのドメイン。 */
-  readonly host: string;
+export interface PrIdentifier {
   /** リポジトリの所有者。ユーザーまたはOrganization。 */
   readonly owner: string;
   /** リポジトリ名。 */
@@ -21,17 +23,32 @@ export interface PrReviewContext {
 }
 
 /**
- * ローカルレビューのコンテキスト。
- * 引数が指定されなかった場合にこのモードになります。
+ * GitHub出力のコンテキスト。
+ * GitHub PRのURLから抽出された情報を保持します。
+ * レビュー結果はGitHub PRにコメントとして投稿されます。
  */
-export interface LocalReviewContext {
-  readonly mode: "local";
+export interface GitHubOutputContext {
+  readonly output: "github";
+  /** GitHubのホスト名。github.comまたはGitHub Enterpriseのドメイン。 */
+  readonly host: string;
+  readonly pr: PrIdentifier;
+}
+
+/**
+ * ローカル出力のコンテキスト。
+ * 引数が指定されなかった場合にこの出力先になります。
+ * レビュー結果はターミナルに直接出力されます。
+ * ブランチに紐付くPRが特定できた場合はpr情報を保持します。
+ */
+export interface LocalOutputContext {
+  readonly output: "local";
+  readonly pr?: PrIdentifier;
 }
 
 /**
  * レビューコンテキストの判別共用体。
  */
-export type ReviewContext = PrReviewContext | LocalReviewContext;
+export type ReviewContext = GitHubOutputContext | LocalOutputContext;
 
 /**
  * 引数文字列を解析してPR URLからコンテキスト情報を抽出します。
@@ -40,7 +57,7 @@ export type ReviewContext = PrReviewContext | LocalReviewContext;
  * `https://<host>/<owner>/<repo>/pull/<number>`形式を想定しています。
  * 末尾のサブパス(/files, /commits等)やクエリパラメータがあっても問題ありません。
  */
-function parsePrUrl(argument: string): PrReviewContext | undefined {
+function parsePrUrl(argument: string): GitHubOutputContext | undefined {
   try {
     const url = new URL(argument.trim());
     const [owner, repo, pullLiteral, prNumberStr] = url.pathname.split("/").filter((s) => s !== "");
@@ -51,7 +68,7 @@ function parsePrUrl(argument: string): PrReviewContext | undefined {
     if (!Number.isFinite(prNumber) || prNumber <= 0) {
       return undefined;
     }
-    return { mode: "pr", host: url.hostname, owner, repo, prNumber };
+    return { output: "github", host: url.hostname, pr: { owner, repo, prNumber } };
   } catch (err: unknown) {
     // new URL()がURLとして解釈できない文字列で投げるTypeErrorは想定通りなのでローカルモードとして扱います。
     if (err instanceof TypeError) {
@@ -65,16 +82,60 @@ function parsePrUrl(argument: string): PrReviewContext | undefined {
 }
 
 /**
- * 引数文字列からレビューコンテキストを判定します。
- * 引数がPR URLであればPRレビュー、そうでなければローカルレビューとなります。
+ * 現在のブランチに紐付くオープンなPRをベストエフォートで探します。
+ * 見つからなかった場合やgitリポジトリでない場合はundefinedを返します。
  */
-export function detectReviewContext(argument: string | undefined): ReviewContext {
+async function findPrForCurrentBranch(octokit: Octokit): Promise<PrIdentifier | undefined> {
+  try {
+    const [remoteRepo, currentBranchOutput] = await Promise.all([
+      getRemoteRepo(),
+      execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
+    ]);
+    const currentBranch = currentBranchOutput.stdout.trim();
+    const prListResponse = await octokit.rest.pulls.list({
+      owner: remoteRepo.owner,
+      repo: remoteRepo.repo,
+      head: `${remoteRepo.owner}:${currentBranch}`,
+      state: "open",
+      per_page: 1,
+    });
+    const pr = prListResponse.data[0];
+    if (pr != null) {
+      return { owner: remoteRepo.owner, repo: remoteRepo.repo, prNumber: pr.number };
+    }
+  } catch (err: unknown) {
+    // gitリポジトリでない場合やリモートが設定されていない場合は無視します。
+    if (err instanceof Error && "cmd" in err) {
+      // gitコマンドの実行失敗は想定通りです。
+    } else if (err instanceof Error) {
+      // API呼び出しの失敗も無視してPR情報無しで続行します。
+    } else {
+      throw err;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * 引数文字列からレビューコンテキストを判定します。
+ * 引数がPR URLであればGitHub出力、そうでなければローカル出力となります。
+ * ローカル出力の場合、ブランチに紐付くPRがあればpr情報を設定します。
+ */
+export async function detectReviewContext(octokit: Octokit, argument: string | undefined): Promise<ReviewContext> {
   if (argument == null || argument.trim() === "") {
-    return { mode: "local" };
+    const pr = await findPrForCurrentBranch(octokit);
+    if (pr != null) {
+      return { output: "local", pr };
+    }
+    return { output: "local" };
   }
   const prContext = parsePrUrl(argument);
   if (prContext != null) {
     return prContext;
   }
-  return { mode: "local" };
+  const pr = await findPrForCurrentBranch(octokit);
+  if (pr != null) {
+    return { output: "local", pr };
+  }
+  return { output: "local" };
 }

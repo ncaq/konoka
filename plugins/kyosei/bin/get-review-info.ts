@@ -1,24 +1,24 @@
 /**
- * 変更セットを取得してJSON出力するCLIエントリポイント。
+ * レビュー情報を統合的に取得してJSON出力するCLIエントリポイント。
  * SKILL.mdの埋め込みコマンドとして使用します。
  *
  * 使用例:
- *   node dist/bin/get-changeset.js "https://github.com/owner/repo/pull/123"
- *   node dist/bin/get-changeset.js
+ *   node dist/bin/get-review-info.js "https://github.com/owner/repo/pull/123"
+ *   node dist/bin/get-review-info.js
  */
 
 import process from "node:process";
-import { getChangeset } from "../src/changeset.js";
 import { createOctokitClient } from "../src/client.js";
 import { detectReviewContext } from "../src/context.js";
+import { getReviewInfo } from "../src/review-info.js";
 
 async function main(): Promise<void> {
   try {
     const argument = process.argv[2];
-    const context = detectReviewContext(argument);
     const octokit = await createOctokitClient();
-    const changeset = await getChangeset(octokit, context);
-    process.stdout.write(JSON.stringify(changeset));
+    const context = await detectReviewContext(octokit, argument);
+    const reviewInfo = await getReviewInfo(octokit, context);
+    process.stdout.write(JSON.stringify(reviewInfo));
   } catch (err: unknown) {
     if (err instanceof Error) {
       process.stderr.write(`Error: ${err.message}`);
