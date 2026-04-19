@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read # Read repository contents for checkout
       id-token: write # GitHub App token exchange via OIDC (needed regardless of Claude API auth method)
-    uses: ncaq/kyosei-action/.github/workflows/review.yml@76270b3fe93c428ab31a139a7fff2924651e647a # v1.4.1
+    uses: ncaq/kyosei-action/.github/workflows/review.yml@60b1d2f437865f176811f21e5cc0c5417f50f390 # v1.5.0
     with:
       display_report: "true" # もともと大して危険ではないし、kyoseiの動きを見るために有効にします。
     secrets:
