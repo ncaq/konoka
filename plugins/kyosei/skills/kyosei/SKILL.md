@@ -2,7 +2,7 @@
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
-allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
 ---
 
 # get-review-infoでの情報の取得
@@ -104,13 +104,36 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 ## GitHub出力の場合
 
-GitHubのPRレビューコメントとして投稿してください。
-具体的な指摘には`mcp__github_inline_comment__create_inline_comment`でインラインコメントを使用してください。
-全体的な所感にはトップレベルコメントを使用してください。
+以下のコマンドでレビューを一括投稿します。
+stdinにJSON形式のレビューデータを渡してください。
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js <<'KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER'
+{JSON}
+KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
+```
+
+### JSONスキーマ
+
+- `owner`: リポジトリオーナー(`context.pr.owner`)
+- `repo`: リポジトリ名(`context.pr.repo`)
+- `prNumber`: PR番号(`context.pr.prNumber`)
+- `headCommitId`: headコミットSHA(`changeset.headCommitId`)
+- `body`: レビュー全体のサマリー
+- `comments`: インラインコメントの配列(省略可)
+  - `path`: ファイルの相対パス
+  - `body`: コメント本文
+  - `line`: コメントを付ける行番号(複数行の場合は終了行)
+  - `startLine`: 複数行コメントの開始行(省略でsingle line)
+  - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
+  - `level`: 指摘の重大度。`"critical"`, `"high"`, `"medium"`, `"low"`, `"info"`のいずれか
+
+レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
+レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
 
 指摘することがない完璧なPRの場合でも、
 レビューが正常に完了したことを伝えるために、
-そのことをレビューコメントとして投稿してください。
+コメントなしでレビューを投稿してください(APPROVEになります)。
 
 ## ローカル出力の場合
 
