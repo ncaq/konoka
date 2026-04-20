@@ -1,7 +1,7 @@
 /**
  * 変更セットの取得を行うモジュール。
- * PRモードではOctokit経由でGitHub APIから取得し、
- * ローカルモードではcontextに解決済みのブランチ情報を使って
+ * GitHub出力ではOctokit経由でGitHub APIから取得し、
+ * ローカル出力ではcontextに解決済みのブランチ情報を使って
  * gitコマンドで差分を取得します。
  */
 
@@ -19,7 +19,7 @@ export interface Changeset {
 }
 
 /**
- * PRレビューモードの変更セットを取得します。
+ * GitHub出力向けの変更セットを取得します。
  * GitHub APIからdiff形式で差分を取得し、
  * コミット一覧もAPIから取得します。
  */
@@ -57,7 +57,7 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
 }
 
 /**
- * ローカルレビューモードの変更セットを取得します。
+ * ローカル出力向けの変更セットを取得します。
  * contextのbaseBranchとremoteNameからdiffとlogを生成します。
  */
 async function getLocalChangeset(context: LocalOutputContext): Promise<Changeset> {
