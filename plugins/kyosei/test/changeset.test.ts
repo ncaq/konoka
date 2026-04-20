@@ -83,8 +83,8 @@ describe("getChangeset", () => {
 
       expect(changeset.diff).toBe("local diff");
       expect(changeset.log).toBe("local log");
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "origin/master...HEAD"]);
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "origin/master...HEAD"]);
+      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "--end-of-options", "origin/master...HEAD"]);
+      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "--end-of-options", "origin/master...HEAD"]);
     });
 
     test("remoteNameがない場合はbaseBranch...HEADでdiffを取得する", async () => {
@@ -98,8 +98,8 @@ describe("getChangeset", () => {
 
       await getChangeset({} as Octokit, context);
 
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "master...HEAD"]);
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "master...HEAD"]);
+      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "--end-of-options", "master...HEAD"]);
+      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "--end-of-options", "master...HEAD"]);
     });
   });
 });
