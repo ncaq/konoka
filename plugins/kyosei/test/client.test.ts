@@ -54,7 +54,7 @@ describe("createOctokitClient", () => {
     const mockFetch = vi.fn().mockImplementation((url: string | URL) => {
       requestedUrls.push(url.toString());
       return Promise.resolve(
-        new Response(JSON.stringify({ default_branch: "main" }), {
+        new Response(JSON.stringify({ default_branch: "master" }), {
           status: 200,
           headers: { "content-type": "application/json" },
         }),

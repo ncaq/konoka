@@ -5,47 +5,50 @@ argument-hint: "[pr-url]"
 allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
 ---
 
-# コンテキストの判定
+# get-review-infoでの情報の取得
 
-以下のコマンドでレビューコンテキストを判定します。
+以下のコマンドでレビューに必要な情報を一括取得します。
 結果はJSONで返されるので、そのまま解釈してください。
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/detect-context.js $ARGUMENTS
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-review-info.js $ARGUMENTS
 ```
 
 ## JSONの解釈
 
-`mode`フィールドでレビューモードを判別します。
+### `context` フィールド
 
-### PRレビュー(GitHub投稿モード): `mode` が `"pr"` の場合
+`context.output`フィールドで出力先を判別します。
 
+#### `"github"`
+
+GitHub出力。
 結果はGitHub PRにインラインコメントとして投稿されます。
+`host`と`pr`(`owner`, `repo`, `prNumber`)が含まれます。
 
-JSONから主に以下の値を後続のコマンドで使用します:
+#### `"local"`
 
-- `host`: GitHubのホスト。GitHub Enterpriseの場合のみ考慮してください。
-- `owner`: リポジトリの所有者。
-- `repo`: リポジトリ名。
-- `prNumber`: PR番号。
-
-### ローカルレビュー: `mode` が `"local"` の場合
-
+ローカル出力。
 結果はターミナルに直接出力されます。
+ブランチに紐付くPRが特定できた場合は`pr`が含まれます。
 
-# 変更セットの取得
-
-以下のコマンドで変更セットを取得します。
-結果はJSONで返されるので、そのまま解釈してください。
-
-```
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS
-```
-
-## JSONの解釈
+### `changeset` フィールド
 
 - `diff`: 差分(diffフォーマット)
 - `log`: コミットログ
+
+### `conversation` フィールド(PRが特定できた場合のみ)
+
+PRの既存コメント・レビュー情報です。
+GitHub出力モードでは常に含まれます。
+ローカル出力モードでもブランチに紐付くPRがあれば含まれます。
+PRが特定できない場合はフィールド自体が省略されます。
+
+トップレベルにPR自体の情報(`title`, `body`, `author`, `url`)があり、以下の3つのサブフィールドがあります。
+
+- `comments`: PR全体へのコメント一覧。`id`, `author`, `body`, `createdAt`, `updatedAt`, `url`を持ちます。
+- `reviews`: レビュー一覧。`id`, `author`, `state`(APPROVED, CHANGES_REQUESTED等), `body`, `submittedAt`, `url`を持ちます。
+- `reviewThreads`: インラインレビュースレッド一覧。`isResolved`, `isOutdated`, `path`, `line`, `diffSide`等のメタデータと、スレッド内`comments`配列を持ちます。
 
 # コードレビューの実行
 
@@ -57,11 +60,10 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS
 - [performance-reviewer](../../agents/performance-reviewer.md)
 - [security-code-reviewer](../../agents/security-code-reviewer.md)
 - [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
-- [pr-conversation-collector](../../agents/pr-conversation-collector.md) (PRレビューの場合のみ実行します)
 
 サブエージェントは一度に全て並列に起動してください。
 
-各レビューエージェントのプロンプトには取得済みの差分を含めてください。
+各レビューエージェントのプロンプトにはget-review-infoで取得済みの情報を含めてください。
 レビューエージェントは差分を取得するためのツールを原則として持たないため、
 自分で差分を取得しないようになっています。
 
@@ -87,7 +89,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS
 
 # 重複コメントの除外
 
-`pr-conversation-collector`の結果がある場合、
+`conversation`フィールドが存在する場合、
 レビューフィードバックと照合し、
 以下に該当するものは除外します:
 
@@ -99,7 +101,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-changeset.js $ARGUMENTS
 
 # フィードバックの出力
 
-## PRレビューの場合
+## GitHub出力の場合
 
 GitHubのPRレビューコメントとして投稿してください。
 具体的な指摘には`mcp__github_inline_comment__create_inline_comment`でインラインコメントを使用してください。
@@ -109,7 +111,7 @@ GitHubのPRレビューコメントとして投稿してください。
 レビューが正常に完了したことを伝えるために、
 そのことをレビューコメントとして投稿してください。
 
-## ローカルレビューの場合
+## ローカル出力の場合
 
 各フィードバックは以下の形式で出力します:
 

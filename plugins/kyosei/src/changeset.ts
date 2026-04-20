@@ -1,14 +1,13 @@
 /**
  * 変更セットの取得を行うモジュール。
- * PRモードではOctokit経由でGitHub APIから取得し、
- * ローカルモードではベースブランチの特定にOctokitを使い、
- * 差分自体はgitコマンドで取得します。
+ * GitHub出力ではOctokit経由でGitHub APIから取得し、
+ * ローカル出力ではcontextに解決済みのブランチ情報を使って
+ * gitコマンドで差分を取得します。
  */
 
 import type { Octokit } from "octokit";
-import type { PrReviewContext, ReviewContext } from "./context.js";
+import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type.js";
 import { execFileAsync } from "./exec.js";
-import { getRemoteRepo, type RemoteRepo } from "./remote.js";
 
 /**
  * レビュー対象の変更セット。
@@ -20,22 +19,22 @@ export interface Changeset {
 }
 
 /**
- * PRレビューモードの変更セットを取得します。
+ * GitHub出力向けの変更セットを取得します。
  * GitHub APIからdiff形式で差分を取得し、
  * コミット一覧もAPIから取得します。
  */
-async function getPrChangeset(octokit: Octokit, context: PrReviewContext): Promise<Changeset> {
+async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Promise<Changeset> {
   const [diffResponse, commitsResponse] = await Promise.all([
     octokit.rest.pulls.get({
-      owner: context.owner,
-      repo: context.repo,
-      pull_number: context.prNumber,
+      owner: context.pr.owner,
+      repo: context.pr.repo,
+      pull_number: context.pr.prNumber,
       mediaType: { format: "diff" },
     }),
     octokit.rest.pulls.listCommits({
-      owner: context.owner,
-      repo: context.repo,
-      pull_number: context.prNumber,
+      owner: context.pr.owner,
+      repo: context.pr.repo,
+      pull_number: context.pr.prNumber,
       per_page: 100, // コミットログは100件以上は追いません。なくてもレビューは可能ですし。
     }),
   ]);
@@ -58,56 +57,15 @@ async function getPrChangeset(octokit: Octokit, context: PrReviewContext): Promi
 }
 
 /**
- * 現在のブランチ名を取得します。
+ * ローカル出力向けの変更セットを取得します。
+ * contextのbaseBranchとremoteNameからdiffとlogを生成します。
  */
-async function getCurrentBranch(): Promise<string> {
-  return (await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"])).stdout.trim();
-}
-
-/**
- * リポジトリのデフォルトブランチを取得します。
- */
-async function getDefaultBranch(octokit: Octokit, remoteRepo: RemoteRepo): Promise<string> {
-  const repoResponse = await octokit.rest.repos.get({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-  });
-  return repoResponse.data.default_branch;
-}
-
-/**
- * ローカルブランチのベースブランチを特定し、リモート名と合わせて返します。
- * まず現在のブランチに対応するPRがあればそのベースブランチを使い、
- * なければリポジトリのデフォルトブランチにフォールバックします。
- */
-async function getLocalBaseBranch(octokit: Octokit): Promise<{ remoteRepo: RemoteRepo; baseBranch: string }> {
-  const [remoteRepo, currentBranch] = await Promise.all([getRemoteRepo(), getCurrentBranch()]);
-  const prListResponse = await octokit.rest.pulls.list({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-    head: `${remoteRepo.owner}:${currentBranch}`,
-    state: "open",
-    per_page: 1,
-  });
-  const pr = prListResponse.data[0];
-  if (pr != null) {
-    return { remoteRepo, baseBranch: pr.base.ref };
-  } else {
-    // PRが見つからない場合はデフォルトブランチにフォールバックします。
-    const baseBranch = await getDefaultBranch(octokit, remoteRepo);
-    return { remoteRepo, baseBranch };
-  }
-}
-
-/**
- * ローカルレビューモードの変更セットを取得します。
- */
-async function getLocalChangeset(octokit: Octokit): Promise<Changeset> {
-  const { remoteRepo, baseBranch } = await getLocalBaseBranch(octokit);
-  const range = `${remoteRepo.remoteName}/${baseBranch}...HEAD`;
+async function getLocalChangeset(context: LocalOutputContext): Promise<Changeset> {
+  const base = context.remoteName != null ? `${context.remoteName}/${context.baseBranch}` : context.baseBranch;
+  const range = `${base}...HEAD`;
   const [gitDiffOutput, gitLogOutput] = await Promise.all([
-    execFileAsync("git", ["diff", range]),
-    execFileAsync("git", ["log", range]),
+    execFileAsync("git", ["diff", "--end-of-options", range]),
+    execFileAsync("git", ["log", "--end-of-options", range]),
   ]);
   return {
     diff: gitDiffOutput.stdout,
@@ -119,8 +77,8 @@ async function getLocalChangeset(octokit: Octokit): Promise<Changeset> {
  * レビューコンテキストに応じて変更セットを取得します。
  */
 export async function getChangeset(octokit: Octokit, context: ReviewContext): Promise<Changeset> {
-  if (context.mode === "pr") {
+  if (context.output === "github") {
     return getPrChangeset(octokit, context);
   }
-  return getLocalChangeset(octokit);
+  return getLocalChangeset(context);
 }

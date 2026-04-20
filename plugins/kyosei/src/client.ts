@@ -186,6 +186,34 @@ async function createGitHubAuthOptions(): Promise<GitHubAuthOptions> {
 }
 
 /**
+ * rate limitのハンドラ。
+ * 最大2回までリトライします。
+ */
+function handleRateLimit(
+  retryAfter: number,
+  options: { method: string; url: string },
+  octokit: { log: { warn: (message: string) => void } },
+  retryCount: number,
+): boolean {
+  octokit.log.warn(`rate limit exhausted for ${options.method} ${options.url}, retry after ${retryAfter}s`);
+  return retryCount < 2;
+}
+
+/**
+ * secondary rate limitのハンドラ。
+ * 最大2回までリトライします。
+ */
+function handleSecondaryRateLimit(
+  retryAfter: number,
+  options: { method: string; url: string },
+  octokit: { log: { warn: (message: string) => void } },
+  retryCount: number,
+): boolean {
+  octokit.log.warn(`secondary rate limit for ${options.method} ${options.url}, retry after ${retryAfter}s`);
+  return retryCount < 2;
+}
+
+/**
  * 利用可能な認証情報からOctokitクライアントを生成します。
  * 生成できない場合は例外をスローします。
  * kyoseiは想定環境として、
@@ -210,6 +238,11 @@ export async function createOctokitClient(): Promise<Octokit> {
       auth: githubAuthOptions.token,
       ...githubBaseUrlOptions,
       userAgent: `kyosei (${githubAuthOptions.source})`,
+      throttle: {
+        onRateLimit: handleRateLimit,
+        onSecondaryRateLimit: handleSecondaryRateLimit,
+      },
+      retry: { enabled: true },
     });
   } catch (err: unknown) {
     if (err instanceof Error) {
