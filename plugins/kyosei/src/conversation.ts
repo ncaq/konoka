@@ -102,6 +102,7 @@ interface GraphQLReviewThreadNode {
   readonly startLine: number | null;
   readonly diffSide: string;
   readonly comments: {
+    readonly pageInfo: PageInfo;
     readonly nodes: readonly GraphQLCommentNode[];
   };
 }
@@ -170,6 +171,7 @@ const REVIEW_THREAD_FIELDS = `
   startLine
   diffSide
   comments(first: 100) {
+    pageInfo { hasNextPage endCursor }
     nodes {
       ${COMMENT_FIELDS}
     }
@@ -216,6 +218,50 @@ function buildPageQuery(connectionName: string, nodeFields: string): string {
 `;
 }
 
+const THREAD_COMMENTS_PAGE_QUERY = `
+  query($threadId: ID!, $after: String) {
+    node(id: $threadId) {
+      ... on PullRequestReviewThread {
+        comments(first: 100, after: $after) {
+          pageInfo { hasNextPage endCursor }
+          nodes { ${COMMENT_FIELDS} }
+        }
+      }
+    }
+  }
+`;
+
+interface GraphQLThreadCommentsPageResponse {
+  readonly node: {
+    readonly comments: {
+      readonly pageInfo: PageInfo;
+      readonly nodes: readonly GraphQLCommentNode[];
+    };
+  };
+}
+
+/**
+ * レビュースレッド内コメントを全件取得します。
+ * 初回取得分に加えて、100件を超えている場合は追加ページを取得して結合します。
+ */
+async function getAllThreadComments(
+  octokit: Octokit,
+  thread: GraphQLReviewThreadNode,
+): Promise<readonly GraphQLCommentNode[]> {
+  const allNodes: GraphQLCommentNode[] = [...thread.comments.nodes];
+  let { hasNextPage, endCursor } = thread.comments.pageInfo;
+  while (hasNextPage) {
+    const page = await octokit.graphql<GraphQLThreadCommentsPageResponse>(THREAD_COMMENTS_PAGE_QUERY, {
+      threadId: thread.id,
+      after: endCursor,
+    });
+    allNodes.push(...page.node.comments.nodes);
+    hasNextPage = page.node.comments.pageInfo.hasNextPage;
+    endCursor = page.node.comments.pageInfo.endCursor;
+  }
+  return allNodes;
+}
+
 // --- マッピング関数 ---
 
 function mapCommentNode(node: GraphQLCommentNode): ConversationComment {
@@ -240,7 +286,8 @@ function mapReviewNode(node: GraphQLReviewNode): ConversationReview {
   };
 }
 
-function mapReviewThreadNode(node: GraphQLReviewThreadNode): ConversationReviewThread {
+async function mapReviewThreadNode(octokit: Octokit, node: GraphQLReviewThreadNode): Promise<ConversationReviewThread> {
+  const allComments = await getAllThreadComments(octokit, node);
   return {
     id: node.id,
     isResolved: node.isResolved,
@@ -250,14 +297,7 @@ function mapReviewThreadNode(node: GraphQLReviewThreadNode): ConversationReviewT
     line: node.line,
     startLine: node.startLine,
     diffSide: node.diffSide,
-    comments: node.comments.nodes.map((c) => ({
-      id: c.id,
-      author: c.author?.login ?? null,
-      body: c.body,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-      url: c.url,
-    })),
+    comments: allComments.map(mapCommentNode),
   };
 }
 
@@ -303,7 +343,7 @@ export async function getConversation(octokit: Octokit, target: PrIdentifier): P
     url: pr.url,
     comments: commentNodes.map(mapCommentNode),
     reviews: reviewNodes.map(mapReviewNode),
-    reviewThreads: reviewThreadNodes.map(mapReviewThreadNode),
+    reviewThreads: await Promise.all(reviewThreadNodes.map((node) => mapReviewThreadNode(octokit, node))),
   };
 }
 
