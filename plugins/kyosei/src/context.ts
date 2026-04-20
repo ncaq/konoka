@@ -83,35 +83,24 @@ function parsePrUrl(argument: string): GitHubOutputContext | undefined {
 
 /**
  * 現在のブランチに紐付くオープンなPRをベストエフォートで探します。
- * 見つからなかった場合やgitリポジトリでない場合はundefinedを返します。
+ * 見つからなかった場合は`undefined`を返します。
  */
 async function findPrForCurrentBranch(octokit: Octokit): Promise<PrIdentifier | undefined> {
-  try {
-    const [remoteRepo, currentBranchOutput] = await Promise.all([
-      getRemoteRepo(),
-      execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
-    ]);
-    const currentBranch = currentBranchOutput.stdout.trim();
-    const prListResponse = await octokit.rest.pulls.list({
-      owner: remoteRepo.owner,
-      repo: remoteRepo.repo,
-      head: `${remoteRepo.owner}:${currentBranch}`,
-      state: "open",
-      per_page: 1,
-    });
-    const pr = prListResponse.data[0];
-    if (pr != null) {
-      return { owner: remoteRepo.owner, repo: remoteRepo.repo, prNumber: pr.number };
-    }
-  } catch (err: unknown) {
-    // gitリポジトリでない場合やリモートが設定されていない場合は無視します。
-    if (err instanceof Error && "cmd" in err) {
-      // gitコマンドの実行失敗は想定通りです。
-    } else if (err instanceof Error) {
-      // API呼び出しの失敗も無視してPR情報無しで続行します。
-    } else {
-      throw err;
-    }
+  const [remoteRepo, currentBranchOutput] = await Promise.all([
+    getRemoteRepo(),
+    execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
+  ]);
+  const currentBranch = currentBranchOutput.stdout.trim();
+  const prListResponse = await octokit.rest.pulls.list({
+    owner: remoteRepo.owner,
+    repo: remoteRepo.repo,
+    head: `${remoteRepo.owner}:${currentBranch}`,
+    state: "open",
+    per_page: 1,
+  });
+  const pr = prListResponse.data[0];
+  if (pr != null) {
+    return { owner: remoteRepo.owner, repo: remoteRepo.repo, prNumber: pr.number };
   }
   return undefined;
 }
