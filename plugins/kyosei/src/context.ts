@@ -70,7 +70,7 @@ function parsePrUrl(argument: string): GitHubOutputContext | undefined {
     }
     return { output: "github", host: url.hostname, pr: { owner, repo, prNumber } };
   } catch (err: unknown) {
-    // new URL()がURLとして解釈できない文字列で投げるTypeErrorは想定通りなのでローカルモードとして扱います。
+    // new URL()がURLとして解釈できない文字列で投げるTypeErrorは想定通りなのでローカル出力として扱います。
     if (err instanceof TypeError) {
       return undefined;
     }
