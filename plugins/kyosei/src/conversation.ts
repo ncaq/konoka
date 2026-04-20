@@ -92,15 +92,6 @@ interface GraphQLReviewNode {
   readonly url: string;
 }
 
-interface GraphQLReviewThreadCommentNode {
-  readonly id: string;
-  readonly author: GraphQLAuthor | null;
-  readonly body: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly url: string;
-}
-
 interface GraphQLReviewThreadNode {
   readonly id: string;
   readonly isResolved: boolean;
@@ -111,7 +102,7 @@ interface GraphQLReviewThreadNode {
   readonly startLine: number | null;
   readonly diffSide: string;
   readonly comments: {
-    readonly nodes: readonly GraphQLReviewThreadCommentNode[];
+    readonly nodes: readonly GraphQLCommentNode[];
   };
 }
 
@@ -138,36 +129,14 @@ interface GraphQLInitialResponse {
   };
 }
 
-interface GraphQLCommentsPageResponse {
-  readonly repository: {
-    readonly pullRequest: {
-      readonly comments: {
-        readonly pageInfo: PageInfo;
-        readonly nodes: readonly GraphQLCommentNode[];
-      };
-    };
-  };
+interface GraphQLConnection<TNode> {
+  readonly pageInfo: PageInfo;
+  readonly nodes: readonly TNode[];
 }
 
-interface GraphQLReviewsPageResponse {
+interface GraphQLConnectionPageResponse<TNode> {
   readonly repository: {
-    readonly pullRequest: {
-      readonly reviews: {
-        readonly pageInfo: PageInfo;
-        readonly nodes: readonly GraphQLReviewNode[];
-      };
-    };
-  };
-}
-
-interface GraphQLReviewThreadsPageResponse {
-  readonly repository: {
-    readonly pullRequest: {
-      readonly reviewThreads: {
-        readonly pageInfo: PageInfo;
-        readonly nodes: readonly GraphQLReviewThreadNode[];
-      };
-    };
+    readonly pullRequest: Record<string, GraphQLConnection<TNode>>;
   };
 }
 
@@ -232,44 +201,20 @@ const INITIAL_QUERY = `
   }
 `;
 
-const COMMENTS_PAGE_QUERY = `
-  query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
+function buildPageQuery(connectionName: string, nodeFields: string): string {
+  return `
+  query($owner: String!, $repo: String!, $number: Int!, $after: String) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) {
-        comments(first: 100, after: $after) {
+        ${connectionName}(first: 100, after: $after) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${COMMENT_FIELDS} }
+          nodes { ${nodeFields} }
         }
       }
     }
   }
 `;
-
-const REVIEWS_PAGE_QUERY = `
-  query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviews(first: 100, after: $after) {
-          pageInfo { hasNextPage endCursor }
-          nodes { ${REVIEW_FIELDS} }
-        }
-      }
-    }
-  }
-`;
-
-const REVIEW_THREADS_PAGE_QUERY = `
-  query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
-    repository(owner: $owner, name: $repo) {
-      pullRequest(number: $number) {
-        reviewThreads(first: 100, after: $after) {
-          pageInfo { hasNextPage endCursor }
-          nodes { ${REVIEW_THREAD_FIELDS} }
-        }
-      }
-    }
-  }
-`;
+}
 
 // --- マッピング関数 ---
 
@@ -339,9 +284,16 @@ export async function getConversation(octokit: Octokit, target: PrIdentifier): P
 
   // 追加ページが必要なconnectionを並列で取得します。
   await Promise.all([
-    paginateComments(octokit, variables, pr.comments.pageInfo, commentNodes),
-    paginateReviews(octokit, variables, pr.reviews.pageInfo, reviewNodes),
-    paginateReviewThreads(octokit, variables, pr.reviewThreads.pageInfo, reviewThreadNodes),
+    paginateConnection(octokit, variables, "comments", COMMENT_FIELDS, pr.comments.pageInfo, commentNodes),
+    paginateConnection(octokit, variables, "reviews", REVIEW_FIELDS, pr.reviews.pageInfo, reviewNodes),
+    paginateConnection(
+      octokit,
+      variables,
+      "reviewThreads",
+      REVIEW_THREAD_FIELDS,
+      pr.reviewThreads.pageInfo,
+      reviewThreadNodes,
+    ),
   ]);
 
   return {
@@ -361,60 +313,26 @@ interface PaginationVariables {
   readonly number: number;
 }
 
-async function paginateComments(
+async function paginateConnection<TNode>(
   octokit: Octokit,
   variables: PaginationVariables,
+  connectionName: string,
+  nodeFields: string,
   pageInfo: PageInfo,
-  accumulator: GraphQLCommentNode[],
+  accumulator: TNode[],
 ): Promise<void> {
+  const query = buildPageQuery(connectionName, nodeFields);
   let cursor = pageInfo.endCursor;
   let hasNextPage = pageInfo.hasNextPage;
   while (hasNextPage) {
-    const page = await octokit.graphql<GraphQLCommentsPageResponse>(COMMENTS_PAGE_QUERY, {
+    const page = await octokit.graphql<GraphQLConnectionPageResponse<TNode>>(query, {
       ...variables,
       after: cursor,
     });
-    const connection = page.repository.pullRequest.comments;
-    accumulator.push(...connection.nodes);
-    hasNextPage = connection.pageInfo.hasNextPage;
-    cursor = connection.pageInfo.endCursor;
-  }
-}
-
-async function paginateReviews(
-  octokit: Octokit,
-  variables: PaginationVariables,
-  pageInfo: PageInfo,
-  accumulator: GraphQLReviewNode[],
-): Promise<void> {
-  let cursor = pageInfo.endCursor;
-  let hasNextPage = pageInfo.hasNextPage;
-  while (hasNextPage) {
-    const page = await octokit.graphql<GraphQLReviewsPageResponse>(REVIEWS_PAGE_QUERY, {
-      ...variables,
-      after: cursor,
-    });
-    const connection = page.repository.pullRequest.reviews;
-    accumulator.push(...connection.nodes);
-    hasNextPage = connection.pageInfo.hasNextPage;
-    cursor = connection.pageInfo.endCursor;
-  }
-}
-
-async function paginateReviewThreads(
-  octokit: Octokit,
-  variables: PaginationVariables,
-  pageInfo: PageInfo,
-  accumulator: GraphQLReviewThreadNode[],
-): Promise<void> {
-  let cursor = pageInfo.endCursor;
-  let hasNextPage = pageInfo.hasNextPage;
-  while (hasNextPage) {
-    const page = await octokit.graphql<GraphQLReviewThreadsPageResponse>(REVIEW_THREADS_PAGE_QUERY, {
-      ...variables,
-      after: cursor,
-    });
-    const connection = page.repository.pullRequest.reviewThreads;
+    const connection = page.repository.pullRequest[connectionName];
+    if (connection == null) {
+      throw new Error(`GraphQL response missing connection: ${connectionName}`);
+    }
     accumulator.push(...connection.nodes);
     hasNextPage = connection.pageInfo.hasNextPage;
     cursor = connection.pageInfo.endCursor;
