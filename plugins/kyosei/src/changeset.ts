@@ -16,6 +16,8 @@ import { execFileAsync } from "./exec.js";
 export interface Changeset {
   readonly diff: string;
   readonly log: string;
+  /** PRのheadコミットSHA。GitHub出力時のみ設定されます。 */
+  readonly headCommitId?: string;
 }
 
 /**
@@ -50,9 +52,14 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
   if (typeof diffResponse.data !== "string") {
     throw new Error("unexpected response type for diff");
   }
+  // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
+  // pulls.getにmediaType diffを指定するとレスポンスが文字列になりhead SHAが取れないため、
+  // コミット一覧から取得しています。
+  const lastCommit = commitsResponse.data.at(-1);
   return {
     diff: diffResponse.data,
     log,
+    ...(lastCommit != null ? { headCommitId: lastCommit.sha } : {}),
   };
 }
 

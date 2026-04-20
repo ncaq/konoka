@@ -36,6 +36,7 @@ GitHub出力。
 
 - `diff`: 差分(diffフォーマット)
 - `log`: コミットログ
+- `headCommitId`: PRのheadコミットSHA(GitHub出力時のみ)
 
 ### `conversation` フィールド(PRが特定できた場合のみ)
 
