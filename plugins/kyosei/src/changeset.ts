@@ -6,7 +6,7 @@
  */
 
 import type { Octokit } from "octokit";
-import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context.js";
+import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type.js";
 import { execFileAsync } from "./exec.js";
 
 /**

@@ -6,7 +6,7 @@
 import type { Octokit } from "octokit";
 import type { Changeset } from "./changeset.js";
 import { getChangeset } from "./changeset.js";
-import type { ReviewContext } from "./context.js";
+import type { ReviewContext } from "./context-type.js";
 import type { Conversation } from "./conversation.js";
 import { getConversation } from "./conversation.js";
 
