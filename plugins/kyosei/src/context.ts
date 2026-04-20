@@ -7,7 +7,7 @@
 
 import type { Octokit } from "octokit";
 import { execFileAsync } from "./exec.js";
-import { getRemoteRepo } from "./remote.js";
+import { getRemoteName, getRemoteRepo } from "./remote.js";
 
 /**
  * PRの識別情報。
@@ -38,11 +38,14 @@ export interface GitHubOutputContext {
  * ローカル出力のコンテキスト。
  * 引数が指定されないか、PR URLとして解析できない場合にこの出力先になります。
  * レビュー結果はターミナルに直接出力されます。
- * ブランチに紐付くPRが特定できた場合はpr情報を保持します。
  */
 export interface LocalOutputContext {
   readonly output: "local";
   readonly pr?: PrIdentifier;
+  /** diff対象のベースブランチ名。PRのベースまたはリポジトリのデフォルトブランチ。 */
+  readonly baseBranch: string;
+  /** gitリモート名。省略時は"origin"として扱います。 */
+  readonly remoteName?: string;
 }
 
 /**
@@ -83,27 +86,61 @@ function parsePrUrl(argument: string): GitHubOutputContext | undefined {
 }
 
 /**
- * 現在のブランチに紐付くオープンなPRをベストエフォートで探します。
- * 見つからなかった場合は`undefined`を返します。
+ * gitのsymbolic-refからリモートのデフォルトブランチ名を取得します。
+ * `git remote set-head`で設定されている必要があります。
  */
-async function findPrForCurrentBranch(octokit: Octokit): Promise<PrIdentifier | undefined> {
-  const [remoteRepo, currentBranchOutput] = await Promise.all([
-    getRemoteRepo(),
+async function getDefaultBranchFromGit(remoteName: string): Promise<string> {
+  const symbolicRef = await execFileAsync("git", ["symbolic-ref", `refs/remotes/${remoteName}/HEAD`]);
+  // "refs/remotes/origin/main" → "main"
+  const prefix = `refs/remotes/${remoteName}/`;
+  const ref = symbolicRef.stdout.trim();
+  if (!ref.startsWith(prefix)) {
+    throw new Error(`unexpected symbolic-ref format: ${ref}`);
+  }
+  return ref.slice(prefix.length);
+}
+
+/**
+ * ローカル出力向けにブランチ情報を解決します。
+ * GitHub APIが利用可能なら、PRのベースブランチまたはリポジトリのデフォルトブランチを取得します。
+ * GitHub APIが利用できない場合はgitのsymbolic-refからデフォルトブランチを取得します。
+ */
+async function resolveLocalContext(octokit: Octokit): Promise<LocalOutputContext> {
+  const [remoteName, currentBranchOutput] = await Promise.all([
+    getRemoteName(),
     execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"]),
   ]);
   const currentBranch = currentBranchOutput.stdout.trim();
-  const prListResponse = await octokit.rest.pulls.list({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-    head: `${remoteRepo.owner}:${currentBranch}`,
-    state: "open",
-    per_page: 1,
-  });
-  const pr = prListResponse.data[0];
-  if (pr != null) {
-    return { owner: remoteRepo.owner, repo: remoteRepo.repo, prNumber: pr.number };
+  try {
+    const remoteRepo = await getRemoteRepo();
+    const prListResponse = await octokit.rest.pulls.list({
+      owner: remoteRepo.owner,
+      repo: remoteRepo.repo,
+      head: `${remoteRepo.owner}:${currentBranch}`,
+      state: "open",
+      per_page: 1,
+    });
+    const pr = prListResponse.data[0];
+    if (pr != null) {
+      return {
+        output: "local",
+        pr: { owner: remoteRepo.owner, repo: remoteRepo.repo, prNumber: pr.number },
+        baseBranch: pr.base.ref,
+        remoteName,
+      };
+    }
+    // PRが見つからない場合はデフォルトブランチにフォールバックします。
+    const repoResponse = await octokit.rest.repos.get({
+      owner: remoteRepo.owner,
+      repo: remoteRepo.repo,
+    });
+    return { output: "local", baseBranch: repoResponse.data.default_branch, remoteName };
+  } catch (err: unknown) {
+    // GitHub APIやURL解析が利用できない場合はgitからデフォルトブランチを取得します。
+    console.warn(`GitHub API unavailable, falling back to git: ${err instanceof Error ? err.message : String(err)}`);
+    const baseBranch = await getDefaultBranchFromGit(remoteName);
+    return { output: "local", baseBranch, remoteName };
   }
-  return undefined;
 }
 
 /**
@@ -112,20 +149,13 @@ async function findPrForCurrentBranch(octokit: Octokit): Promise<PrIdentifier | 
  * ローカル出力の場合、ブランチに紐付くPRがあればpr情報を設定します。
  */
 export async function detectReviewContext(octokit: Octokit, argument: string | undefined): Promise<ReviewContext> {
-  if (argument == null || argument.trim() === "") {
-    const pr = await findPrForCurrentBranch(octokit);
-    if (pr != null) {
-      return { output: "local", pr };
+  // 引数が指定されていればURLからPRのコンテキストの取得を試みます。
+  if (argument != null && argument.trim() !== "") {
+    const prContext = parsePrUrl(argument);
+    if (prContext != null) {
+      return prContext;
     }
-    return { output: "local" };
   }
-  const prContext = parsePrUrl(argument);
-  if (prContext != null) {
-    return prContext;
-  }
-  const pr = await findPrForCurrentBranch(octokit);
-  if (pr != null) {
-    return { output: "local", pr };
-  }
-  return { output: "local" };
+  // 引数が指定されていない場合はローカル出力向けにブランチ情報を解決します。
+  return resolveLocalContext(octokit);
 }

@@ -2,8 +2,7 @@ import type { Octokit } from "octokit";
 import { describe, expect, test } from "vitest";
 import { detectReviewContext } from "../src/context.js";
 
-// URL解析テストではOctokitは使われないためダミーで十分です。
-// ローカルモードテストではgitコマンド実行がcatchされてpr無しになります。
+// URL解析テストではダミーで十分です。
 const dummyOctokit = {} as Octokit;
 
 describe("detectReviewContext", () => {
@@ -65,50 +64,42 @@ describe("detectReviewContext", () => {
     });
   });
 
-  describe("ローカル出力モード", () => {
-    test("undefinedの場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, undefined);
-      expect(context.output).toBe("local");
+  describe("ローカル出力モード(ブランチ解決失敗時)", () => {
+    // サンドボックス環境はgitリポジトリではないのでブランチ解決が失敗してrejectされることを確認します。
+    test("undefinedの場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, undefined)).rejects.toThrow();
     });
 
-    test("空文字の場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "");
-      expect(context.output).toBe("local");
+    test("空文字の場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "")).rejects.toThrow();
     });
 
-    test("空白のみの場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "   ");
-      expect(context.output).toBe("local");
+    test("空白のみの場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "   ")).rejects.toThrow();
     });
 
-    test("URLではない文字列の場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "not-a-url");
-      expect(context.output).toBe("local");
+    test("URLではない文字列の場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "not-a-url")).rejects.toThrow();
     });
 
-    test("PR URLではないGitHub URLの場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka");
-      expect(context.output).toBe("local");
+    test("PR URLではないGitHub URLの場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka")).rejects.toThrow();
     });
 
-    test("issueのURLの場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/issues/42");
-      expect(context.output).toBe("local");
+    test("issueのURLの場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/issues/42")).rejects.toThrow();
     });
 
-    test("PR番号が0の場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/0");
-      expect(context.output).toBe("local");
+    test("PR番号が0の場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/0")).rejects.toThrow();
     });
 
-    test("PR番号が負の場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/-1");
-      expect(context.output).toBe("local");
+    test("PR番号が負の場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/-1")).rejects.toThrow();
     });
 
-    test("PR番号が数値でない場合はローカルモード", async () => {
-      const context = await detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/abc");
-      expect(context.output).toBe("local");
+    test("PR番号が数値でない場合はブランチ解決が試みられてrejectされる", async () => {
+      await expect(detectReviewContext(dummyOctokit, "https://github.com/ncaq/konoka/pull/abc")).rejects.toThrow();
     });
   });
 });

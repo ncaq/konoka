@@ -20,7 +20,7 @@ export interface RemoteRepo {
  * 現在のブランチのupstream設定からリモート名を取得します。
  * upstreamが設定されていない場合はgit remoteの先頭を使います。
  */
-async function getRemoteName(): Promise<string> {
+export async function getRemoteName(): Promise<string> {
   try {
     // 現在のブランチのupstreamからリモート名を取得します。
     // 例: @{upstream}が"origin/main"ならリモート名は"origin"です。

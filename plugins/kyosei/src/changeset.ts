@@ -1,14 +1,13 @@
 /**
  * 変更セットの取得を行うモジュール。
  * PRモードではOctokit経由でGitHub APIから取得し、
- * ローカルモードではベースブランチの特定にOctokitを使い、
- * 差分自体はgitコマンドで取得します。
+ * ローカルモードではcontextに解決済みのブランチ情報を使って
+ * gitコマンドで差分を取得します。
  */
 
 import type { Octokit } from "octokit";
-import type { GitHubOutputContext, ReviewContext } from "./context.js";
+import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context.js";
 import { execFileAsync } from "./exec.js";
-import { getRemoteRepo, type RemoteRepo } from "./remote.js";
 
 /**
  * レビュー対象の変更セット。
@@ -58,53 +57,12 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
 }
 
 /**
- * 現在のブランチ名を取得します。
- */
-async function getCurrentBranch(): Promise<string> {
-  return (await execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"])).stdout.trim();
-}
-
-/**
- * リポジトリのデフォルトブランチを取得します。
- */
-async function getDefaultBranch(octokit: Octokit, remoteRepo: RemoteRepo): Promise<string> {
-  const repoResponse = await octokit.rest.repos.get({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-  });
-  return repoResponse.data.default_branch;
-}
-
-/**
- * ローカルブランチのベースブランチを特定し、リモート名と合わせて返します。
- * まず現在のブランチに対応するPRがあればそのベースブランチを使い、
- * なければリポジトリのデフォルトブランチにフォールバックします。
- */
-async function getLocalBaseBranch(octokit: Octokit): Promise<{ remoteRepo: RemoteRepo; baseBranch: string }> {
-  const [remoteRepo, currentBranch] = await Promise.all([getRemoteRepo(), getCurrentBranch()]);
-  const prListResponse = await octokit.rest.pulls.list({
-    owner: remoteRepo.owner,
-    repo: remoteRepo.repo,
-    head: `${remoteRepo.owner}:${currentBranch}`,
-    state: "open",
-    per_page: 1,
-  });
-  const pr = prListResponse.data[0];
-  if (pr != null) {
-    return { remoteRepo, baseBranch: pr.base.ref };
-  } else {
-    // PRが見つからない場合はデフォルトブランチにフォールバックします。
-    const baseBranch = await getDefaultBranch(octokit, remoteRepo);
-    return { remoteRepo, baseBranch };
-  }
-}
-
-/**
  * ローカルレビューモードの変更セットを取得します。
+ * contextのbaseBranchとremoteNameからdiffとlogを生成します。
  */
-async function getLocalChangeset(octokit: Octokit): Promise<Changeset> {
-  const { remoteRepo, baseBranch } = await getLocalBaseBranch(octokit);
-  const range = `${remoteRepo.remoteName}/${baseBranch}...HEAD`;
+async function getLocalChangeset(context: LocalOutputContext): Promise<Changeset> {
+  const base = context.remoteName != null ? `${context.remoteName}/${context.baseBranch}` : context.baseBranch;
+  const range = `${base}...HEAD`;
   const [gitDiffOutput, gitLogOutput] = await Promise.all([
     execFileAsync("git", ["diff", range]),
     execFileAsync("git", ["log", range]),
@@ -122,5 +80,5 @@ export async function getChangeset(octokit: Octokit, context: ReviewContext): Pr
   if (context.output === "github") {
     return getPrChangeset(octokit, context);
   }
-  return getLocalChangeset(octokit);
+  return getLocalChangeset(context);
 }

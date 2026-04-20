@@ -70,13 +70,20 @@
                       checkName = "${builtins.replaceStrings [ ":" ] [ "-" ] script}-${pluginName}";
                     in
                     lib.nameValuePair checkName (
-                      pkgs.runCommand checkName { nativeBuildInputs = [ nodejs ]; } ''
-                        cp -r ${tsSrc}/. .
-                        ln -s ${nodeModules}/node_modules node_modules
-                        cd plugins/${pluginName}
-                        npm run ${script}
-                        touch $out
-                      ''
+                      pkgs.runCommand checkName
+                        {
+                          nativeBuildInputs = [
+                            nodejs
+                            pkgs.git
+                          ];
+                        }
+                        ''
+                          cp -r ${tsSrc}/. .
+                          ln -s ${nodeModules}/node_modules node_modules
+                          cd plugins/${pluginName}
+                          npm run ${script}
+                          touch $out
+                        ''
                     );
                 in
                 lib.listToAttrs (map mkCheck scriptList);
