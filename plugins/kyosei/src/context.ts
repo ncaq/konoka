@@ -72,6 +72,7 @@ function parsePrUrl(argument: string): GitHubOutputContext | undefined {
   } catch (err: unknown) {
     // new URL()がURLとして解釈できない文字列で投げるTypeErrorは想定通りなのでローカル出力として扱います。
     if (err instanceof TypeError) {
+      console.warn(`argument: "${argument}" is not a valid URL. err is ${err.message}.`);
       return undefined;
     }
     if (err instanceof Error) {
