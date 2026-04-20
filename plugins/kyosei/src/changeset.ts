@@ -64,8 +64,8 @@ async function getLocalChangeset(context: LocalOutputContext): Promise<Changeset
   const base = context.remoteName != null ? `${context.remoteName}/${context.baseBranch}` : context.baseBranch;
   const range = `${base}...HEAD`;
   const [gitDiffOutput, gitLogOutput] = await Promise.all([
-    execFileAsync("git", ["diff", range]),
-    execFileAsync("git", ["log", range]),
+    execFileAsync("git", ["diff", "--end-of-options", range]),
+    execFileAsync("git", ["log", "--end-of-options", range]),
   ]);
   return {
     diff: gitDiffOutput.stdout,
