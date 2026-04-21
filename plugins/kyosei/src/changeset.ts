@@ -26,21 +26,21 @@ export interface Changeset {
  * コミット一覧もAPIから取得します。
  */
 async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Promise<Changeset> {
-  const [diffResponse, commitsResponse] = await Promise.all([
+  const [diffResponse, allCommits] = await Promise.all([
     octokit.rest.pulls.get({
       owner: context.pr.owner,
       repo: context.pr.repo,
       pull_number: context.pr.prNumber,
       mediaType: { format: "diff" },
     }),
-    octokit.rest.pulls.listCommits({
+    octokit.paginate(octokit.rest.pulls.listCommits, {
       owner: context.pr.owner,
       repo: context.pr.repo,
       pull_number: context.pr.prNumber,
-      per_page: 100, // コミットログは100件以上は追いません。なくてもレビューは可能ですし。
+      per_page: 100,
     }),
   ]);
-  const log = commitsResponse.data
+  const log = allCommits
     .map((c) => {
       // まず入ってないことはないと思うので雑なフォールバック値を設定しています。
       const authorName = c.commit.author?.name ?? "unknown-author-name";
@@ -55,7 +55,7 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
   // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
   // pulls.getにmediaType diffを指定するとレスポンスが文字列になりhead SHAが取れないため、
   // コミット一覧から取得しています。
-  const lastCommit = commitsResponse.data.at(-1);
+  const lastCommit = allCommits.at(-1);
   return {
     diff: diffResponse.data,
     log,

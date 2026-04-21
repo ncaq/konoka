@@ -23,19 +23,18 @@ describe("getChangeset", () => {
         rest: {
           pulls: {
             get: vi.fn().mockResolvedValue({ data: "diff content here" }),
-            listCommits: vi.fn().mockResolvedValue({
-              data: [
-                {
-                  sha: "abc123",
-                  commit: {
-                    author: { name: "Test Author", date: "2026-01-01T00:00:00Z" },
-                    message: "test commit message",
-                  },
-                },
-              ],
-            }),
+            listCommits: vi.fn(),
           },
         },
+        paginate: vi.fn().mockResolvedValue([
+          {
+            sha: "abc123",
+            commit: {
+              author: { name: "Test Author", date: "2026-01-01T00:00:00Z" },
+              message: "test commit message",
+            },
+          },
+        ]),
       } as unknown as Octokit;
 
       const changeset = await getChangeset(octokit, context);
@@ -44,6 +43,12 @@ describe("getChangeset", () => {
       expect(changeset.log).toContain("abc123");
       expect(changeset.log).toContain("Test Author");
       expect(changeset.log).toContain("test commit message");
+      expect(octokit.paginate).toHaveBeenCalledWith(octokit.rest.pulls.listCommits, {
+        owner: "test-owner",
+        repo: "test-repo",
+        pull_number: 42,
+        per_page: 100,
+      });
     });
 
     test("diffレスポンスが文字列でない場合はエラーを投げる", async () => {
@@ -56,9 +61,10 @@ describe("getChangeset", () => {
         rest: {
           pulls: {
             get: vi.fn().mockResolvedValue({ data: { not: "a string" } }),
-            listCommits: vi.fn().mockResolvedValue({ data: [] }),
+            listCommits: vi.fn(),
           },
         },
+        paginate: vi.fn().mockResolvedValue([]),
       } as unknown as Octokit;
 
       await expect(getChangeset(octokit, context)).rejects.toThrow("unexpected response type for diff");
