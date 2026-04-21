@@ -51,7 +51,7 @@ interface ReviewSubmissionResult {
 /**
  * コメントのlevel一覧からレビューイベントを決定します。
  * - criticalの指摘がある → REQUEST_CHANGES
- * - 全ての指摘がlow以下 → APPROVE
+ * - 全ての指摘が`low`または`info` → APPROVE
  * - それ以外 → COMMENT
  */
 function deriveReviewEvent(comments: readonly ReviewComment[] | undefined): ReviewEvent {
