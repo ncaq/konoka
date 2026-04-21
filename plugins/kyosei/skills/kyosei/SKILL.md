@@ -2,7 +2,7 @@
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
-allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_inline_comment__create_inline_comment
+allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
 ---
 
 # get-review-infoでの情報の取得
@@ -10,7 +10,7 @@ allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github, mcp__github_in
 以下のコマンドでレビューに必要な情報を一括取得します。
 結果はJSONで返されるので、そのまま解釈してください。
 
-```
+```bash
 node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-review-info.js $ARGUMENTS
 ```
 
@@ -36,6 +36,7 @@ GitHub出力。
 
 - `diff`: 差分(diffフォーマット)
 - `log`: コミットログ
+- `headCommitId`: PRのheadコミットSHA(GitHub出力時のみ)
 
 ### `conversation` フィールド(PRが特定できた場合のみ)
 
@@ -46,9 +47,27 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 トップレベルにPR自体の情報(`title`, `body`, `author`, `url`)があり、以下の3つのサブフィールドがあります。
 
-- `comments`: PR全体へのコメント一覧。`id`, `author`, `body`, `createdAt`, `updatedAt`, `url`を持ちます。
-- `reviews`: レビュー一覧。`id`, `author`, `state`(APPROVED, CHANGES_REQUESTED等), `body`, `submittedAt`, `url`を持ちます。
-- `reviewThreads`: インラインレビュースレッド一覧。`isResolved`, `isOutdated`, `path`, `line`, `diffSide`等のメタデータと、スレッド内`comments`配列を持ちます。
+- `comments`: PR全体へのコメント一覧。以下のフィールドを持ちます。
+  - `id`
+  - `author`
+  - `body`
+  - `createdAt`
+  - `updatedAt`
+  - `url`
+- `reviews`: レビュー一覧。以下のフィールドを持ちます。
+  - `id`
+  - `author`
+  - `state`: APPROVED, CHANGES_REQUESTED等
+  - `body`
+  - `submittedAt`
+  - `url`
+- `reviewThreads`: インラインレビュースレッド一覧。以下に抜粋したフィールドなどを持ちます。
+  - `isResolved`
+  - `isOutdated`
+  - `path`
+  - `line`
+  - `diffSide`
+  - `comments`: スレッド内配列
 
 # コードレビューの実行
 
@@ -69,7 +88,8 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 # 並列実行結果のマージ
 
-複数エージェントからのレビュー結果を集約し、
+各サブエージェントはJSON配列で結果を返します。
+全エージェントの配列を結合した上で、
 重複する指摘は1つにまとめてください。
 
 以下の3条件を全て満たす指摘は同一とみなし、
@@ -83,9 +103,9 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 統合時のルール:
 
-- 重大度が異なる場合: より高い重大度を採用する
-- 説明文が異なる場合: 両方の固有の情報を含めてマージする
-- 対象行がずれている場合: より正確な行を採用する
+- `level`が異なる場合: より高い重大度を採用する
+- `body`が異なる場合: 両方の固有の情報を含めてマージする
+- `line`がずれている場合: より正確な行を採用する
 
 # 重複コメントの除外
 
@@ -103,13 +123,44 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 ## GitHub出力の場合
 
-GitHubのPRレビューコメントとして投稿してください。
-具体的な指摘には`mcp__github_inline_comment__create_inline_comment`でインラインコメントを使用してください。
-全体的な所感にはトップレベルコメントを使用してください。
+以下のコマンドでレビューを一括投稿します。
+引数にJSON文字列を渡してください。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
+```
+
+### JSONスキーマ
+
+- `owner`: リポジトリオーナー(`context.pr.owner`)
+- `repo`: リポジトリ名(`context.pr.repo`)
+- `prNumber`: PR番号(`context.pr.prNumber`)
+- `headCommitId`: headコミットSHA(`changeset.headCommitId`)
+- `body`: レビュー全体のサマリー。必須であり空文字列は不可。
+- `comments`: インラインコメントの配列(省略可)
+  - `path`: ファイルの相対パス
+  - `body`: コメント本文
+  - `line`: コメントを付ける行番号(複数行の場合は終了行)
+  - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)
+  - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
+  - `level`: 指摘の重大度。以下のいずれか。
+    - `"critical"`
+    - `"high"`
+    - `"medium"`
+    - `"low"`
+    - `"info"`
+
+レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
+
+レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
+`critical`が存在すればREQUEST_CHANGESになります。
+`low`または`info`のみや`comments`が空の場合はAPPROVEになります。
+それ以外はCOMMENTになります。
 
 指摘することがない完璧なPRの場合でも、
 レビューが正常に完了したことを伝えるために、
-そのことをレビューコメントとして投稿してください。
+コメントなしでレビューを投稿してください。
+コメントなしはAPPROVEになります。
 
 ## ローカル出力の場合
 

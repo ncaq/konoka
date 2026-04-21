@@ -16,6 +16,8 @@ import { execFileAsync } from "./exec.js";
 export interface Changeset {
   readonly diff: string;
   readonly log: string;
+  /** PRのheadコミットSHA。GitHub出力時のみ設定されます。 */
+  readonly headCommitId?: string;
 }
 
 /**
@@ -24,21 +26,21 @@ export interface Changeset {
  * コミット一覧もAPIから取得します。
  */
 async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Promise<Changeset> {
-  const [diffResponse, commitsResponse] = await Promise.all([
+  const [diffResponse, allCommits] = await Promise.all([
     octokit.rest.pulls.get({
       owner: context.pr.owner,
       repo: context.pr.repo,
       pull_number: context.pr.prNumber,
       mediaType: { format: "diff" },
     }),
-    octokit.rest.pulls.listCommits({
+    octokit.paginate(octokit.rest.pulls.listCommits, {
       owner: context.pr.owner,
       repo: context.pr.repo,
       pull_number: context.pr.prNumber,
-      per_page: 100, // コミットログは100件以上は追いません。なくてもレビューは可能ですし。
+      per_page: 100,
     }),
   ]);
-  const log = commitsResponse.data
+  const log = allCommits
     .map((c) => {
       // まず入ってないことはないと思うので雑なフォールバック値を設定しています。
       const authorName = c.commit.author?.name ?? "unknown-author-name";
@@ -50,9 +52,16 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
   if (typeof diffResponse.data !== "string") {
     throw new Error("unexpected response type for diff");
   }
+  // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
+  // GitHub APIの`pulls.listCommits`は時系列昇順(古い順)で返すため、
+  // ページネーションで全件取得した配列の末尾がPRのheadコミットに相当します。
+  // `pulls.get`にmediaType diffを指定するとレスポンスが文字列になりhead SHAが取れないため、
+  // コミット一覧から取得しています。
+  const lastCommit = allCommits.at(-1);
   return {
     diff: diffResponse.data,
     log,
+    ...(lastCommit != null ? { headCommitId: lastCommit.sha } : {}),
   };
 }
 
