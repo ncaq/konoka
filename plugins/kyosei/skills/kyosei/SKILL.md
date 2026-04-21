@@ -153,8 +153,9 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
 
 レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
-`critical`が含まれればはREQUEST_CHANGESになります。
+`critical`が存在すればREQUEST_CHANGESになります。
 `low`または`info`のみや`comments`が空の場合はAPPROVEになります。
+それ以外はCOMMENTになります。
 
 指摘することがない完璧なPRの場合でも、
 レビューが正常に完了したことを伝えるために、
