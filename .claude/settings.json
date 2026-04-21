@@ -62,6 +62,7 @@
       "Bash(npm exec --no:*)",
       "Bash(npm run fix:*)",
       "Bash(npm run lint:*)",
+      "Bash(npm test:*)",
       "Bash(prettier:*)",
       "Bash(shellcheck:*)",
       "Bash(shfmt:*)",
