@@ -50,7 +50,7 @@ interface ReviewSubmissionResult {
 
 /**
  * コメントのlevel一覧からレビューイベントを決定します。
- * - critical以上の指摘がある → REQUEST_CHANGES
+ * - criticalの指摘がある → REQUEST_CHANGES
  * - 全ての指摘がlow以下 → APPROVE
  * - それ以外 → COMMENT
  */
