@@ -125,12 +125,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 ## GitHub出力の場合
 
-以下のコマンドでレビューを一括投稿します。
-引数にJSON文字列を渡してください。
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
-```
+投稿するレビュー情報となるJSON文字列を組み立てます。
 
 ### JSONスキーマ
 
@@ -138,6 +133,10 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
 - `headCommitId`: headコミットSHA(`changeset.headCommitId`)
+- `event`: レビューイベント。以下のいずれか。
+  - `"APPROVE"`
+  - `"COMMENT"`
+  - `"REQUEST_CHANGES"`
 - `body`: レビュー全体のサマリー。必須であり空文字列は不可。
 - `comments`: インラインコメントの配列(省略可)
   - `path`: ファイルの相対パス
@@ -154,15 +153,40 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 
 レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
 
-レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
-`critical`が存在すればREQUEST_CHANGESになります。
-`low`または`info`のみや`comments`が空の場合はAPPROVEになります。
-それ以外はCOMMENTになります。
+### eventの決定
+
+`event`はレビュー全体の判定を表します。
+今回のレビューで新たに投稿するコメントだけでなく、
+`conversation`フィールドの既存レビュー状態も考慮して総合的に判定してください。
+
+判定基準:
+
+- `REQUEST_CHANGES`: 以下のいずれかに該当する場合。
+  - 今回のコメントに`critical`レベルの指摘がある。
+  - 前回のレビューが`REQUEST_CHANGES`で、その指摘に対応する修正が確認できない。
+- `APPROVE`: 以下の全てを満たす場合。
+  - 今回のコメントが全て`low`または`info`のみ、もしくはコメントなし。
+  - 前回のレビューでの`low`または`info`以外の指摘が全て対応済みであること。
+- `COMMENT`: 上記のいずれにも該当しない場合。
+  例: `high`や`medium`の指摘があるだけの場合。
+  `high`でも`REQUEST_CHANGES`ではないのは直感に反するかもしれませんが、
+  あまり機械のレビューが厳しすぎるないようにするための措置です。
+
+### 投稿
+
+以下のコマンドでレビューを一括投稿します。
+引数にJSON文字列を渡してください。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
+```
 
 指摘することがない完璧なPRの場合でも、
-レビューが正常に完了したことを伝えるために、
-コメントなしでレビューを投稿してください。
-コメントなしはAPPROVEになります。
+レビューのワークフローが正常に完了したことを伝えるため、
+レビューを投稿してください。
+
+本文は空でない文字列である必要があるので、
+手早く感想を作ってください。
 
 ## ローカル出力の場合
 

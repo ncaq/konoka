@@ -7,6 +7,7 @@ const validInput = {
   owner: "test-owner",
   repo: "test-repo",
   prNumber: 42,
+  event: "APPROVE",
   body: "review body",
 };
 
@@ -17,6 +18,7 @@ describe("decodeReviewSubmission", () => {
     expect(submission.owner).toBe("test-owner");
     expect(submission.repo).toBe("test-repo");
     expect(submission.prNumber).toBe(42);
+    expect(submission.event).toBe("APPROVE");
     expect(submission.body).toBe("review body");
     expect(submission.comments).toBeUndefined();
     expect(submission.headCommitId).toBeUndefined();
@@ -25,6 +27,7 @@ describe("decodeReviewSubmission", () => {
   test("全フィールドを含む入力をデコードできる", () => {
     const input = {
       ...validInput,
+      event: "REQUEST_CHANGES",
       headCommitId: "abc123def456",
       comments: [
         {
@@ -45,6 +48,7 @@ describe("decodeReviewSubmission", () => {
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
 
+    expect(submission.event).toBe("REQUEST_CHANGES");
     expect(submission.headCommitId).toBe("abc123def456");
     expect(submission.comments).toHaveLength(2);
     expect(submission.comments?.[0]?.path).toBe("src/foo.ts");
@@ -105,6 +109,15 @@ describe("decodeReviewSubmission", () => {
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
 
+  test("eventが欠落している場合はエラーになる", () => {
+    const { event: _, ...inputWithoutEvent } = validInput;
+    expect(() => decodeReviewSubmission(JSON.stringify(inputWithoutEvent))).toThrow();
+  });
+
+  test("不正なeventはエラーになる", () => {
+    expect(() => decodeReviewSubmission(JSON.stringify({ ...validInput, event: "INVALID" }))).toThrow();
+  });
+
   test("不正なsideはエラーになる", () => {
     const input = {
       ...validInput,
@@ -143,71 +156,16 @@ describe("submitReview", () => {
     } as unknown as Octokit;
   }
 
-  test("コメントなしの場合はAPPROVEになる", async () => {
-    const octokit = createMockOctokit();
-    const submission = decodeReviewSubmission(JSON.stringify(validInput));
-    await submitReview(octokit, submission);
+  test("指定されたeventがそのままAPIに渡される", async () => {
+    for (const event of ["APPROVE", "COMMENT", "REQUEST_CHANGES"] as const) {
+      const octokit = createMockOctokit();
+      const input = { ...validInput, event };
+      const submission = decodeReviewSubmission(JSON.stringify(input));
+      await submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.event).toBe("APPROVE");
-  });
-
-  test("criticalコメントがある場合はREQUEST_CHANGESになる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [
-        { path: "a.ts", body: "ok", line: 1, level: "low" },
-        { path: "b.ts", body: "danger", line: 2, level: "critical" },
-      ],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
-
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.event).toBe("REQUEST_CHANGES");
-  });
-
-  test("low/infoのみの場合はAPPROVEになる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [
-        { path: "a.ts", body: "nit", line: 1, level: "low" },
-        { path: "b.ts", body: "fyi", line: 2, level: "info" },
-      ],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
-
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.event).toBe("APPROVE");
-  });
-
-  test("medium以上でcritical未満の場合はCOMMENTになる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "a.ts", body: "concern", line: 1, level: "medium" }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
-
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.event).toBe("COMMENT");
-  });
-
-  test("highのみの場合はCOMMENTになる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "a.ts", body: "issue", line: 1, level: "high" }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
-
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.event).toBe("COMMENT");
+      const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+      expect(call?.event).toBe(event);
+    }
   });
 
   test("headCommitIdが指定されている場合はcommit_idが渡される", async () => {

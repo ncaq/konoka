@@ -19,54 +19,26 @@ const ReviewCommentSchema = Schema.Struct({
   level: ReviewLevelSchema,
 });
 
-/**
- * レビュー投稿の入力スキーマ。
- * レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)は
- * コメントのlevelから自動的に決定します。
- */
+const ReviewEventSchema = Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES");
+
+/** レビュー投稿の入力スキーマ。 */
 const ReviewSubmissionSchema = Schema.Struct({
   owner: Schema.NonEmptyString,
   repo: Schema.NonEmptyString,
   prNumber: Schema.Number.pipe(Schema.int(), Schema.positive()),
   headCommitId: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  event: ReviewEventSchema,
   body: Schema.NonEmptyString,
   comments: Schema.optionalWith(Schema.Array(ReviewCommentSchema), { exact: true }),
 });
 
-/** インラインコメントの入力。 */
-type ReviewComment = typeof ReviewCommentSchema.Type;
-
 /** レビュー投稿の入力。 */
 type ReviewSubmission = typeof ReviewSubmissionSchema.Type;
-
-/** GitHub APIに渡すレビューイベント。 */
-type ReviewEvent = "APPROVE" | "COMMENT" | "REQUEST_CHANGES";
 
 /** レビュー投稿の結果。 */
 interface ReviewSubmissionResult {
   readonly reviewId: number;
   readonly htmlUrl: string;
-}
-
-/**
- * コメントのlevel一覧からレビューイベントを決定します。
- * - criticalの指摘がある → REQUEST_CHANGES
- * - 全ての指摘が`low`または`info` → APPROVE
- * - それ以外 → COMMENT
- */
-function deriveReviewEvent(comments: readonly ReviewComment[] | undefined): ReviewEvent {
-  if (comments == null || comments.length === 0) {
-    return "APPROVE";
-  }
-  const hasCritical = comments.some((c) => c.level === "critical");
-  if (hasCritical) {
-    return "REQUEST_CHANGES";
-  }
-  const allLowOrBelow = comments.every((c) => c.level === "low" || c.level === "info");
-  if (allLowOrBelow) {
-    return "APPROVE";
-  }
-  return "COMMENT";
 }
 
 /**
@@ -81,16 +53,15 @@ export function decodeReviewSubmission(input: string): ReviewSubmission {
  * PRレビューを投稿します。
  * `octokit.rest.pulls.createReview`を使い、
  * レビュー本文とインラインコメントを1回のAPI呼び出しで一括投稿します。
- * レビューイベントはコメントのlevelから自動的に決定します。
+ * レビューイベントは入力の`event`フィールドで指定します。
  */
 export async function submitReview(octokit: Octokit, submission: ReviewSubmission): Promise<ReviewSubmissionResult> {
-  const event = deriveReviewEvent(submission.comments);
   const response = await octokit.rest.pulls.createReview({
     owner: submission.owner,
     repo: submission.repo,
     pull_number: submission.prNumber,
     ...(submission.headCommitId != null ? { commit_id: submission.headCommitId } : {}),
-    event,
+    event: submission.event,
     body: submission.body,
     comments:
       submission.comments?.map((c) => ({
