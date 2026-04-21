@@ -19,12 +19,12 @@ async function main(): Promise<void> {
     const submission = decodeReviewSubmission(input);
     const octokit = await createOctokitClient();
     const submissionResult = await submitReview(octokit, submission);
-    process.stdout.write(JSON.stringify(submissionResult));
+    process.stdout.write(JSON.stringify(submissionResult) + "\n");
   } catch (err: unknown) {
     if (err instanceof Error) {
-      process.stderr.write(`Error: ${err.message}`);
+      process.stderr.write(`Error: ${err.message}\n`);
     } else {
-      process.stderr.write(`Error: ${String(err)}`);
+      process.stderr.write(`Error: ${String(err)}\n`);
     }
     process.exitCode = 1;
   }
