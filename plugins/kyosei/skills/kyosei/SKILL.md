@@ -199,6 +199,9 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 レビューのワークフローが正常に完了したことを伝えるため、
 レビューを投稿してください。
 
+完璧なPRの場合なのでeventは`APPROVE`で、
+インラインコメントは空で構いません。
+
 本文は空にできないため、
 簡潔な総評を記述してください。
 
