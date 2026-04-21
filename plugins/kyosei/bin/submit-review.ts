@@ -1,9 +1,6 @@
 /**
  * PRレビューを一括投稿するCLIエントリポイント。
  * コマンドライン引数からJSON形式のレビューデータを受け取り、GitHub APIでレビューを投稿します。
- *
- * 使用例:
- *   node dist/bin/submit-review.js '{"owner":"ncaq","repo":"konoka","prNumber":123,"body":"LGTM","comments":[]}'
  */
 
 import process from "node:process";
