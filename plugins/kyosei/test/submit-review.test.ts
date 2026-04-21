@@ -269,6 +269,25 @@ describe("submitReview", () => {
     });
   });
 
+  test("startLine指定でsideが未指定の場合はstart_sideもRIGHTになる", async () => {
+    const octokit = createMockOctokit();
+    const input = {
+      ...validInput,
+      comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "low" }],
+    };
+    const submission = decodeReviewSubmission(JSON.stringify(input));
+    await submitReview(octokit, submission);
+    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+    expect(call?.comments?.[0]).toEqual({
+      path: "src/foo.ts",
+      body: "x",
+      line: 20,
+      start_line: 10,
+      side: "RIGHT",
+      start_side: "RIGHT",
+    });
+  });
+
   test("結果にreviewIdとhtmlUrlが含まれる", async () => {
     const octokit = createMockOctokit();
     const submission = decodeReviewSubmission(JSON.stringify(validInput));
