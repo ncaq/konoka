@@ -4,7 +4,7 @@
  *
  * 使用例:
  *   node dist/bin/submit-review.js <<'KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER'
- *   {"owner":"ncaq","repo":"konoka","prNumber":123,"event":"COMMENT","body":"LGTM","comments":[]}
+ *   {"owner":"ncaq","repo":"konoka","prNumber":123,"body":"LGTM","comments":[]}
  *   KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
  */
 
