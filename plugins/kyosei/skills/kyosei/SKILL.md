@@ -8,11 +8,13 @@ allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
 # get-review-infoでの情報の取得
 
 以下のコマンドでレビューに必要な情報を一括取得します。
-結果はJSONで返されるので、そのまま解釈してください。
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-review-info.js $ARGUMENTS
 ```
+
+結果はJSONで返されるので、
+以下のガイドに従って解釈してください。
 
 ## JSONの解釈
 
