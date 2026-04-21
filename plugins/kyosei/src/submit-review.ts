@@ -74,7 +74,7 @@ function deriveReviewEvent(comments: readonly ReviewComment[] | undefined): Revi
  * JSONパースまたはバリデーション失敗時はエラーメッセージを含む例外をスローします。
  */
 export function decodeReviewSubmission(input: string): ReviewSubmission {
-  return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema))(input);
+  return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), { onExcessProperty: "error" })(input);
 }
 
 /**
