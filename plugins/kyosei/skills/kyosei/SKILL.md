@@ -61,7 +61,7 @@ PRが特定できない場合はフィールド自体が省略されます。
   - `body`
   - `submittedAt`
   - `url`
-- `reviewThreads`: インラインレビュースレッド一覧。以下のフィールドを持ちます。
+- `reviewThreads`: インラインレビュースレッド一覧。以下に抜粋したフィールドなどを持ちます。
   - `isResolved`
   - `isOutdated`
   - `path`
