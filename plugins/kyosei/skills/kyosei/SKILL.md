@@ -132,7 +132,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 - `owner`: リポジトリオーナー(`context.pr.owner`)
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
-- `headCommitId`: headコミットSHA(`changeset.headCommitId`)
+- `headCommitId`: headコミットSHA(`changeset.headCommitId`)、スキーマ上は省略可能ですが省略しないでください。
 - `event`: レビューイベント。以下のいずれか。
   - `"APPROVE"`
   - `"COMMENT"`
