@@ -21,11 +21,8 @@ async function main(): Promise<void> {
     const submissionResult = await submitReview(octokit, submission);
     process.stdout.write(JSON.stringify(submissionResult) + "\n");
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      process.stderr.write(`Error: ${err.message}\n`);
-    } else {
-      process.stderr.write(`Error: ${String(err)}\n`);
-    }
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`Error: ${msg}\n`);
     process.exitCode = 1;
   }
 }
