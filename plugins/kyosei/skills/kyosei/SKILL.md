@@ -124,12 +124,10 @@ PRが特定できない場合はフィールド自体が省略されます。
 ## GitHub出力の場合
 
 以下のコマンドでレビューを一括投稿します。
-stdinにJSON形式のレビューデータを渡してください。
+引数にJSON文字列を渡してください。
 
-```
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js <<'KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER'
-{JSON}
-KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 ```
 
 ### JSONスキーマ
