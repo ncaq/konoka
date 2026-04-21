@@ -138,12 +138,12 @@ KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
 - `headCommitId`: headコミットSHA(`changeset.headCommitId`)
-- `body`: レビュー全体のサマリー
+- `body`: レビュー全体のサマリー。必須であり空文字列は不可。
 - `comments`: インラインコメントの配列(省略可)
   - `path`: ファイルの相対パス
   - `body`: コメント本文
   - `line`: コメントを付ける行番号(複数行の場合は終了行)
-  - `startLine`: 複数行コメントの開始行(省略でsingle line)
+  - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)
   - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
   - `level`: 指摘の重大度。以下のいずれか。
     - `"critical"`
@@ -153,11 +153,15 @@ KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
     - `"info"`
 
 レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
+
 レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
+`critical`が含まれればはREQUEST_CHANGESになります。
+`low`または`info`のみや`comments`が空の場合はAPPROVEになります。
 
 指摘することがない完璧なPRの場合でも、
 レビューが正常に完了したことを伝えるために、
-コメントなしでレビューを投稿してください(APPROVEになります)。
+コメントなしでレビューを投稿してください。
+コメントなしはAPPROVEになります。
 
 ## ローカル出力の場合
 
