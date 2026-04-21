@@ -59,7 +59,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 - `reviews`: レビュー一覧。以下のフィールドを持ちます。
   - `id`
   - `author`
-  - `state`: APPROVED, CHANGES_REQUESTED等
+  - `state`: `APPROVED`, `CHANGES_REQUESTED`等
   - `body`
   - `submittedAt`
   - `url`
@@ -169,7 +169,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 以下のいずれかに該当する場合。
 
 - 今回のコメントに`critical`レベルの指摘がある。
-- 前回のレビューが`REQUEST_CHANGES`で、その指摘に対応する修正が確認できない。
+- 前回のレビューの`state`が`CHANGES_REQUESTED`で、その指摘に対応する修正が確認できない。
 
 #### `APPROVE`
 
