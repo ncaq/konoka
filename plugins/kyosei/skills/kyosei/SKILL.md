@@ -47,9 +47,27 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 トップレベルにPR自体の情報(`title`, `body`, `author`, `url`)があり、以下の3つのサブフィールドがあります。
 
-- `comments`: PR全体へのコメント一覧。`id`, `author`, `body`, `createdAt`, `updatedAt`, `url`を持ちます。
-- `reviews`: レビュー一覧。`id`, `author`, `state`(APPROVED, CHANGES_REQUESTED等), `body`, `submittedAt`, `url`を持ちます。
-- `reviewThreads`: インラインレビュースレッド一覧。`isResolved`, `isOutdated`, `path`, `line`, `diffSide`等のメタデータと、スレッド内`comments`配列を持ちます。
+- `comments`: PR全体へのコメント一覧。以下のフィールドを持ちます。
+  - `id`
+  - `author`
+  - `body`
+  - `createdAt`
+  - `updatedAt`
+  - `url`
+- `reviews`: レビュー一覧。以下のフィールドを持ちます。
+  - `id`
+  - `author`
+  - `state`: APPROVED, CHANGES_REQUESTED等
+  - `body`
+  - `submittedAt`
+  - `url`
+- `reviewThreads`: インラインレビュースレッド一覧。以下のフィールドを持ちます。
+  - `isResolved`
+  - `isOutdated`
+  - `path`
+  - `line`
+  - `diffSide`
+  - `comments`: スレッド内配列
 
 # コードレビューの実行
 
@@ -127,7 +145,12 @@ KYOSEI_SUBMIT_REVIEW_JSON_INPUT_HEREDOC_DELIMITER
   - `line`: コメントを付ける行番号(複数行の場合は終了行)
   - `startLine`: 複数行コメントの開始行(省略でsingle line)
   - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
-  - `level`: 指摘の重大度。`"critical"`, `"high"`, `"medium"`, `"low"`, `"info"`のいずれか
+  - `level`: 指摘の重大度。以下のいずれか。
+    - `"critical"`
+    - `"high"`
+    - `"medium"`
+    - `"low"`
+    - `"info"`
 
 レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
 レビューイベント(APPROVE/COMMENT/REQUEST_CHANGES)はコメントの`level`から自動決定されます。
