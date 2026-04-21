@@ -112,6 +112,19 @@ describe("decodeReviewSubmission", () => {
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
+
+  test("トップレベルに未知のプロパティがある場合はエラーになる", () => {
+    const input = { ...validInput, unknownField: "unexpected" };
+    expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
+  });
+
+  test("コメントに未知のプロパティがある場合はエラーになる", () => {
+    const input = {
+      ...validInput,
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "info", unknownField: "unexpected" }],
+    };
+    expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
+  });
 });
 
 describe("submitReview", () => {
