@@ -53,7 +53,9 @@ async function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): P
     throw new Error("unexpected response type for diff");
   }
   // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
-  // pulls.getにmediaType diffを指定するとレスポンスが文字列になりhead SHAが取れないため、
+  // GitHub APIの`pulls.listCommits`は時系列昇順(古い順)で返すため、
+  // ページネーションで全件取得した配列の末尾がPRのheadコミットに相当します。
+  // `pulls.get`にmediaType diffを指定するとレスポンスが文字列になりhead SHAが取れないため、
   // コミット一覧から取得しています。
   const lastCommit = allCommits.at(-1);
   return {
