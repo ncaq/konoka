@@ -1,5 +1,5 @@
 ---
-name: documentation-accuracy-reviewer
+name: documentation-reviewer
 description: |
   Use this agent when you need to verify that code documentation is accurate, complete, and up-to-date.
   Use this agent after:
@@ -82,7 +82,8 @@ Markdownのコードブロック記法も付けないでください。
     "path": "src/example.ts",
     "line": 42,
     "body": "問題の説明と具体的な改善案",
-    "level": "high"
+    "tags": ["documentation"],
+    "level": "WARNING"
   }
 ]
 ```
@@ -92,12 +93,13 @@ Markdownのコードブロック記法も付けないでください。
 - `path`: ファイルの相対パス
 - `line`: 該当行番号
 - `body`: 問題の説明と推奨される改善案をまとめた文章
+- `tags`: `["documentation"]`
 - `level`: 以下のいずれか
-  - `"critical"`
-  - `"high"`
-  - `"medium"`
-  - `"low"`
-  - `"info"`
+  - `"CAUTION"`
+  - `"WARNING"`
+  - `"IMPORTANT"`
+  - `"TIP"`
+  - `"NOTE"`
 
 複数行にまたがる指摘の場合は`startLine`(開始行)を追加してください。
 差分の削除行に対する指摘の場合は`"side": "LEFT"`を追加してください。

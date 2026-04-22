@@ -1,8 +1,8 @@
 ---
-name: dependency-update-reviewer
+name: dependency-reviewer
 description: |
-  Review dependency updates for changes and impact.
-  Use when analyzing PR dependency version bumps.
+  Review dependency changes and impact.
+  Use when analyzing PR dependency additions, removals, and version changes.
 tools:
   - Bash(git diff:*)
   - Bash(git log:*)
@@ -29,10 +29,10 @@ tools:
 model: inherit
 ---
 
-差分に含まれる依存関係の更新を調査し、
+差分に含まれる依存関係の変更を調査し、
 その内容とプロジェクトへの影響を評価してください。
 
-まず差分に依存関係の更新が含まれているか確認してください。
+まず差分に依存関係の変更が含まれているか確認してください。
 含まれていない場合は、
 依存関係の変更なしと報告して即座に終了してください。
 以降の調査は不要です。
@@ -44,10 +44,10 @@ model: inherit
 # 依存関係の変更の特定
 
 - ロックファイルやマニフェストファイルの変更から、
-  どの依存関係がどのバージョンからどのバージョンに更新されたかを特定する
+  どの依存関係が追加、削除、更新されたかを特定する
 - 新規追加された依存関係を特定する
 - 削除された依存関係を特定する
-- メジャー、マイナー、パッチのどの種類の更新かを分類する
+- 更新された依存関係については、メジャー、マイナー、パッチのどの種類の更新かを分類する
 
 # 変更内容の調査
 
@@ -59,7 +59,7 @@ model: inherit
 
 # プロジェクトへの影響の評価
 
-- 更新された依存関係がプロジェクトのコードベースでどのように使われているかを確認する
+- 変更された依存関係がプロジェクトのコードベースでどのように使われているかを確認する
 - 破壊的変更がプロジェクトに影響するかを評価する
 - 非推奨になったAPIをプロジェクトが使用していないか確認する
 - 間接的な依存関係への影響を評価する
@@ -80,7 +80,8 @@ Markdownのコードブロック記法も付けないでください。
     "path": "src/example.ts",
     "line": 42,
     "body": "問題の説明と具体的な改善案",
-    "level": "high"
+    "tags": ["dependency"],
+    "level": "WARNING"
   }
 ]
 ```
@@ -90,16 +91,17 @@ Markdownのコードブロック記法も付けないでください。
 - `path`: ファイルの相対パス
 - `line`: 該当行番号
 - `body`: 問題の説明と推奨される改善案をまとめた文章
+- `tags`: `["dependency"]`
 - `level`: 以下のいずれか
-  - `"critical"`
-  - `"high"`
-  - `"medium"`
-  - `"low"`
-  - `"info"`
+  - `"CAUTION"`
+  - `"WARNING"`
+  - `"IMPORTANT"`
+  - `"TIP"`
+  - `"NOTE"`
 
 複数行にまたがる指摘の場合は`startLine`(開始行)を追加してください。
 差分の削除行に対する指摘の場合は`"side": "LEFT"`を追加してください。
 
-依存関係の更新があるが問題が見つからない場合は、
-更新内容の概要を`"info"`レベルの要素として報告してください。
+依存関係の変更があるが問題が見つからない場合は、
+変更内容の概要を`"NOTE"`レベルの要素として報告してください。
 依存関係の変更自体がない場合は空配列`[]`を返してください。

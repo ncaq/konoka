@@ -76,11 +76,11 @@ PRが特定できない場合はフィールド自体が省略されます。
 主要領域について以下の専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
 - [code-quality-reviewer](../../agents/code-quality-reviewer.md)
-- [dependency-update-reviewer](../../agents/dependency-update-reviewer.md)
-- [documentation-accuracy-reviewer](../../agents/documentation-accuracy-reviewer.md)
+- [dependency-reviewer](../../agents/dependency-reviewer.md)
+- [documentation-reviewer](../../agents/documentation-reviewer.md)
 - [performance-reviewer](../../agents/performance-reviewer.md)
-- [security-code-reviewer](../../agents/security-code-reviewer.md)
-- [test-coverage-reviewer](../../agents/test-coverage-reviewer.md)
+- [security-reviewer](../../agents/security-reviewer.md)
+- [test-reviewer](../../agents/test-reviewer.md)
 
 サブエージェントは一度に全て並列に起動してください。
 
@@ -105,7 +105,8 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 統合時のルール:
 
-- `level`が異なる場合: より高い重大度を採用する
+- `level`が異なる場合: `CAUTION`, `WARNING`, `IMPORTANT`, `TIP`, `NOTE`の順でより高い重大度を採用する
+- `tags`が異なる場合: 両方のタグを重複なく含める
 - `body`が異なる場合: 両方の固有の情報を含めてマージする
 - `line`がずれている場合: より正確な行を採用する
 
@@ -144,14 +145,23 @@ PRが特定できない場合はフィールド自体が省略されます。
   - `line`: コメントを付ける行番号(複数行の場合は終了行)
   - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)
   - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
+  - `tags`: 指摘のタグ配列。以下の文字列を必要なだけ指定してください。該当タグがない場合は空配列にしてください。
+    - `"code-quality"`
+    - `"dependency"`
+    - `"documentation"`
+    - `"performance"`
+    - `"security"`
+    - `"test"`
   - `level`: 指摘の重大度。以下のいずれか。
-    - `"critical"`
-    - `"high"`
-    - `"medium"`
-    - `"low"`
-    - `"info"`
+    - `"CAUTION"`
+    - `"WARNING"`
+    - `"IMPORTANT"`
+    - `"TIP"`
+    - `"NOTE"`
 
-レビュー本文とインラインコメントは1回のAPI呼び出しで一括投稿されます。
+レビュー本文とインラインコメントは1回のプログラム呼び出しで一括投稿されます。
+インラインコメントの本文には`level`に対応するGitHub Alertと、
+`tags`に対応する絵文字付きラベルがプログラムによって自動付与されます。
 
 ### eventの決定
 
@@ -168,22 +178,22 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 以下のいずれかに該当する場合。
 
-- 今回のコメントに`critical`レベルの指摘がある。
+- 今回のコメントに`CAUTION`レベルの指摘がある。
 - 前回のレビューの`state`が`CHANGES_REQUESTED`で、その指摘に対応する修正が確認できない。
 
 #### `APPROVE`
 
 以下の全てを満たす場合。
 
-- 今回のコメントが`low`または`info`のみ、もしくはコメントなし。
-- 前回のレビューでの`low`または`info`以外の指摘が全て対応済みであること。
+- 今回のコメントが`TIP`または`NOTE`のみ、もしくはコメントなし。
+- 前回のレビューでの`TIP`または`NOTE`以外の指摘が全て対応済みであること。
 
 #### `COMMENT`
 
 上記のいずれにも該当しない場合。
 
-例として`high`や`medium`の指摘があるだけの場合。
-`high`でも`REQUEST_CHANGES`ではないのは直感に反するかもしれませんが、
+例として`WARNING`や`IMPORTANT`の指摘があるだけの場合。
+`WARNING`でも`REQUEST_CHANGES`ではないのは直感に反するかもしれませんが、
 あまり機械によるレビューが厳しすぎないようにするための措置です。
 
 ### 投稿

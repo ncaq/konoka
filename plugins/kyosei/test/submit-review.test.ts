@@ -34,7 +34,8 @@ describe("decodeReviewSubmission", () => {
           path: "src/foo.ts",
           body: "fix this",
           line: 10,
-          level: "high",
+          level: "WARNING",
+          tags: ["code-quality"],
         },
         {
           path: "src/bar.ts",
@@ -42,7 +43,8 @@ describe("decodeReviewSubmission", () => {
           line: 20,
           startLine: 15,
           side: "LEFT",
-          level: "low",
+          level: "TIP",
+          tags: ["test"],
         },
       ],
     };
@@ -53,6 +55,7 @@ describe("decodeReviewSubmission", () => {
     expect(submission.comments).toHaveLength(2);
     expect(submission.comments?.[0]?.path).toBe("src/foo.ts");
     expect(submission.comments?.[0]?.side).toBeUndefined();
+    expect(submission.comments?.[0]?.tags).toEqual(["code-quality"]);
     expect(submission.comments?.[1]?.startLine).toBe(15);
     expect(submission.comments?.[1]?.side).toBe("LEFT");
   });
@@ -88,7 +91,7 @@ describe("decodeReviewSubmission", () => {
   test("コメントのlineが0の場合はエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "a.ts", body: "x", line: 0, level: "info" }],
+      comments: [{ path: "a.ts", body: "x", line: 0, level: "NOTE", tags: [] }],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
@@ -96,7 +99,7 @@ describe("decodeReviewSubmission", () => {
   test("コメントのpathが空文字の場合はエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "", body: "x", line: 1, level: "info" }],
+      comments: [{ path: "", body: "x", line: 1, level: "NOTE", tags: [] }],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
@@ -104,7 +107,23 @@ describe("decodeReviewSubmission", () => {
   test("不正なlevelはエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "a.ts", body: "x", line: 1, level: "unknown" }],
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "unknown", tags: [] }],
+    };
+    expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
+  });
+
+  test("不正なtagはエラーになる", () => {
+    const input = {
+      ...validInput,
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "NOTE", tags: ["unknown"] }],
+    };
+    expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
+  });
+
+  test("コメントのtagsが欠落している場合はエラーになる", () => {
+    const input = {
+      ...validInput,
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "NOTE" }],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
@@ -121,7 +140,7 @@ describe("decodeReviewSubmission", () => {
   test("不正なsideはエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "a.ts", body: "x", line: 1, level: "info", side: "CENTER" }],
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "NOTE", tags: [], side: "CENTER" }],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
@@ -134,7 +153,7 @@ describe("decodeReviewSubmission", () => {
   test("コメントに未知のプロパティがある場合はエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "a.ts", body: "x", line: 1, level: "info", unknownField: "unexpected" }],
+      comments: [{ path: "a.ts", body: "x", line: 1, level: "NOTE", tags: [], unknownField: "unexpected" }],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });
@@ -191,7 +210,7 @@ describe("submitReview", () => {
     const octokit = createMockOctokit();
     const input = {
       ...validInput,
-      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "medium" }],
+      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["code-quality"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
     await submitReview(octokit, submission);
@@ -200,17 +219,58 @@ describe("submitReview", () => {
     const comment = call?.comments?.[0];
     expect(comment).toEqual({
       path: "src/foo.ts",
-      body: "fix",
+      body: "> [!IMPORTANT]\n> 🧹 Code Quality\n\nfix",
       line: 42,
       side: "RIGHT",
     });
+  });
+
+  test("tagsが空配列ならタグラベルを出力しない", async () => {
+    const octokit = createMockOctokit();
+    const input = {
+      ...validInput,
+      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: [] }],
+    };
+    const submission = decodeReviewSubmission(JSON.stringify(input));
+    await submitReview(octokit, submission);
+
+    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+    expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n\nfix");
+  });
+
+  test("複数tagをコメント本文に含められる", async () => {
+    const octokit = createMockOctokit();
+    const input = {
+      ...validInput,
+      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["security", "performance"] }],
+    };
+    const submission = decodeReviewSubmission(JSON.stringify(input));
+    await submitReview(octokit, submission);
+
+    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+    expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix");
+  });
+
+  test("複数行コメントもGitHub Alert内に収まる", async () => {
+    const octokit = createMockOctokit();
+    const input = {
+      ...validInput,
+      comments: [{ path: "src/foo.ts", body: "line 1\n\nline 3", line: 42, level: "CAUTION", tags: ["security"] }],
+    };
+    const submission = decodeReviewSubmission(JSON.stringify(input));
+    await submitReview(octokit, submission);
+
+    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+    expect(call?.comments?.[0]?.body).toBe("> [!CAUTION]\n> 🔒 Security\n\nline 1\n\nline 3");
   });
 
   test("multi-lineコメントのパラメータが正しく変換される", async () => {
     const octokit = createMockOctokit();
     const input = {
       ...validInput,
-      comments: [{ path: "src/bar.ts", body: "refactor", line: 20, startLine: 10, side: "LEFT", level: "low" }],
+      comments: [
+        { path: "src/bar.ts", body: "refactor", line: 20, startLine: 10, side: "LEFT", level: "TIP", tags: ["test"] },
+      ],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
     await submitReview(octokit, submission);
@@ -219,7 +279,7 @@ describe("submitReview", () => {
     const comment = call?.comments?.[0];
     expect(comment).toEqual({
       path: "src/bar.ts",
-      body: "refactor",
+      body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
       line: 20,
       start_line: 10,
       side: "LEFT",
@@ -231,14 +291,14 @@ describe("submitReview", () => {
     const octokit = createMockOctokit();
     const input = {
       ...validInput,
-      comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "low" }],
+      comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "TIP", tags: ["test"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
     await submitReview(octokit, submission);
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.comments?.[0]).toEqual({
       path: "src/foo.ts",
-      body: "x",
+      body: "> [!TIP]\n> 🧪 Test\n\nx",
       line: 20,
       start_line: 10,
       side: "RIGHT",
