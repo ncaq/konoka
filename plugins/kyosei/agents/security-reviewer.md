@@ -1,5 +1,5 @@
 ---
-name: security-code-reviewer
+name: security-reviewer
 description: |
   Use this agent when you need to review code for security vulnerabilities,
   input validation issues, or authentication/authorization flaws.
@@ -102,7 +102,8 @@ Markdownのコードブロック記法も付けないでください。
     "path": "src/example.ts",
     "line": 42,
     "body": "問題の説明と具体的な改善案",
-    "level": "high"
+    "tags": ["security"],
+    "level": "WARNING"
   }
 ]
 ```
@@ -112,12 +113,13 @@ Markdownのコードブロック記法も付けないでください。
 - `path`: ファイルの相対パス
 - `line`: 該当行番号
 - `body`: 問題の説明と推奨される改善案をまとめた文章(関連するCWE番号があれば含む)
+- `tags`: `["security"]`
 - `level`: 以下のいずれか
-  - `"critical"`
-  - `"high"`
-  - `"medium"`
-  - `"low"`
-  - `"info"`
+  - `"CAUTION"`
+  - `"WARNING"`
+  - `"IMPORTANT"`
+  - `"TIP"`
+  - `"NOTE"`
 
 複数行にまたがる指摘の場合は`startLine`(開始行)を追加してください。
 差分の削除行に対する指摘の場合は`"side": "LEFT"`を追加してください。

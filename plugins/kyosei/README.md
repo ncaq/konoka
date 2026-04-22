@@ -109,16 +109,16 @@ PRがopenされるか更新されると自動でレビューが実行され、
 
 ## サブエージェント
 
-| エージェント                    | 観点                                       |
-| ------------------------------- | ------------------------------------------ |
-| code-quality-reviewer           | コード品質、命名、DRY原則、SOLID原則       |
-| dependency-update-reviewer      | 依存関係の更新内容とプロジェクトへの影響   |
-| documentation-accuracy-reviewer | ドキュメントと実装の整合性                 |
-| performance-reviewer            | アルゴリズム計算量、N+1問題、メモリリーク  |
-| security-code-reviewer          | OWASP Top 10、インジェクション、認証/認可  |
-| test-coverage-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
+| エージェント           | 観点                                       |
+| ---------------------- | ------------------------------------------ |
+| code-quality-reviewer  | コード品質、命名、DRY原則、SOLID原則       |
+| dependency-reviewer    | 依存関係の変更内容とプロジェクトへの影響   |
+| documentation-reviewer | ドキュメントと実装の整合性                 |
+| performance-reviewer   | アルゴリズム計算量、N+1問題、メモリリーク  |
+| security-reviewer      | OWASP Top 10、インジェクション、認証/認可  |
+| test-reviewer          | テストカバレッジ、テスト品質、欠落シナリオ |
 
-dependency-update-reviewerは差分に依存関係の変更が含まれている場合に、
+dependency-reviewerは差分に依存関係の変更が含まれている場合に、
 リリースノートやコミュニティの反応を調査して影響を評価します。
 [research@konoka](../research/)プラグインが利用可能な場合は`/research`スキルを活用し、
 利用できない場合は直接Web検索やMCPで調査します。

@@ -8,7 +8,16 @@ import type { Octokit } from "octokit";
 
 const DiffSideSchema = Schema.Literal("LEFT", "RIGHT");
 
-const ReviewLevelSchema = Schema.Literal("critical", "high", "medium", "low", "info");
+const ReviewLevelSchema = Schema.Literal("CAUTION", "WARNING", "IMPORTANT", "TIP", "NOTE");
+
+const ReviewTagSchema = Schema.Literal(
+  "code-quality",
+  "dependency",
+  "documentation",
+  "performance",
+  "security",
+  "test",
+);
 
 const ReviewCommentSchema = Schema.Struct({
   path: Schema.NonEmptyString,
@@ -17,6 +26,7 @@ const ReviewCommentSchema = Schema.Struct({
   startLine: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), { exact: true }),
   side: Schema.optionalWith(DiffSideSchema, { exact: true }),
   level: ReviewLevelSchema,
+  tags: Schema.Array(ReviewTagSchema),
 });
 
 const ReviewEventSchema = Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES");
@@ -39,6 +49,25 @@ type ReviewSubmission = typeof ReviewSubmissionSchema.Type;
 interface ReviewSubmissionResult {
   readonly reviewId: number;
   readonly htmlUrl: string;
+}
+
+const reviewTagLabel: Record<typeof ReviewTagSchema.Type, string> = {
+  "code-quality": "🧹 Code Quality",
+  dependency: "📦 Dependency",
+  documentation: "📚 Documentation",
+  performance: "⚡ Performance",
+  security: "🔒 Security",
+  test: "🧪 Test",
+};
+
+function quoteAlertLine(line: string): string {
+  return `> ${line}`;
+}
+
+function formatReviewCommentBody(comment: typeof ReviewCommentSchema.Type): string {
+  const tagLabel =
+    comment.tags.length > 0 ? `${quoteAlertLine(comment.tags.map((tag) => reviewTagLabel[tag]).join(" "))}\n` : "";
+  return `> [!${comment.level}]\n${tagLabel}\n${comment.body}`;
 }
 
 /**
@@ -66,7 +95,7 @@ export async function submitReview(octokit: Octokit, submission: ReviewSubmissio
     comments:
       submission.comments?.map((c) => ({
         path: c.path,
-        body: c.body,
+        body: formatReviewCommentBody(c),
         line: c.line,
         side: c.side ?? "RIGHT",
         ...(c.startLine != null ? { start_line: c.startLine, start_side: c.side ?? "RIGHT" } : {}),

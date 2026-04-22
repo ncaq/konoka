@@ -1,5 +1,5 @@
 ---
-name: test-coverage-reviewer
+name: test-reviewer
 description: |
   Use this agent when you need to review testing implementation and coverage.
   Examples:
@@ -72,7 +72,8 @@ Markdownのコードブロック記法も付けないでください。
     "path": "src/example.ts",
     "line": 42,
     "body": "問題の説明と具体的な改善案",
-    "level": "high"
+    "tags": ["test"],
+    "level": "WARNING"
   }
 ]
 ```
@@ -82,12 +83,13 @@ Markdownのコードブロック記法も付けないでください。
 - `path`: ファイルの相対パス
 - `line`: 該当行番号
 - `body`: 問題の説明と推奨される改善案をまとめた文章
+- `tags`: `["test"]`
 - `level`: 以下のいずれか
-  - `"critical"`
-  - `"high"`
-  - `"medium"`
-  - `"low"`
-  - `"info"`
+  - `"CAUTION"`
+  - `"WARNING"`
+  - `"IMPORTANT"`
+  - `"TIP"`
+  - `"NOTE"`
 
 複数行にまたがる指摘の場合は`startLine`(開始行)を追加してください。
 差分の削除行に対する指摘の場合は`"side": "LEFT"`を追加してください。
