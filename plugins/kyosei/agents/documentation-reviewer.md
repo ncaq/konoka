@@ -22,6 +22,7 @@ tools:
   - mcp__github__search_issues
   - mcp__github__search_pull_requests
 model: inherit
+effort: high
 ---
 
 あなたはコードドキュメント標準、
