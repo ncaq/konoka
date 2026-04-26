@@ -19,7 +19,7 @@ async function main(): Promise<void> {
     process.stdout.write(JSON.stringify(submissionResult) + "\n");
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error(`Error: ${msg}\n`);
+    console.error(`Error: ${msg}`);
     process.exitCode = 1;
   }
 }

@@ -32,12 +32,12 @@ async function detectClaudeCodeVersion(): Promise<string | undefined> {
     // 先頭の空白区切りトークンがバージョン文字列。
     const versionToken = pickNonBlank(stdout.split(/\s+/)[0]);
     if (versionToken == null) {
-      console.warn(`warn: empty 'claude --version' output: ${stdout.trim()}\n`);
+      console.warn(`warn: empty 'claude --version' output: ${stdout.trim()}`);
     }
     return versionToken;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`warn: failed to detect Claude Code version: ${message}\n`);
+    console.warn(`warn: failed to detect Claude Code version: ${message}`);
     return undefined;
   }
 }
