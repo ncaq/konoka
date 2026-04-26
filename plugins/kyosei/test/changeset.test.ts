@@ -1,15 +1,9 @@
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
 import { getChangeset } from "../src/changeset";
 import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type";
-
-vi.mock("../src/exec", () => ({
-  execFileAsync: vi.fn(),
-}));
-
-import { execFileAsync } from "../src/exec";
-
-const mockedExecFileAsync = vi.mocked(execFileAsync);
+import { fakeCommandExecutor } from "./fake-command";
 
 describe("getChangeset", () => {
   describe("GitHub出力モード", () => {
@@ -37,7 +31,8 @@ describe("getChangeset", () => {
         ]),
       } as unknown as Octokit;
 
-      const changeset = await getChangeset(octokit, context);
+      const layer = fakeCommandExecutor(() => Effect.die(new Error("git should not be invoked in GitHub mode")));
+      const changeset = await Effect.runPromise(getChangeset(octokit, context).pipe(Effect.provide(layer)));
 
       expect(changeset.diff).toBe("diff content here");
       expect(changeset.log).toContain("abc123");
@@ -67,7 +62,10 @@ describe("getChangeset", () => {
         paginate: vi.fn().mockResolvedValue([]),
       } as unknown as Octokit;
 
-      await expect(getChangeset(octokit, context)).rejects.toThrow("unexpected response type for diff");
+      const layer = fakeCommandExecutor(() => Effect.die(new Error("git should not be invoked in GitHub mode")));
+      await expect(Effect.runPromise(getChangeset(octokit, context).pipe(Effect.provide(layer)))).rejects.toThrow(
+        "unexpected response type for diff",
+      );
     });
   });
 
@@ -78,19 +76,21 @@ describe("getChangeset", () => {
         baseBranch: "master",
         remoteName: "origin",
       };
-      mockedExecFileAsync.mockImplementation((_cmd, args) => {
-        if (Array.isArray(args) && args.at(0) === "diff") {
-          return Promise.resolve({ stdout: "local diff", stderr: "" }) as ReturnType<typeof execFileAsync>;
+      const calls: { command: string; args: readonly string[] }[] = [];
+      const layer = fakeCommandExecutor((command, args) => {
+        calls.push({ command, args });
+        if (args.at(0) === "diff") {
+          return Effect.succeed("local diff");
         }
-        return Promise.resolve({ stdout: "local log", stderr: "" }) as ReturnType<typeof execFileAsync>;
+        return Effect.succeed("local log");
       });
 
-      const changeset = await getChangeset({} as Octokit, context);
+      const changeset = await Effect.runPromise(getChangeset({} as Octokit, context).pipe(Effect.provide(layer)));
 
       expect(changeset.diff).toBe("local diff");
       expect(changeset.log).toBe("local log");
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "--end-of-options", "origin/master...HEAD"]);
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "--end-of-options", "origin/master...HEAD"]);
+      expect(calls).toContainEqual({ command: "git", args: ["diff", "--end-of-options", "origin/master...HEAD"] });
+      expect(calls).toContainEqual({ command: "git", args: ["log", "--end-of-options", "origin/master...HEAD"] });
     });
 
     test("remoteNameがない場合はbaseBranch...HEADでdiffを取得する", async () => {
@@ -98,14 +98,16 @@ describe("getChangeset", () => {
         output: "local",
         baseBranch: "master",
       };
-      mockedExecFileAsync.mockImplementation(() => {
-        return Promise.resolve({ stdout: "", stderr: "" }) as ReturnType<typeof execFileAsync>;
+      const calls: { command: string; args: readonly string[] }[] = [];
+      const layer = fakeCommandExecutor((command, args) => {
+        calls.push({ command, args });
+        return Effect.succeed("");
       });
 
-      await getChangeset({} as Octokit, context);
+      await Effect.runPromise(getChangeset({} as Octokit, context).pipe(Effect.provide(layer)));
 
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["diff", "--end-of-options", "master...HEAD"]);
-      expect(mockedExecFileAsync).toHaveBeenCalledWith("git", ["log", "--end-of-options", "master...HEAD"]);
+      expect(calls).toContainEqual({ command: "git", args: ["diff", "--end-of-options", "master...HEAD"] });
+      expect(calls).toContainEqual({ command: "git", args: ["log", "--end-of-options", "master...HEAD"] });
     });
   });
 });

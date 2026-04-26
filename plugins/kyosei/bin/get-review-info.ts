@@ -1,29 +1,33 @@
 /**
  * レビュー情報を統合的に取得してJSON出力するCLIエントリポイント。
  * SKILL.mdの埋め込みコマンドとして使用します。
- *
- * 使用例:
- *   node dist/bin/get-review-info.js "https://github.com/owner/repo/pull/123"
- *   node dist/bin/get-review-info.js
  */
 
 import process from "node:process";
+import { Args, Command } from "@effect/cli";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Console, Effect, Option } from "effect";
 import { createOctokitClient } from "../src/client";
 import { detectReviewContext } from "../src/context";
 import { getReviewInfo } from "../src/review-info";
 
-async function main(): Promise<void> {
-  try {
-    const argument = process.argv[2];
-    const octokit = await createOctokitClient();
-    const context = await detectReviewContext(octokit, argument);
-    const reviewInfo = await getReviewInfo(octokit, context);
-    process.stdout.write(JSON.stringify(reviewInfo));
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`Error: ${msg}`);
-    process.exitCode = 1;
-  }
-}
+const prUrl = Args.text({ name: "pr-url" }).pipe(
+  Args.withDescription("対象PRのURL。省略時はカレントブランチからローカルコンテキストを推定します。"),
+  Args.optional,
+);
 
-await main();
+const command = Command.make("get-review-info", { prUrl }, ({ prUrl }) =>
+  Effect.gen(function* () {
+    const octokit = yield* createOctokitClient();
+    const context = yield* detectReviewContext(octokit, Option.getOrUndefined(prUrl));
+    const reviewInfo = yield* getReviewInfo(octokit, context);
+    yield* Console.log(JSON.stringify(reviewInfo));
+  }),
+);
+
+const cli = Command.run(command, {
+  name: "get-review-info",
+  version: "1.0.0",
+});
+
+cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);

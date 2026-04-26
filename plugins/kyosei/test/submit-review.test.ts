@@ -1,6 +1,10 @@
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
 import { decodeReviewSubmission, submitReview } from "../src/submit-review";
+import { fakeCommandExecutor } from "./fake-command";
+
+const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
 
 /** テスト用の最小限の有効な入力。 */
 const validInput = {
@@ -190,7 +194,7 @@ describe("submitReview", () => {
       const octokit = createMockOctokit();
       const input = { ...validInput, event };
       const submission = decodeReviewSubmission(JSON.stringify(input));
-      await submitReview(octokit, submission);
+      await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
       const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
       expect(call?.event).toBe(event);
@@ -201,7 +205,7 @@ describe("submitReview", () => {
     const octokit = createMockOctokit();
     const input = { ...validInput, headCommitId: "deadbeef1234567" };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.commit_id).toBe("deadbeef1234567");
@@ -214,7 +218,7 @@ describe("submitReview", () => {
       comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["code-quality"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     const comment = call?.comments?.[0];
@@ -233,7 +237,7 @@ describe("submitReview", () => {
       comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: [] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n\nfix");
@@ -246,7 +250,7 @@ describe("submitReview", () => {
       comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["security", "performance"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix");
@@ -259,7 +263,7 @@ describe("submitReview", () => {
       comments: [{ path: "src/foo.ts", body: "line 1\n\nline 3", line: 42, level: "CAUTION", tags: ["security"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.comments?.[0]?.body).toBe("> [!CAUTION]\n> 🔒 Security\n\nline 1\n\nline 3");
@@ -274,7 +278,7 @@ describe("submitReview", () => {
       ],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     const comment = call?.comments?.[0];
@@ -295,7 +299,7 @@ describe("submitReview", () => {
       comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "TIP", tags: ["test"] }],
     };
     const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    await Effect.runPromise(submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)));
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
     expect(call?.comments?.[0]).toEqual({
       path: "src/foo.ts",
@@ -310,7 +314,9 @@ describe("submitReview", () => {
   test("結果にreviewIdとhtmlUrlが含まれる", async () => {
     const octokit = createMockOctokit();
     const submission = decodeReviewSubmission(JSON.stringify(validInput));
-    const submissionResult = await submitReview(octokit, submission);
+    const submissionResult = await Effect.runPromise(
+      submitReview(octokit, submission).pipe(Effect.provide(claudeFakeLayer)),
+    );
 
     expect(submissionResult.reviewId).toBe(999);
     expect(submissionResult.htmlUrl).toEqual(

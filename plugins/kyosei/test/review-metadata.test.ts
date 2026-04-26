@@ -1,6 +1,11 @@
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { buildFooterView, mkBodyAppendMetadata } from "../src/review-metadata";
 import { decodeReviewSubmission } from "../src/submit-review";
+import { fakeCommandExecutor } from "./fake-command";
+
+// `claude --version`の呼び出しを失敗させ、`Option.none`にフォールバックさせます。
+const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
 
 const baseInput = {
   owner: "test-owner",
@@ -52,7 +57,7 @@ describe("buildFooterView", () => {
     vi.stubEnv("CLAUDECODE", "1");
     const submission = decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }));
 
-    const view = await buildFooterView(submission);
+    const view = await Effect.runPromise(buildFooterView(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(view.commit).toBe("a214aef83b6ce8f");
     expect(view.pr).toBe(178);
@@ -70,7 +75,7 @@ describe("buildFooterView", () => {
     vi.stubEnv("GITHUB_RUN_ID", "123");
     const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-    const view = await buildFooterView(submission);
+    const view = await Effect.runPromise(buildFooterView(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(view.execution).toBe("GitHub Actions");
     expect(view.runUrl).toEqual(new URL("https://github.com/ncaq/konoka/actions/runs/123"));
@@ -80,7 +85,7 @@ describe("buildFooterView", () => {
     vi.stubEnv("KYOSEI_ACTION_VERSION", "1.4.0");
     const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-    const view = await buildFooterView(submission);
+    const view = await Effect.runPromise(buildFooterView(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(view.kyoseiActionVersion).toBe("1.4.0");
   });
@@ -88,7 +93,7 @@ describe("buildFooterView", () => {
   test("metadata.model未指定ならmodelはunknown", async () => {
     const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-    const view = await buildFooterView(submission);
+    const view = await Effect.runPromise(buildFooterView(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(view.model).toBe("unknown");
   });
@@ -98,7 +103,7 @@ describe("mkBodyAppendMetadata", () => {
   test("本体にフッターが追記される", async () => {
     const submission = decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }));
 
-    const output = await mkBodyAppendMetadata(submission);
+    const output = await Effect.runPromise(mkBodyAppendMetadata(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(output).toContain("review body");
     expect(output).toContain("<details>\n<summary>Review metadata</summary>");
@@ -115,7 +120,7 @@ describe("mkBodyAppendMetadata", () => {
     vi.stubEnv("GITHUB_RUN_ID", "123");
     const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-    const output = await mkBodyAppendMetadata(submission);
+    const output = await Effect.runPromise(mkBodyAppendMetadata(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(output).toContain("- Execution: GitHub Actions ([run](https://github.com/ncaq/konoka/actions/runs/123))");
   });
@@ -124,7 +129,7 @@ describe("mkBodyAppendMetadata", () => {
     vi.stubEnv("CLAUDECODE", "1");
     const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-    const output = await mkBodyAppendMetadata(submission);
+    const output = await Effect.runPromise(mkBodyAppendMetadata(submission).pipe(Effect.provide(claudeFakeLayer)));
 
     expect(output).toContain("- Execution: Claude Code CLI\n");
     expect(output).not.toContain("[run]");

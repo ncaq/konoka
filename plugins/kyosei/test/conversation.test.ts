@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
 import { getConversation } from "../src/conversation";
@@ -72,7 +73,9 @@ describe("getConversation", () => {
     };
     const octokit = { graphql: makeGraphqlMock(prData) } as unknown as Octokit;
 
-    const conversation = await getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+    const conversation = await Effect.runPromise(
+      getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 }),
+    );
 
     expect(conversation).toEqual({
       title: "Test PR",
@@ -136,7 +139,9 @@ describe("getConversation", () => {
     };
     const octokit = { graphql: makeGraphqlMock(prData) } as unknown as Octokit;
 
-    const conversation = await getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+    const conversation = await Effect.runPromise(
+      getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 }),
+    );
 
     expect(conversation.author).toBeNull();
   });
@@ -203,7 +208,9 @@ describe("getConversation", () => {
       });
     const octokit = { graphql: graphqlMock } as unknown as Octokit;
 
-    const conversation = await getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+    const conversation = await Effect.runPromise(
+      getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 }),
+    );
 
     const thread = conversation.reviewThreads.at(0);
     expect(thread).toBeDefined();

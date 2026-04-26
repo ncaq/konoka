@@ -4,24 +4,28 @@
  */
 
 import process from "node:process";
+import { Args, Command } from "@effect/cli";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Console, Effect } from "effect";
 import { createOctokitClient } from "../src/client";
 import { decodeReviewSubmission, submitReview } from "../src/submit-review";
 
-async function main(): Promise<void> {
-  try {
-    const input = process.argv[2];
-    if (input == null) {
-      throw new Error("JSON argument is required");
-    }
-    const submission = decodeReviewSubmission(input);
-    const octokit = await createOctokitClient();
-    const submissionResult = await submitReview(octokit, submission);
-    process.stdout.write(JSON.stringify(submissionResult) + "\n");
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`Error: ${msg}`);
-    process.exitCode = 1;
-  }
-}
+const json = Args.text({ name: "json" }).pipe(
+  Args.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),
+);
 
-await main();
+const command = Command.make("submit-review", { json }, ({ json }) =>
+  Effect.gen(function* () {
+    const submission = decodeReviewSubmission(json);
+    const octokit = yield* createOctokitClient();
+    const submissionResult = yield* submitReview(octokit, submission);
+    yield* Console.log(JSON.stringify(submissionResult));
+  }),
+);
+
+const cli = Command.run(command, {
+  name: "submit-review",
+  version: "1.0.0",
+});
+
+cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);

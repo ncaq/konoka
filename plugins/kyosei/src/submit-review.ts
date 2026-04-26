@@ -3,7 +3,8 @@
  * レビュー本文とインラインコメントを1回のAPI呼び出しで投稿します。
  */
 
-import { Schema } from "effect";
+import { type CommandExecutor } from "@effect/platform";
+import { Effect, Schema } from "effect";
 import type { Octokit } from "octokit";
 import { mkBodyAppendMetadata } from "./review-metadata";
 import {
@@ -46,28 +47,33 @@ export function decodeReviewSubmission(input: string): typeof ReviewSubmissionSc
  * レビュー本文とインラインコメントを1回のAPI呼び出しで一括投稿します。
  * レビューイベントは入力の`event`フィールドで指定します。
  */
-export async function submitReview(
+export function submitReview(
   octokit: Octokit,
   submission: typeof ReviewSubmissionSchema.Type,
-): Promise<typeof ReviewSubmissionResultSchema.Type> {
-  const response = await octokit.rest.pulls.createReview({
-    owner: submission.owner,
-    repo: submission.repo,
-    pull_number: submission.prNumber,
-    commit_id: submission.headCommitId,
-    event: submission.event,
-    body: await mkBodyAppendMetadata(submission),
-    comments:
-      submission.comments?.map((c) => ({
-        path: c.path,
-        body: formatReviewCommentBody(c),
-        line: c.line,
-        side: c.side ?? "RIGHT",
-        ...(c.startLine != null ? { start_line: c.startLine, start_side: c.side ?? "RIGHT" } : {}),
-      })) ?? [],
+): Effect.Effect<typeof ReviewSubmissionResultSchema.Type, Error, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
+    const body = yield* mkBodyAppendMetadata(submission);
+    const response = yield* Effect.tryPromise(() =>
+      octokit.rest.pulls.createReview({
+        owner: submission.owner,
+        repo: submission.repo,
+        pull_number: submission.prNumber,
+        commit_id: submission.headCommitId,
+        event: submission.event,
+        body,
+        comments:
+          submission.comments?.map((c) => ({
+            path: c.path,
+            body: formatReviewCommentBody(c),
+            line: c.line,
+            side: c.side ?? "RIGHT",
+            ...(c.startLine != null ? { start_line: c.startLine, start_side: c.side ?? "RIGHT" } : {}),
+          })) ?? [],
+      }),
+    );
+    return {
+      reviewId: response.data.id,
+      htmlUrl: new URL(response.data.html_url),
+    };
   });
-  return {
-    reviewId: response.data.id,
-    htmlUrl: new URL(response.data.html_url),
-  };
 }
