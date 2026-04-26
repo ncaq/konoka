@@ -6,9 +6,9 @@
  */
 
 import type { Octokit } from "octokit";
-import { parsePrUrl } from "./context-github.js";
-import { resolveLocalContext } from "./context-local.js";
-import type { ReviewContext } from "./context-type.js";
+import { parsePrUrl } from "./context-github";
+import { resolveLocalContext } from "./context-local";
+import type { ReviewContext } from "./context-type";
 
 /**
  * 引数文字列からレビューコンテキストを判定します。

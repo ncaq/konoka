@@ -4,9 +4,9 @@
  */
 
 import type { Octokit } from "octokit";
-import type { LocalOutputContext } from "./context-type.js";
-import { execFileAsync } from "./exec.js";
-import { getRemoteName, getRemoteRepo } from "./remote.js";
+import type { LocalOutputContext } from "./context-type";
+import { execFileAsync } from "./exec";
+import { getRemoteName, getRemoteRepo } from "./remote";
 
 /**
  * gitのsymbolic-refからリモートのデフォルトブランチ名を取得します。

@@ -4,8 +4,8 @@
  */
 
 import process from "node:process";
-import { createOctokitClient } from "../src/client.js";
-import { decodeReviewSubmission, submitReview } from "../src/submit-review.js";
+import { createOctokitClient } from "../src/client";
+import { decodeReviewSubmission, submitReview } from "../src/submit-review";
 
 async function main(): Promise<void> {
   try {
@@ -19,7 +19,7 @@ async function main(): Promise<void> {
     process.stdout.write(JSON.stringify(submissionResult) + "\n");
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`Error: ${msg}\n`);
+    console.error(`Error: ${msg}`);
     process.exitCode = 1;
   }
 }

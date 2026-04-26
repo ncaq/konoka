@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 import { describe, expect, test } from "vitest";
-import { resolveLocalContext } from "../src/context-local.js";
+import { resolveLocalContext } from "../src/context-local";
 
 const dummyOctokit = {} as Octokit;
 

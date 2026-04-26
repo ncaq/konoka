@@ -10,6 +10,7 @@
 
   outputs =
     inputs@{
+      nixpkgs,
       flake-parts,
       treefmt-nix,
       ...
@@ -26,11 +27,22 @@
 
       perSystem =
         {
-          pkgs,
           lib,
+          system,
           ...
         }:
         let
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfreePredicate =
+              pkg:
+              builtins.elem (lib.getName pkg) [
+                # konokaは今はclaude-code向けのプラグインを作っているリポジトリなので、
+                # claude-code系への依存関係が発生しても今更問題になる話ではありません。
+                # 仕方なくプロプライエタリなソフトウェアを受け入れています。
+                "claude-code-bin"
+              ];
+          };
           nodejs = pkgs.nodejs_24;
 
           # プラグインディレクトリのリストから全チェックのattrsetを生成する。
@@ -74,11 +86,16 @@
                         {
                           nativeBuildInputs = [
                             nodejs
+                            pkgs.claude-code-bin
                             pkgs.git
                           ];
                         }
                         ''
                           cp -r ${tsSrc}/. .
+                          # nix storeから複製したファイル/ディレクトリはread-onlyのため、
+                          # 書き込みを伴うツール(viteのconfig bundleやvitestのキャッシュ書き出しなど)が、
+                          # 動くように書き込み権限を付与する。
+                          chmod -R u+w $NIX_BUILD_TOP
                           ln -s ${nodeModules}/node_modules node_modules
                           cd plugins/${pluginName}
                           npm run ${script}

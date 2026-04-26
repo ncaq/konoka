@@ -3,7 +3,7 @@
  * PR URLからowner, repo, PR番号を抽出します。
  */
 
-import type { GitHubOutputContext } from "./context-type.js";
+import type { GitHubOutputContext } from "./context-type";
 
 /**
  * 引数文字列を解析してPR URLからコンテキスト情報を抽出します。

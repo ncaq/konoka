@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
-import { getConversation } from "../src/conversation.js";
+import { getConversation } from "../src/conversation";
 
 function makeGraphqlMock(prData: Record<string, unknown>): ReturnType<typeof vi.fn> {
   return vi.fn().mockResolvedValue({

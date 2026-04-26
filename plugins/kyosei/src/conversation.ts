@@ -5,7 +5,7 @@
  */
 
 import type { Octokit } from "octokit";
-import type { PrIdentifier } from "./context-type.js";
+import type { PrIdentifier } from "./context-type";
 
 // --- 出力型定義 ---
 
