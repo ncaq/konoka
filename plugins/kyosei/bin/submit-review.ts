@@ -4,8 +4,8 @@
  */
 
 import process from "node:process";
-import { createOctokitClient } from "../src/client.js";
-import { decodeReviewSubmission, submitReview } from "../src/submit-review.js";
+import { createOctokitClient } from "../src/client";
+import { decodeReviewSubmission, submitReview } from "../src/submit-review";
 
 async function main(): Promise<void> {
   try {

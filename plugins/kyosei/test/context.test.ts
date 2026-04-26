@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 import { describe, expect, test } from "vitest";
-import { detectReviewContext } from "../src/context.js";
+import { detectReviewContext } from "../src/context";
 
 const dummyOctokit = {} as Octokit;
 

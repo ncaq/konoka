@@ -136,7 +136,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 - `owner`: リポジトリオーナー(`context.pr.owner`)
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
-- `headCommitId`: headコミットSHA(`changeset.headCommitId`)、スキーマ上は省略可能ですが省略しないでください。
+- `headCommitId`: headコミットSHA(`changeset.headCommitId`)。必須かつSHA形式(7〜40桁の16進)である必要があります。
 - `event`: レビューイベント。以下のいずれか。
   - `"APPROVE"`
   - `"COMMENT"`
@@ -161,10 +161,27 @@ PRが特定できない場合はフィールド自体が省略されます。
     - `"IMPORTANT"`
     - `"TIP"`
     - `"NOTE"`
+- `metadata`: LLM 自身しか確実には知らないメタデータ(省略可)
+  - `model`: 現在使っている Claude モデルの識別子。例:`"claude-opus-4-7"`。省略時は`unknown`と表示されます。
 
 レビュー本文とインラインコメントは1回のプログラム呼び出しで一括投稿されます。
 インラインコメントの本文には`level`に対応するGitHub Alertと、
 `tags`に対応する絵文字付きラベルがプログラムによって自動付与されます。
+
+`body`の末尾にはレビューメタデータとして、
+`<details>`折りたたみの形式で以下の情報が自動付与されます。
+
+- レビュー対象コミット
+- PR番号
+- kyoseiバージョン
+- kyosei-actionバージョン
+- Claude Codeバージョン
+- モデル
+- 実行環境
+- Run URL
+
+プログラム側で自動付与されます。
+これらの項目は`body`に書かないでください。
 
 ### eventの決定
 

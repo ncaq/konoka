@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "vite build",
     "fix": "run-p fix:*",
     "fix:eslint": "eslint --fix .",
     "fix:prettier": "prettier --write .",
@@ -16,12 +16,14 @@
   "dependencies": {
     "effect": "^3.21.1",
     "git-url-parse": "^16.1.0",
+    "mustache": "^4.2.0",
     "octokit": "^5.0.5"
   },
   "devDependencies": {
     "@effect/language-service": "0.85.1",
     "@eslint/compat": "2.0.5",
     "@eslint/js": "10.0.1",
+    "@types/mustache": "4.2.6",
     "@types/node": "20.19.39",
     "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
@@ -33,9 +35,10 @@
     "prettier": "3.8.3",
     "typescript": "6.0.3",
     "typescript-eslint": "8.58.2",
+    "vite": "^8.0.10",
     "vitest": "4.1.4"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.20.0"
   }
 }

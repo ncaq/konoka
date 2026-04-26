@@ -40,8 +40,8 @@ pushしてCIの完了を待つことなく手元で即座にレビューを確�
 
 ## 前提条件
 
-- Node.js 20以上
-- npm
+- Node.js version 20.20以上。GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンに合わせています。
+- npm。Node.jsに同梱されているはず。
 
 セッション開始時にビルド済みでなければ`npm ci`と`npm run build`が自動実行されます。
 
@@ -106,6 +106,24 @@ PRがopenされるか更新されると自動でレビューが実行され、
 `CLAUDE_CODE_OAUTH_TOKEN`シークレットの設定が必要です。
 
 `claude --bare setup-token`で取得してください。
+
+## レビューメタデータ
+
+GitHub PRに投稿される本体コメントの末尾には、
+`<details>`折りたたみで以下のメタデータが自動付与されます。
+レビュー対象のコミットや、レビューを実施した環境データを後から辿るために入れています。
+通常あまり人間が読む必要がないものなので、
+デフォルトでは折りたたまれています。
+
+- レビュー対象コミット
+- PR番号
+- kyoseiバージョン
+- kyosei-actionバージョン(環境変数`KYOSEI_ACTION_VERSION`が設定されているとき)
+- Claude Codeバージョン
+- モデル
+- 実行環境(GitHub Actions / Claude Code CLI / unknown)とRun URL
+
+取得できなかった項目は`unknown`として表示されます。
 
 ## サブエージェント
 

@@ -1,13 +1,13 @@
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
-import { getChangeset } from "../src/changeset.js";
-import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type.js";
+import { getChangeset } from "../src/changeset";
+import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type";
 
 vi.mock("../src/exec.js", () => ({
   execFileAsync: vi.fn(),
 }));
 
-import { execFileAsync } from "../src/exec.js";
+import { execFileAsync } from "../src/exec";
 
 const mockedExecFileAsync = vi.mocked(execFileAsync);
 

@@ -5,51 +5,13 @@
 
 import { Schema } from "effect";
 import type { Octokit } from "octokit";
-
-const DiffSideSchema = Schema.Literal("LEFT", "RIGHT");
-
-const ReviewLevelSchema = Schema.Literal("CAUTION", "WARNING", "IMPORTANT", "TIP", "NOTE");
-
-const ReviewTagSchema = Schema.Literal(
-  "code-quality",
-  "dependency",
-  "documentation",
-  "performance",
-  "security",
-  "test",
-);
-
-const ReviewCommentSchema = Schema.Struct({
-  path: Schema.NonEmptyString,
-  body: Schema.NonEmptyString,
-  line: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  startLine: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), { exact: true }),
-  side: Schema.optionalWith(DiffSideSchema, { exact: true }),
-  level: ReviewLevelSchema,
-  tags: Schema.Array(ReviewTagSchema),
-});
-
-const ReviewEventSchema = Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES");
-
-/** レビュー投稿の入力スキーマ。 */
-const ReviewSubmissionSchema = Schema.Struct({
-  owner: Schema.NonEmptyString,
-  repo: Schema.NonEmptyString,
-  prNumber: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  headCommitId: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
-  event: ReviewEventSchema,
-  body: Schema.NonEmptyString,
-  comments: Schema.optionalWith(Schema.Array(ReviewCommentSchema), { exact: true }),
-});
-
-/** レビュー投稿の入力。 */
-type ReviewSubmission = typeof ReviewSubmissionSchema.Type;
-
-/** レビュー投稿の結果。 */
-interface ReviewSubmissionResult {
-  readonly reviewId: number;
-  readonly htmlUrl: string;
-}
+import { mkBodyAppendMetadata } from "./review-metadata";
+import {
+  ReviewSubmissionResultSchema,
+  ReviewSubmissionSchema,
+  type ReviewCommentSchema,
+  type ReviewTagSchema,
+} from "./review-schema";
 
 const reviewTagLabel: Record<typeof ReviewTagSchema.Type, string> = {
   "code-quality": "🧹 Code Quality",
@@ -74,7 +36,7 @@ function formatReviewCommentBody(comment: typeof ReviewCommentSchema.Type): stri
  * JSON文字列をパース・バリデーションして`ReviewSubmission`に変換します。
  * JSONパースまたはバリデーション失敗時はエラーメッセージを含む例外をスローします。
  */
-export function decodeReviewSubmission(input: string): ReviewSubmission {
+export function decodeReviewSubmission(input: string): typeof ReviewSubmissionSchema.Type {
   return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), { onExcessProperty: "error" })(input);
 }
 
@@ -84,14 +46,17 @@ export function decodeReviewSubmission(input: string): ReviewSubmission {
  * レビュー本文とインラインコメントを1回のAPI呼び出しで一括投稿します。
  * レビューイベントは入力の`event`フィールドで指定します。
  */
-export async function submitReview(octokit: Octokit, submission: ReviewSubmission): Promise<ReviewSubmissionResult> {
+export async function submitReview(
+  octokit: Octokit,
+  submission: typeof ReviewSubmissionSchema.Type,
+): Promise<typeof ReviewSubmissionResultSchema.Type> {
   const response = await octokit.rest.pulls.createReview({
     owner: submission.owner,
     repo: submission.repo,
     pull_number: submission.prNumber,
-    ...(submission.headCommitId != null ? { commit_id: submission.headCommitId } : {}),
+    commit_id: submission.headCommitId,
     event: submission.event,
-    body: submission.body,
+    body: await mkBodyAppendMetadata(submission),
     comments:
       submission.comments?.map((c) => ({
         path: c.path,
@@ -103,6 +68,6 @@ export async function submitReview(octokit: Octokit, submission: ReviewSubmissio
   });
   return {
     reviewId: response.data.id,
-    htmlUrl: response.data.html_url,
+    htmlUrl: new URL(response.data.html_url),
   };
 }

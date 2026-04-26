@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parsePrUrl } from "../src/context-github.js";
+import { parsePrUrl } from "../src/context-github";
 
 describe("parsePrUrl", () => {
   test("標準的なPR URLからコンテキストを抽出する", () => {

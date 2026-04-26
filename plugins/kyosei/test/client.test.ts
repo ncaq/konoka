@@ -1,6 +1,6 @@
 import process from "node:process";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client.js";
+import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client";
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。

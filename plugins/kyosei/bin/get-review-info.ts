@@ -8,9 +8,9 @@
  */
 
 import process from "node:process";
-import { createOctokitClient } from "../src/client.js";
-import { detectReviewContext } from "../src/context.js";
-import { getReviewInfo } from "../src/review-info.js";
+import { createOctokitClient } from "../src/client";
+import { detectReviewContext } from "../src/context";
+import { getReviewInfo } from "../src/review-info";
 
 async function main(): Promise<void> {
   try {

@@ -3,7 +3,7 @@
  */
 
 import gitUrlParse from "git-url-parse";
-import { execFileAsync } from "./exec.js";
+import { execFileAsync } from "./exec";
 
 /**
  * リモートリポジトリの情報。

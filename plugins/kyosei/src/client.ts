@@ -4,7 +4,7 @@
 
 import process from "node:process";
 import { Octokit } from "octokit";
-import { execFileAsync } from "./exec.js";
+import { execFileAsync } from "./exec";
 
 /**
  * GitHubに認証するための情報。

@@ -1,8 +1,8 @@
 import type { Octokit } from "octokit";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { getChangeset } from "../src/changeset.js";
-import { getConversation } from "../src/conversation.js";
-import { getReviewInfo } from "../src/review-info.js";
+import { getChangeset } from "../src/changeset";
+import { getConversation } from "../src/conversation";
+import { getReviewInfo } from "../src/review-info";
 
 vi.mock("../src/changeset.js", () => ({
   getChangeset: vi.fn(),

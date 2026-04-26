@@ -1,6 +1,6 @@
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
-import { decodeReviewSubmission, submitReview } from "../src/submit-review.js";
+import { decodeReviewSubmission, submitReview } from "../src/submit-review";
 
 /** テスト用の最小限の有効な入力。 */
 const validInput = {
@@ -9,6 +9,7 @@ const validInput = {
   prNumber: 42,
   event: "APPROVE",
   body: "review body",
+  headCommitId: "0123456789abcdef0123456789abcdef01234567",
 };
 
 describe("decodeReviewSubmission", () => {
@@ -21,7 +22,16 @@ describe("decodeReviewSubmission", () => {
     expect(submission.event).toBe("APPROVE");
     expect(submission.body).toBe("review body");
     expect(submission.comments).toBeUndefined();
-    expect(submission.headCommitId).toBeUndefined();
+    expect(submission.headCommitId).toBe("0123456789abcdef0123456789abcdef01234567");
+  });
+
+  test("headCommitIdが省略されている場合はエラーになる", () => {
+    const { headCommitId: _omit, ...inputWithoutCommit } = validInput;
+    expect(() => decodeReviewSubmission(JSON.stringify(inputWithoutCommit))).toThrow();
+  });
+
+  test("headCommitIdがSHA形式でない場合はエラーになる", () => {
+    expect(() => decodeReviewSubmission(JSON.stringify({ ...validInput, headCommitId: "not-a-sha" }))).toThrow();
   });
 
   test("全フィールドを含む入力をデコードできる", () => {
@@ -187,23 +197,14 @@ describe("submitReview", () => {
     }
   });
 
-  test("headCommitIdが指定されている場合はcommit_idが渡される", async () => {
+  test("headCommitIdがcommit_idとしてAPIに渡される", async () => {
     const octokit = createMockOctokit();
-    const input = { ...validInput, headCommitId: "sha256abc" };
+    const input = { ...validInput, headCommitId: "deadbeef1234567" };
     const submission = decodeReviewSubmission(JSON.stringify(input));
     await submitReview(octokit, submission);
 
     const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.commit_id).toBe("sha256abc");
-  });
-
-  test("headCommitIdが未指定の場合はcommit_idが渡されない", async () => {
-    const octokit = createMockOctokit();
-    const submission = decodeReviewSubmission(JSON.stringify(validInput));
-    await submitReview(octokit, submission);
-
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call).not.toHaveProperty("commit_id");
+    expect(call?.commit_id).toBe("deadbeef1234567");
   });
 
   test("single lineコメントのパラメータが正しく変換される", async () => {
@@ -312,6 +313,8 @@ describe("submitReview", () => {
     const submissionResult = await submitReview(octokit, submission);
 
     expect(submissionResult.reviewId).toBe(999);
-    expect(submissionResult.htmlUrl).toBe("https://github.com/test-owner/test-repo/pull/42#pullrequestreview-999");
+    expect(submissionResult.htmlUrl).toEqual(
+      new URL("https://github.com/test-owner/test-repo/pull/42#pullrequestreview-999"),
+    );
   });
 });

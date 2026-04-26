@@ -4,11 +4,11 @@
  */
 
 import type { Octokit } from "octokit";
-import type { Changeset } from "./changeset.js";
-import { getChangeset } from "./changeset.js";
-import type { ReviewContext } from "./context-type.js";
-import type { Conversation } from "./conversation.js";
-import { getConversation } from "./conversation.js";
+import type { Changeset } from "./changeset";
+import { getChangeset } from "./changeset";
+import type { ReviewContext } from "./context-type";
+import type { Conversation } from "./conversation";
+import { getConversation } from "./conversation";
 
 /** レビュー情報。conversationはPRが特定できた場合のみ含まれます。 */
 export interface ReviewInfo {

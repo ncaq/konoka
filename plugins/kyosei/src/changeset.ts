@@ -6,8 +6,8 @@
  */
 
 import type { Octokit } from "octokit";
-import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type.js";
-import { execFileAsync } from "./exec.js";
+import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type";
+import { execFileAsync } from "./exec";
 
 /**
  * レビュー対象の変更セット。
