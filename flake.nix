@@ -82,8 +82,7 @@
                           # nix storeから複製したファイル/ディレクトリはread-onlyのため、
                           # 書き込みを伴うツール(viteのconfig bundleやvitestのキャッシュ書き出しなど)が、
                           # 動くように書き込み権限を付与する。
-                          mkdir -p /build
-                          chmod -R u+w /build
+                          chmod -R u+w $NIX_BUILD_TOP
                           ln -s ${nodeModules}/node_modules node_modules
                           cd plugins/${pluginName}
                           npm run ${script}
