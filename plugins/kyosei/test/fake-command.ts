@@ -21,6 +21,9 @@ export function fakeCommandExecutor(handler: CommandHandler): Layer.Layer<Comman
     // バリアントを直接見ずに統一的に扱えます。テストではpipedは使わない前提で先頭のみ参照します。
     string: (cmd) => {
       const [standard] = Command.flatten(cmd);
+      if (standard == null) {
+        return Effect.die(new Error("fakeCommandExecutor: empty Command.flatten result"));
+      }
       // テスト用に`Error`で失敗させたものは`PlatformError`として扱われますが、
       // テスト側では`Effect.either`等で受け取って中身を比較するだけなので、型情報を緩めて流しています。
       return handler(standard.command, standard.args) as Effect.Effect<string, PlatformError>;
