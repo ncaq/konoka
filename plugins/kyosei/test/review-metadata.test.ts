@@ -94,7 +94,7 @@ describe("buildFooterView", () => {
   });
 });
 
-describe("appendMetadataFooter", () => {
+describe("mkBodyAppendMetadata", () => {
   test("本体にフッターが追記される", async () => {
     const submission = decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }));
 
