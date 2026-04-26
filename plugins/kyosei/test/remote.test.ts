@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { execFileAsync } from "../src/exec";
 import { getRemoteName, getRemoteRepo } from "../src/remote";
 
-vi.mock("../src/exec.js", () => ({
+vi.mock("../src/exec", () => ({
   execFileAsync: vi.fn(),
 }));
 

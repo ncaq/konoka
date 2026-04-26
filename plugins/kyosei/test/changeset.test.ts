@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { getChangeset } from "../src/changeset";
 import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type";
 
-vi.mock("../src/exec.js", () => ({
+vi.mock("../src/exec", () => ({
   execFileAsync: vi.fn(),
 }));
 
