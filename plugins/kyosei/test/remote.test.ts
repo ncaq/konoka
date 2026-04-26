@@ -1,5 +1,6 @@
+import { it } from "@effect/vitest";
 import { Effect } from "effect";
-import { describe, expect, test } from "vitest";
+import { describe, expect } from "vitest";
 import { getRemoteName, getRemoteRepo, NoGitRemotes } from "../src/remote";
 import { fakeCommandExecutor, type CommandHandler } from "./fake-command";
 
@@ -15,65 +16,82 @@ const sequenceHandler = (responses: Effect.Effect<string, Error>[]): CommandHand
 };
 
 describe("getRemoteName", () => {
-  test("upstreamが設定されている場合はupstreamからリモート名を取得する", async () => {
-    const layer = fakeCommandExecutor(sequenceHandler([Effect.succeed("origin/master\n")]));
+  it.effect("upstreamが設定されている場合はupstreamからリモート名を取得する", () =>
+    getRemoteName().pipe(
+      Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
+      Effect.provide(fakeCommandExecutor(sequenceHandler([Effect.succeed("origin/master\n")]))),
+    ),
+  );
 
-    const remoteName = await Effect.runPromise(getRemoteName().pipe(Effect.provide(layer)));
+  it.effect("upstreamが設定されていない場合はgit remoteの先頭を使う", () =>
+    getRemoteName().pipe(
+      Effect.tap((name) => Effect.sync(() => expect(name).toBe("upstream"))),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.fail(new Error("fatal: no upstream configured")),
+            Effect.succeed("upstream\norigin\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 
-    expect(remoteName).toBe("origin");
-  });
-
-  test("upstreamが設定されていない場合はgit remoteの先頭を使う", async () => {
-    const layer = fakeCommandExecutor(
-      sequenceHandler([Effect.fail(new Error("fatal: no upstream configured")), Effect.succeed("upstream\norigin\n")]),
-    );
-
-    const remoteName = await Effect.runPromise(getRemoteName().pipe(Effect.provide(layer)));
-
-    expect(remoteName).toBe("upstream");
-  });
-
-  test("リモートが1つも設定されていない場合はNoGitRemotesで失敗する", async () => {
-    const layer = fakeCommandExecutor(
-      sequenceHandler([Effect.fail(new Error("fatal: no upstream configured")), Effect.succeed("\n")]),
-    );
-
-    // `Effect.flip`で成功/失敗を入れ替えて失敗値を直接assertします。
-    const error = await Effect.runPromise(Effect.flip(getRemoteName().pipe(Effect.provide(layer))));
-
-    expect(error).toBeInstanceOf(NoGitRemotes);
-  });
+  it.effect("リモートが1つも設定されていない場合はNoGitRemotesで失敗する", () =>
+    getRemoteName().pipe(
+      Effect.flip,
+      Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(NoGitRemotes))),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([Effect.fail(new Error("fatal: no upstream configured")), Effect.succeed("\n")]),
+        ),
+      ),
+    ),
+  );
 });
 
 describe("getRemoteRepo", () => {
-  test("リモートURLからowner/repoを解析する", async () => {
-    const layer = fakeCommandExecutor(
-      sequenceHandler([
-        Effect.succeed("origin/master\n"),
-        Effect.succeed("https://github.com/test-owner/test-repo.git\n"),
-      ]),
-    );
+  it.effect("リモートURLからowner/repoを解析する", () =>
+    getRemoteRepo().pipe(
+      Effect.tap((repo) =>
+        Effect.sync(() =>
+          expect(repo).toEqual({
+            remoteName: "origin",
+            owner: "test-owner",
+            repo: "test-repo",
+          }),
+        ),
+      ),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.succeed("origin/master\n"),
+            Effect.succeed("https://github.com/test-owner/test-repo.git\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 
-    const remoteRepo = await Effect.runPromise(getRemoteRepo().pipe(Effect.provide(layer)));
-
-    expect(remoteRepo).toEqual({
-      remoteName: "origin",
-      owner: "test-owner",
-      repo: "test-repo",
-    });
-  });
-
-  test("SSH形式のURLも解析できる", async () => {
-    const layer = fakeCommandExecutor(
-      sequenceHandler([Effect.succeed("origin/master\n"), Effect.succeed("git@github.com:test-owner/test-repo.git\n")]),
-    );
-
-    const remoteRepo = await Effect.runPromise(getRemoteRepo().pipe(Effect.provide(layer)));
-
-    expect(remoteRepo).toEqual({
-      remoteName: "origin",
-      owner: "test-owner",
-      repo: "test-repo",
-    });
-  });
+  it.effect("SSH形式のURLも解析できる", () =>
+    getRemoteRepo().pipe(
+      Effect.tap((repo) =>
+        Effect.sync(() =>
+          expect(repo).toEqual({
+            remoteName: "origin",
+            owner: "test-owner",
+            repo: "test-repo",
+          }),
+        ),
+      ),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.succeed("origin/master\n"),
+            Effect.succeed("git@github.com:test-owner/test-repo.git\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 });
