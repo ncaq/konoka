@@ -20,11 +20,8 @@ async function main(): Promise<void> {
     const reviewInfo = await getReviewInfo(octokit, context);
     process.stdout.write(JSON.stringify(reviewInfo));
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      process.stderr.write(`Error: ${err.message}`);
-    } else {
-      process.stderr.write(`Error: ${String(err)}`);
-    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`Error: ${msg}`);
     process.exitCode = 1;
   }
 }
