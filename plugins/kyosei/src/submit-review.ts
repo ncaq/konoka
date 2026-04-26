@@ -7,9 +7,9 @@ import { Schema } from "effect";
 import type { Octokit } from "octokit";
 import { mkBodyAppendMetadata } from "./review-metadata";
 import {
-  ReviewSubmissionResultSchema,
   ReviewSubmissionSchema,
   type ReviewCommentSchema,
+  type ReviewSubmissionResultSchema,
   type ReviewTagSchema,
 } from "./review-schema";
 
