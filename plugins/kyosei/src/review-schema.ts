@@ -4,6 +4,7 @@
  */
 
 import { Schema } from "effect";
+import { valid as semverValid } from "semver";
 
 /** 入力が空文字や空白のみの場合に`undefined`扱いとして正規化するためのバリデーター。 */
 export function pickNonBlank(raw: unknown): string | undefined {
@@ -39,11 +40,45 @@ export const UnknownLiteral = Schema.Literal("unknown");
 /** 空ではない文字列、もしくは`"unknown"`。*/
 export const NonEmptyStringOrUnknownSchema = fallbackToUnknown(Schema.NonEmptyString);
 
+/**
+ * GitのSHA形式かどうかを判定します。
+ * 短縮7桁から完全40桁までの16進文字(大文字小文字どちらも可)を許容します。
+ * 正規表現ではなく文字単位の線形走査で行うため、ReDoSの懸念がありません。
+ */
+function isSha(value: string): boolean {
+  if (value.length < 7 || value.length > 40) {
+    return false;
+  }
+  const charCodes = [...value].map((c) => c.charCodeAt(0));
+  for (const c of charCodes) {
+    const isDigit = c >= 0x30 && c <= 0x39;
+    const isUpperHex = c >= 0x41 && c <= 0x46;
+    const isLowerHex = c >= 0x61 && c <= 0x66;
+    if (!(isDigit || isUpperHex || isLowerHex)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * SemVer形式かどうかを判定します。
+ * 自前で正規表現や手書きパーサを書くと量指定子のバックトラック(ReDoS)や仕様の取りこぼしが起きやすいため、
+ * Node.js本家でも使われている枯れたライブラリ`semver`に判定を委譲します。
+ */
+function isSemVer(value: string): boolean {
+  return semverValid(value) !== null;
+}
+
 /** GitのSHA形式(短縮7桁から完全40桁の16進)。 */
-export const ShaSchema = Schema.NonEmptyString.pipe(Schema.pattern(/^[0-9a-f]{7,40}$/i));
+export const ShaSchema = Schema.NonEmptyString.pipe(
+  Schema.filter(isSha, { description: "Git SHA (7-40 hex characters)" }),
+);
 
 /** SemVerの形式。`1.2.3`を基本とし、プレリリース・ビルドメタデータも許容。 */
-export const SemVerSchema = Schema.NonEmptyString.pipe(Schema.pattern(/^\d+\.\d+\.\d+(?:[+-][0-9A-Za-z.-]+)*$/));
+export const SemVerSchema = Schema.NonEmptyString.pipe(
+  Schema.filter(isSemVer, { description: "SemVer (MAJOR.MINOR.PATCH[-prerelease][+build])" }),
+);
 
 /** SemVerの形式、もしくは`"unknown"`。 */
 export const SemVerOrUnknownSchema = fallbackToUnknown(SemVerSchema);
