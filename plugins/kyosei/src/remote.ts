@@ -2,8 +2,9 @@
  * Gitリモートからリポジトリ情報を取得するモジュール。
  */
 
+import { Command, type CommandExecutor } from "@effect/platform";
+import { Data, Effect, Option } from "effect";
 import gitUrlParse from "git-url-parse";
-import { execFileAsync } from "./exec";
 
 /**
  * リモートリポジトリの情報。
@@ -16,51 +17,62 @@ export interface RemoteRepo {
   readonly repo: string;
 }
 
+/** gitリモートが1つも設定されていない場合の失敗。 */
+export class NoGitRemotes extends Data.TaggedError("NoGitRemotes") {}
+
+/** リモートURLがGitHub形式として解釈できない場合の失敗。 */
+export class RemoteUrlParseError extends Data.TaggedError("RemoteUrlParseError")<{ readonly url: string }> {}
+
 /**
  * 現在のブランチのupstream設定からリモート名を取得します。
  * upstreamが設定されていない場合はgit remoteの先頭を使います。
  */
-export async function getRemoteName(): Promise<string> {
-  try {
+export function getRemoteName(): Effect.Effect<string, Error | NoGitRemotes, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
     // 現在のブランチのupstreamからリモート名を取得します。
     // 例: @{upstream}が"origin/main"ならリモート名は"origin"です。
-    const upstreamRemoteOutput = await execFileAsync("git", [
-      "rev-parse",
-      "--abbrev-ref",
-      "--symbolic-full-name",
-      "@{upstream}",
-    ]);
-    // "origin/main"から"origin"を取得します。
-    const upstream = upstreamRemoteOutput.stdout.trim();
-    const separatorIndex = upstream.indexOf("/");
-    if (separatorIndex > 0) {
-      return upstream.slice(0, separatorIndex);
+    // upstream未設定時の`git rev-parse`非ゼロ終了は想定通りなのでgit remoteのフォールバックに進めます。
+    // ここでExitCodeError以外の失敗を区別したいが、Command.stringは現状PlatformError系をそのまま返すため、
+    // 細かいタグ判別はせずgit remoteへフォールバックします。
+    const fromUpstream = yield* Command.string(
+      Command.make("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"),
+    ).pipe(
+      Effect.map((stdout) => {
+        const upstream = stdout.trim();
+        const separatorIndex = upstream.indexOf("/");
+        return separatorIndex > 0 ? Option.some(upstream.slice(0, separatorIndex)) : Option.none<string>();
+      }),
+      Effect.catchAll(() => Effect.succeed(Option.none<string>())),
+    );
+    if (Option.isSome(fromUpstream)) {
+      return fromUpstream.value;
     }
-  } catch (err: unknown) {
-    // upstreamが設定されていない場合にgit rev-parseがExecFileExceptionをスローするのは想定通りです。
-    if (err instanceof Error && "cmd" in err) {
-      // gitコマンドの非ゼロ終了コードなのでgit remoteの先頭にフォールバックします。
-    } else {
-      throw err;
+    const remoteListOutput = yield* Command.string(Command.make("git", "remote"));
+    const firstRemote = remoteListOutput.trim().split("\n")[0];
+    if (firstRemote == null || firstRemote === "") {
+      return yield* Effect.fail(new NoGitRemotes());
     }
-  }
-  const remoteListOutput = await execFileAsync("git", ["remote"]);
-  const firstRemote = remoteListOutput.stdout.trim().split("\n")[0];
-  if (firstRemote == null || firstRemote === "") {
-    throw new Error("no git remotes configured");
-  }
-  return firstRemote;
+    return firstRemote;
+  });
 }
 
 /**
  * 現在のブランチに関連するリモートのリポジトリ情報を取得します。
+ * リモートが未設定なら`NoGitRemotes`、URLが解釈できなければ`RemoteUrlParseError`で失敗します。
  */
-export async function getRemoteRepo(): Promise<RemoteRepo> {
-  const remoteName = await getRemoteName();
-  const remoteUrlOutput = await execFileAsync("git", ["remote", "get-url", remoteName]);
-  const parsed = gitUrlParse(remoteUrlOutput.stdout.trim());
-  if (parsed.owner === "" || parsed.name === "") {
-    throw new Error(`failed to parse remote URL: ${remoteUrlOutput.stdout.trim()}`);
-  }
-  return { remoteName, owner: parsed.owner, repo: parsed.name };
+export function getRemoteRepo(): Effect.Effect<
+  RemoteRepo,
+  Error | NoGitRemotes | RemoteUrlParseError,
+  CommandExecutor.CommandExecutor
+> {
+  return Effect.gen(function* () {
+    const remoteName = yield* getRemoteName();
+    const remoteUrlOutput = yield* Command.string(Command.make("git", "remote", "get-url", remoteName));
+    const url = remoteUrlOutput.trim();
+    const parsed = gitUrlParse(url);
+    if (parsed.owner === "" || parsed.name === "") {
+      return yield* Effect.fail(new RemoteUrlParseError({ url }));
+    }
+    return { remoteName, owner: parsed.owner, repo: parsed.name };
+  });
 }

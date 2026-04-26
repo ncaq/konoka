@@ -13,33 +13,37 @@
  */
 
 import process from "node:process";
-import { Schema } from "effect";
+import { Command, type CommandExecutor } from "@effect/platform";
+import { Effect, Option, Schema } from "effect";
 import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
-import { execFileAsync } from "./exec";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
 import { ExecutionSchema, FooterViewSchema, pickNonBlank, ReviewSubmissionSchema } from "./review-schema";
 
 /**
  * `claude --version` の出力からバージョン文字列を抽出します。
- * 取得に失敗した場合や出力が想定と異なる場合は警告ログを出して`undefined`を返します。
- * 戻り値はそのままスキーマに渡され、SemVer形式でなければ`"unknown"`に正規化されます。
+ * 取得に失敗した場合や出力が想定と異なる場合は警告ログを出して`Option.none`を返します。
+ * 戻り値は`FooterViewSchema`に渡され、SemVer形式でなければ`"unknown"`に正規化されます。
  */
-async function detectClaudeCodeVersion(): Promise<string | undefined> {
-  try {
-    const { stdout } = await execFileAsync("claude", ["--version"]);
-    // `claude --version` の出力は `2.1.114 (Claude Code)\n` のような形式。
-    // 先頭の空白区切りトークンがバージョン文字列。
-    const versionToken = pickNonBlank(stdout.split(/\s+/)[0]);
-    if (versionToken == null) {
-      console.warn(`warn: empty 'claude --version' output: ${stdout.trim()}`);
-    }
-    return versionToken;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(`warn: failed to detect Claude Code version: ${message}`);
-    return undefined;
-  }
+function detectClaudeCodeVersion(): Effect.Effect<Option.Option<string>, never, CommandExecutor.CommandExecutor> {
+  return Command.string(Command.make("claude", "--version")).pipe(
+    Effect.matchEffect({
+      onFailure: (err) =>
+        Effect.logWarning(`failed to detect Claude Code version: ${err.message}`).pipe(
+          Effect.as(Option.none<string>()),
+        ),
+      onSuccess: (stdout) =>
+        Effect.gen(function* () {
+          // `claude --version` の出力は `2.1.114 (Claude Code)\n` のような形式。
+          // 先頭の空白区切りトークンがバージョン文字列。
+          const versionToken = Option.fromNullable(pickNonBlank(stdout.split(/\s+/)[0]));
+          if (Option.isNone(versionToken)) {
+            yield* Effect.logWarning(`empty 'claude --version' output: ${stdout.trim()}`);
+          }
+          return versionToken;
+        }),
+    }),
+  );
 }
 
 /** 環境変数から実行環境(GitHub Actions / Claude Code CLI / unknown)を取得します。 */
@@ -53,15 +57,13 @@ function lookupExecution(): typeof ExecutionSchema.Type {
   return "unknown";
 }
 
-/** GitHub Actions環境変数からRun URLの文字列を組み立てます。1つでも欠けていれば`undefined`を返します。 */
-function lookupRunUrlString(): string | undefined {
-  const serverUrl = pickNonBlank(process.env["GITHUB_SERVER_URL"]);
-  const repository = pickNonBlank(process.env["GITHUB_REPOSITORY"]);
-  const runId = pickNonBlank(process.env["GITHUB_RUN_ID"]);
-  if (serverUrl == null || repository == null || runId == null) {
-    return undefined;
-  }
-  return `${serverUrl}/${repository}/actions/runs/${runId}`;
+/** GitHub Actions環境変数からRun URLの文字列を組み立てます。1つでも欠けていれば`Option.none`を返します。 */
+function lookupRunUrlString(): Option.Option<string> {
+  return Option.all({
+    serverUrl: Option.fromNullable(pickNonBlank(process.env["GITHUB_SERVER_URL"])),
+    repository: Option.fromNullable(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
+    runId: Option.fromNullable(pickNonBlank(process.env["GITHUB_RUN_ID"])),
+  }).pipe(Option.map(({ serverUrl, repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`));
 }
 
 /**
@@ -69,19 +71,22 @@ function lookupRunUrlString(): string | undefined {
  * 各フィールドの正規化(SHA形式の判定、空文字の扱い、SemVer判定など)は`FooterViewSchema`が担うため、
  * ここではrawな値をそのまま渡します。
  */
-export async function buildFooterView(
+export function buildFooterView(
   submission: typeof ReviewSubmissionSchema.Type,
-): Promise<typeof FooterViewSchema.Type> {
-  const runUrl = lookupRunUrlString();
-  return Schema.decodeUnknownSync(FooterViewSchema)({
-    commit: submission.headCommitId,
-    pr: submission.prNumber,
-    kyoseiVersion: pluginManifest.version,
-    kyoseiActionVersion: process.env["KYOSEI_ACTION_VERSION"],
-    claudeCodeVersion: await detectClaudeCodeVersion(),
-    model: submission.metadata?.model,
-    execution: lookupExecution(),
-    ...(runUrl != null ? { runUrl } : {}),
+): Effect.Effect<typeof FooterViewSchema.Type, never, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
+    const claudeCodeVersion = yield* detectClaudeCodeVersion();
+    const runUrl = lookupRunUrlString();
+    return Schema.decodeUnknownSync(FooterViewSchema)({
+      commit: submission.headCommitId,
+      pr: submission.prNumber,
+      kyoseiVersion: pluginManifest.version,
+      kyoseiActionVersion: process.env["KYOSEI_ACTION_VERSION"],
+      claudeCodeVersion: Option.getOrUndefined(claudeCodeVersion),
+      model: submission.metadata?.model,
+      execution: lookupExecution(),
+      ...(Option.isSome(runUrl) ? { runUrl: runUrl.value } : {}),
+    });
   });
 }
 
@@ -89,11 +94,15 @@ export async function buildFooterView(
  * レビュー本文の末尾にメタデータフッターを付与した文字列を返します。
  * テンプレートエンジンにはmustacheを使い、文字列連結による組み立てやインジェクションの余地を避けています。
  */
-export async function mkBodyAppendMetadata(submission: typeof ReviewSubmissionSchema.Type): Promise<string> {
-  const view = await buildFooterView(submission);
-  const renderInput = {
-    ...view,
-    runUrl: view.runUrl?.toString(),
-  };
-  return submission.body + "\n" + mustache.render(reviewMetadataFooterTemplate, renderInput);
+export function mkBodyAppendMetadata(
+  submission: typeof ReviewSubmissionSchema.Type,
+): Effect.Effect<string, never, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
+    const view = yield* buildFooterView(submission);
+    const renderInput = {
+      ...view,
+      runUrl: view.runUrl?.toString(),
+    };
+    return submission.body + "\n" + mustache.render(reviewMetadataFooterTemplate, renderInput);
+  });
 }

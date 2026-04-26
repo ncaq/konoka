@@ -1,12 +1,19 @@
+import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
-import { describe, expect, test } from "vitest";
+import { describe, expect } from "vitest";
 import { resolveLocalContext } from "../src/context-local";
+import { fakeCommandExecutor } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
 describe("resolveLocalContext", () => {
-  // サンドボックス環境はgitリポジトリではないのでブランチ解決が失敗してrejectされることを確認します。
-  test("gitリポジトリ外ではrejectされる", async () => {
-    await expect(resolveLocalContext(dummyOctokit)).rejects.toThrow();
-  });
+  // ブランチ解決の入口で必ずgitが必要なので、フェイクで全コマンドを失敗させてrejectされることを確認します。
+  it.effect("コマンド実行が全て失敗する場合は失敗で抜ける", () =>
+    resolveLocalContext(dummyOctokit).pipe(
+      Effect.flip,
+      Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(Error))),
+      Effect.provide(fakeCommandExecutor(() => Effect.fail(new Error("simulated git failure")))),
+    ),
+  );
 });

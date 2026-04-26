@@ -3,6 +3,8 @@
  * 変更セット取得と会話取得を1回の呼び出しで行います。
  */
 
+import { type CommandExecutor } from "@effect/platform";
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import type { Changeset } from "./changeset";
 import { getChangeset } from "./changeset";
@@ -21,14 +23,19 @@ export interface ReviewInfo {
  * レビューコンテキストに応じてレビュー情報を統合的に取得します。
  * PRが特定できている場合はchangesetとconversationを並列で取得します。
  */
-export async function getReviewInfo(octokit: Octokit, context: ReviewContext): Promise<ReviewInfo> {
-  if (context.pr != null) {
-    const [changeset, conversation] = await Promise.all([
-      getChangeset(octokit, context),
-      getConversation(octokit, context.pr),
-    ]);
-    return { context, changeset, conversation };
-  }
-  const changeset = await getChangeset(octokit, context);
-  return { context, changeset };
+export function getReviewInfo(
+  octokit: Octokit,
+  context: ReviewContext,
+): Effect.Effect<ReviewInfo, Error, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
+    if (context.pr != null) {
+      const [changeset, conversation] = yield* Effect.all(
+        [getChangeset(octokit, context), getConversation(octokit, context.pr)],
+        { concurrency: "unbounded" },
+      );
+      return { context, changeset, conversation };
+    }
+    const changeset = yield* getChangeset(octokit, context);
+    return { context, changeset };
+  });
 }

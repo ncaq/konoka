@@ -1,6 +1,11 @@
+import { it } from "@effect/vitest";
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
 import { decodeReviewSubmission, submitReview } from "../src/submit-review";
+import { fakeCommandExecutor } from "./fake-command";
+
+const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
 
 /** テスト用の最小限の有効な入力。 */
 const validInput = {
@@ -185,136 +190,166 @@ describe("submitReview", () => {
     } as unknown as Octokit;
   }
 
-  test("指定されたeventがそのままAPIに渡される", async () => {
-    for (const event of ["APPROVE", "COMMENT", "REQUEST_CHANGES"] as const) {
-      const octokit = createMockOctokit();
-      const input = { ...validInput, event };
-      const submission = decodeReviewSubmission(JSON.stringify(input));
-      await submitReview(octokit, submission);
+  it.layer(claudeFakeLayer)((it) => {
+    it.effect("指定されたeventがそのままAPIに渡される", () =>
+      Effect.gen(function* () {
+        for (const event of ["APPROVE", "COMMENT", "REQUEST_CHANGES"] as const) {
+          const octokit = createMockOctokit();
+          const input = { ...validInput, event };
+          const submission = decodeReviewSubmission(JSON.stringify(input));
+          yield* submitReview(octokit, submission);
 
-      const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-      expect(call?.event).toBe(event);
-    }
-  });
+          const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+          expect(call?.event).toBe(event);
+        }
+      }),
+    );
 
-  test("headCommitIdがcommit_idとしてAPIに渡される", async () => {
-    const octokit = createMockOctokit();
-    const input = { ...validInput, headCommitId: "deadbeef1234567" };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("headCommitIdがcommit_idとしてAPIに渡される", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = { ...validInput, headCommitId: "deadbeef1234567" };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.commit_id).toBe("deadbeef1234567");
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        expect(call?.commit_id).toBe("deadbeef1234567");
+      }),
+    );
 
-  test("single lineコメントのパラメータが正しく変換される", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["code-quality"] }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("single lineコメントのパラメータが正しく変換される", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["code-quality"] }],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    const comment = call?.comments?.[0];
-    expect(comment).toEqual({
-      path: "src/foo.ts",
-      body: "> [!IMPORTANT]\n> 🧹 Code Quality\n\nfix",
-      line: 42,
-      side: "RIGHT",
-    });
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        const comment = call?.comments?.[0];
+        expect(comment).toEqual({
+          path: "src/foo.ts",
+          body: "> [!IMPORTANT]\n> 🧹 Code Quality\n\nfix",
+          line: 42,
+          side: "RIGHT",
+        });
+      }),
+    );
 
-  test("tagsが空配列ならタグラベルを出力しない", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: [] }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("tagsが空配列ならタグラベルを出力しない", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: [] }],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n\nfix");
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n\nfix");
+      }),
+    );
 
-  test("複数tagをコメント本文に含められる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["security", "performance"] }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("複数tagをコメント本文に含められる", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [
+            { path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["security", "performance"] },
+          ],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix");
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix");
+      }),
+    );
 
-  test("複数行コメントもGitHub Alert内に収まる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "src/foo.ts", body: "line 1\n\nline 3", line: 42, level: "CAUTION", tags: ["security"] }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("複数行コメントもGitHub Alert内に収まる", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [{ path: "src/foo.ts", body: "line 1\n\nline 3", line: 42, level: "CAUTION", tags: ["security"] }],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.comments?.[0]?.body).toBe("> [!CAUTION]\n> 🔒 Security\n\nline 1\n\nline 3");
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        expect(call?.comments?.[0]?.body).toBe("> [!CAUTION]\n> 🔒 Security\n\nline 1\n\nline 3");
+      }),
+    );
 
-  test("multi-lineコメントのパラメータが正しく変換される", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [
-        { path: "src/bar.ts", body: "refactor", line: 20, startLine: 10, side: "LEFT", level: "TIP", tags: ["test"] },
-      ],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
+    it.effect("multi-lineコメントのパラメータが正しく変換される", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [
+            {
+              path: "src/bar.ts",
+              body: "refactor",
+              line: 20,
+              startLine: 10,
+              side: "LEFT",
+              level: "TIP",
+              tags: ["test"],
+            },
+          ],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
 
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    const comment = call?.comments?.[0];
-    expect(comment).toEqual({
-      path: "src/bar.ts",
-      body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
-      line: 20,
-      start_line: 10,
-      side: "LEFT",
-      start_side: "LEFT",
-    });
-  });
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        const comment = call?.comments?.[0];
+        expect(comment).toEqual({
+          path: "src/bar.ts",
+          body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
+          line: 20,
+          start_line: 10,
+          side: "LEFT",
+          start_side: "LEFT",
+        });
+      }),
+    );
 
-  test("startLine指定でsideが未指定の場合はstart_sideもRIGHTになる", async () => {
-    const octokit = createMockOctokit();
-    const input = {
-      ...validInput,
-      comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "TIP", tags: ["test"] }],
-    };
-    const submission = decodeReviewSubmission(JSON.stringify(input));
-    await submitReview(octokit, submission);
-    const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-    expect(call?.comments?.[0]).toEqual({
-      path: "src/foo.ts",
-      body: "> [!TIP]\n> 🧪 Test\n\nx",
-      line: 20,
-      start_line: 10,
-      side: "RIGHT",
-      start_side: "RIGHT",
-    });
-  });
+    it.effect("startLine指定でsideが未指定の場合はstart_sideもRIGHTになる", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const input = {
+          ...validInput,
+          comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "TIP", tags: ["test"] }],
+        };
+        const submission = decodeReviewSubmission(JSON.stringify(input));
+        yield* submitReview(octokit, submission);
+        const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
+        expect(call?.comments?.[0]).toEqual({
+          path: "src/foo.ts",
+          body: "> [!TIP]\n> 🧪 Test\n\nx",
+          line: 20,
+          start_line: 10,
+          side: "RIGHT",
+          start_side: "RIGHT",
+        });
+      }),
+    );
 
-  test("結果にreviewIdとhtmlUrlが含まれる", async () => {
-    const octokit = createMockOctokit();
-    const submission = decodeReviewSubmission(JSON.stringify(validInput));
-    const submissionResult = await submitReview(octokit, submission);
+    it.effect("結果にreviewIdとhtmlUrlが含まれる", () =>
+      Effect.gen(function* () {
+        const octokit = createMockOctokit();
+        const submission = decodeReviewSubmission(JSON.stringify(validInput));
+        const submissionResult = yield* submitReview(octokit, submission);
 
-    expect(submissionResult.reviewId).toBe(999);
-    expect(submissionResult.htmlUrl).toEqual(
-      new URL("https://github.com/test-owner/test-repo/pull/42#pullrequestreview-999"),
+        expect(submissionResult.reviewId).toBe(999);
+        expect(submissionResult.htmlUrl).toEqual(
+          new URL("https://github.com/test-owner/test-repo/pull/42#pullrequestreview-999"),
+        );
+      }),
     );
   });
 });

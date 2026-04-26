@@ -4,6 +4,7 @@
  * 追加ページがあればページネーションで全件取得します。
  */
 
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 
@@ -244,22 +245,26 @@ interface GraphQLThreadCommentsPageResponse {
  * レビュースレッド内コメントを全件取得します。
  * 初回取得分に加えて、100件を超えている場合は追加ページを取得して結合します。
  */
-async function getAllThreadComments(
+function getAllThreadComments(
   octokit: Octokit,
   thread: GraphQLReviewThreadNode,
-): Promise<readonly GraphQLCommentNode[]> {
-  const allNodes: GraphQLCommentNode[] = [...thread.comments.nodes];
-  let { hasNextPage, endCursor } = thread.comments.pageInfo;
-  while (hasNextPage) {
-    const page = await octokit.graphql<GraphQLThreadCommentsPageResponse>(THREAD_COMMENTS_PAGE_QUERY, {
-      threadId: thread.id,
-      after: endCursor,
-    });
-    allNodes.push(...page.node.comments.nodes);
-    hasNextPage = page.node.comments.pageInfo.hasNextPage;
-    endCursor = page.node.comments.pageInfo.endCursor;
-  }
-  return allNodes;
+): Effect.Effect<readonly GraphQLCommentNode[], Error> {
+  return Effect.gen(function* () {
+    const allNodes: GraphQLCommentNode[] = [...thread.comments.nodes];
+    let { hasNextPage, endCursor } = thread.comments.pageInfo;
+    while (hasNextPage) {
+      const page = yield* Effect.tryPromise(() =>
+        octokit.graphql<GraphQLThreadCommentsPageResponse>(THREAD_COMMENTS_PAGE_QUERY, {
+          threadId: thread.id,
+          after: endCursor,
+        }),
+      );
+      allNodes.push(...page.node.comments.nodes);
+      hasNextPage = page.node.comments.pageInfo.hasNextPage;
+      endCursor = page.node.comments.pageInfo.endCursor;
+    }
+    return allNodes;
+  });
 }
 
 // --- マッピング関数 ---
@@ -286,19 +291,24 @@ function mapReviewNode(node: GraphQLReviewNode): ConversationReview {
   };
 }
 
-async function mapReviewThreadNode(octokit: Octokit, node: GraphQLReviewThreadNode): Promise<ConversationReviewThread> {
-  const allComments = await getAllThreadComments(octokit, node);
-  return {
-    id: node.id,
-    isResolved: node.isResolved,
-    isOutdated: node.isOutdated,
-    resolvedBy: node.resolvedBy?.login ?? null,
-    path: node.path,
-    line: node.line,
-    startLine: node.startLine,
-    diffSide: node.diffSide,
-    comments: allComments.map(mapCommentNode),
-  };
+function mapReviewThreadNode(
+  octokit: Octokit,
+  node: GraphQLReviewThreadNode,
+): Effect.Effect<ConversationReviewThread, Error> {
+  return Effect.gen(function* () {
+    const allComments = yield* getAllThreadComments(octokit, node);
+    return {
+      id: node.id,
+      isResolved: node.isResolved,
+      isOutdated: node.isOutdated,
+      resolvedBy: node.resolvedBy?.login ?? null,
+      path: node.path,
+      line: node.line,
+      startLine: node.startLine,
+      diffSide: node.diffSide,
+      comments: allComments.map(mapCommentNode),
+    };
+  });
 }
 
 // --- メイン関数 ---
@@ -307,44 +317,54 @@ async function mapReviewThreadNode(octokit: Octokit, node: GraphQLReviewThreadNo
  * PRの会話情報をGraphQL APIで取得します。
  * コメント、レビュー、レビュースレッドを全件取得します。
  */
-export async function getConversation(octokit: Octokit, target: PrIdentifier): Promise<Conversation> {
-  const variables = {
-    owner: target.owner,
-    repo: target.repo,
-    number: target.prNumber,
-  };
+export function getConversation(octokit: Octokit, target: PrIdentifier): Effect.Effect<Conversation, Error> {
+  return Effect.gen(function* () {
+    const variables = {
+      owner: target.owner,
+      repo: target.repo,
+      number: target.prNumber,
+    };
 
-  // 初回クエリで3つのconnectionを同時に取得します。
-  const initial = await octokit.graphql<GraphQLInitialResponse>(INITIAL_QUERY, variables);
-  const pr = initial.repository.pullRequest;
+    // 初回クエリで3つのconnectionを同時に取得します。
+    const initial = yield* Effect.tryPromise(() => octokit.graphql<GraphQLInitialResponse>(INITIAL_QUERY, variables));
+    const pr = initial.repository.pullRequest;
 
-  const commentNodes: GraphQLCommentNode[] = [...pr.comments.nodes];
-  const reviewNodes: GraphQLReviewNode[] = [...pr.reviews.nodes];
-  const reviewThreadNodes: GraphQLReviewThreadNode[] = [...pr.reviewThreads.nodes];
+    const commentNodes: GraphQLCommentNode[] = [...pr.comments.nodes];
+    const reviewNodes: GraphQLReviewNode[] = [...pr.reviews.nodes];
+    const reviewThreadNodes: GraphQLReviewThreadNode[] = [...pr.reviewThreads.nodes];
 
-  // 追加ページが必要なconnectionを並列で取得します。
-  await Promise.all([
-    paginateConnection(octokit, variables, "comments", COMMENT_FIELDS, pr.comments.pageInfo, commentNodes),
-    paginateConnection(octokit, variables, "reviews", REVIEW_FIELDS, pr.reviews.pageInfo, reviewNodes),
-    paginateConnection(
-      octokit,
-      variables,
-      "reviewThreads",
-      REVIEW_THREAD_FIELDS,
-      pr.reviewThreads.pageInfo,
-      reviewThreadNodes,
-    ),
-  ]);
+    // 追加ページが必要なconnectionを並列で取得します。
+    yield* Effect.all(
+      [
+        paginateConnection(octokit, variables, "comments", COMMENT_FIELDS, pr.comments.pageInfo, commentNodes),
+        paginateConnection(octokit, variables, "reviews", REVIEW_FIELDS, pr.reviews.pageInfo, reviewNodes),
+        paginateConnection(
+          octokit,
+          variables,
+          "reviewThreads",
+          REVIEW_THREAD_FIELDS,
+          pr.reviewThreads.pageInfo,
+          reviewThreadNodes,
+        ),
+      ],
+      { concurrency: "unbounded" },
+    );
 
-  return {
-    title: pr.title,
-    body: pr.body,
-    author: pr.author?.login ?? null,
-    url: pr.url,
-    comments: commentNodes.map(mapCommentNode),
-    reviews: reviewNodes.map(mapReviewNode),
-    reviewThreads: await Promise.all(reviewThreadNodes.map((node) => mapReviewThreadNode(octokit, node))),
-  };
+    const reviewThreads = yield* Effect.all(
+      reviewThreadNodes.map((node) => mapReviewThreadNode(octokit, node)),
+      { concurrency: "unbounded" },
+    );
+
+    return {
+      title: pr.title,
+      body: pr.body,
+      author: pr.author?.login ?? null,
+      url: pr.url,
+      comments: commentNodes.map(mapCommentNode),
+      reviews: reviewNodes.map(mapReviewNode),
+      reviewThreads,
+    };
+  });
 }
 
 interface PaginationVariables {
@@ -353,28 +373,32 @@ interface PaginationVariables {
   readonly number: number;
 }
 
-async function paginateConnection<TNode>(
+function paginateConnection<TNode>(
   octokit: Octokit,
   variables: PaginationVariables,
   connectionName: string,
   nodeFields: string,
   pageInfo: PageInfo,
   accumulator: TNode[],
-): Promise<void> {
-  const query = buildPageQuery(connectionName, nodeFields);
-  let cursor = pageInfo.endCursor;
-  let hasNextPage = pageInfo.hasNextPage;
-  while (hasNextPage) {
-    const page = await octokit.graphql<GraphQLConnectionPageResponse<TNode>>(query, {
-      ...variables,
-      after: cursor,
-    });
-    const connection = page.repository.pullRequest[connectionName];
-    if (connection == null) {
-      throw new Error(`GraphQL response missing connection: ${connectionName}`);
+): Effect.Effect<void, Error> {
+  return Effect.gen(function* () {
+    const query = buildPageQuery(connectionName, nodeFields);
+    let cursor = pageInfo.endCursor;
+    let hasNextPage = pageInfo.hasNextPage;
+    while (hasNextPage) {
+      const page = yield* Effect.tryPromise(() =>
+        octokit.graphql<GraphQLConnectionPageResponse<TNode>>(query, {
+          ...variables,
+          after: cursor,
+        }),
+      );
+      const connection = page.repository.pullRequest[connectionName];
+      if (connection == null) {
+        return yield* Effect.fail(new Error(`GraphQL response missing connection: ${connectionName}`));
+      }
+      accumulator.push(...connection.nodes);
+      hasNextPage = connection.pageInfo.hasNextPage;
+      cursor = connection.pageInfo.endCursor;
     }
-    accumulator.push(...connection.nodes);
-    hasNextPage = connection.pageInfo.hasNextPage;
-    cursor = connection.pageInfo.endCursor;
-  }
+  });
 }

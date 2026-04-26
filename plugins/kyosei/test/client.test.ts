@@ -1,6 +1,8 @@
 import process from "node:process";
+import { Effect } from "effect";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client";
+import { fakeCommandExecutor } from "./fake-command";
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。
@@ -105,7 +107,10 @@ describe("createOctokitClient", () => {
       try {
         const requestedUrls = mockFetchAndCaptureUrls();
 
-        const octokit = await createOctokitClient();
+        const layer = fakeCommandExecutor(() =>
+          Effect.die(new Error("gh should not be invoked when token env is set")),
+        );
+        const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));
         await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
 
         expect(requestedUrls.length).toBeGreaterThan(0);
@@ -137,7 +142,10 @@ describe("createOctokitClient", () => {
       try {
         const requestedUrls = mockFetchAndCaptureUrls();
 
-        const octokit = await createOctokitClient();
+        const layer = fakeCommandExecutor(() =>
+          Effect.die(new Error("gh should not be invoked when token env is set")),
+        );
+        const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));
         await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
 
         expect(requestedUrls.length).toBeGreaterThan(0);

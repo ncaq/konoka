@@ -1,94 +1,97 @@
-import { describe, expect, test, vi } from "vitest";
-import { execFileAsync } from "../src/exec";
-import { getRemoteName, getRemoteRepo } from "../src/remote";
+import { it } from "@effect/vitest";
+import { Effect } from "effect";
+import { describe, expect } from "vitest";
+import { getRemoteName, getRemoteRepo, NoGitRemotes } from "../src/remote";
+import { fakeCommandExecutor, type CommandHandler } from "./fake-command";
 
-vi.mock("../src/exec", () => ({
-  execFileAsync: vi.fn(),
-}));
-
-const mockedExecFileAsync = vi.mocked(execFileAsync);
+const sequenceHandler = (responses: Effect.Effect<string, Error>[]): CommandHandler => {
+  let index = 0;
+  return () => {
+    const next = responses[index++];
+    if (next == null) {
+      return Effect.die(new Error(`unexpected command call #${index}`));
+    }
+    return next;
+  };
+};
 
 describe("getRemoteName", () => {
-  test("upstreamが設定されている場合はupstreamからリモート名を取得する", async () => {
-    mockedExecFileAsync.mockResolvedValueOnce({
-      stdout: "origin/master\n",
-      stderr: "",
-    } as Awaited<ReturnType<typeof execFileAsync>>);
+  it.effect("upstreamが設定されている場合はupstreamからリモート名を取得する", () =>
+    getRemoteName().pipe(
+      Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
+      Effect.provide(fakeCommandExecutor(sequenceHandler([Effect.succeed("origin/master\n")]))),
+    ),
+  );
 
-    const remoteName = await getRemoteName();
+  it.effect("upstreamが設定されていない場合はgit remoteの先頭を使う", () =>
+    getRemoteName().pipe(
+      Effect.tap((name) => Effect.sync(() => expect(name).toBe("upstream"))),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.fail(new Error("fatal: no upstream configured")),
+            Effect.succeed("upstream\norigin\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 
-    expect(remoteName).toBe("origin");
-  });
-
-  test("upstreamが設定されていない場合はgit remoteの先頭を使う", async () => {
-    const execError = new Error("fatal: no upstream configured") as Error & { cmd: string };
-    execError.cmd = "git rev-parse";
-    mockedExecFileAsync
-      // 1回目: upstream取得が失敗
-      .mockRejectedValueOnce(execError)
-      // 2回目: git remote
-      .mockResolvedValueOnce({
-        stdout: "upstream\norigin\n",
-        stderr: "",
-      } as Awaited<ReturnType<typeof execFileAsync>>);
-
-    const remoteName = await getRemoteName();
-
-    expect(remoteName).toBe("upstream");
-  });
-
-  test("リモートが1つも設定されていない場合はエラーを投げる", async () => {
-    const execError = new Error("fatal: no upstream configured") as Error & { cmd: string };
-    execError.cmd = "git rev-parse";
-    mockedExecFileAsync.mockRejectedValueOnce(execError).mockResolvedValueOnce({
-      stdout: "\n",
-      stderr: "",
-    } as Awaited<ReturnType<typeof execFileAsync>>);
-
-    await expect(getRemoteName()).rejects.toThrow("no git remotes configured");
-  });
+  it.effect("リモートが1つも設定されていない場合はNoGitRemotesで失敗する", () =>
+    getRemoteName().pipe(
+      Effect.flip,
+      Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(NoGitRemotes))),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([Effect.fail(new Error("fatal: no upstream configured")), Effect.succeed("\n")]),
+        ),
+      ),
+    ),
+  );
 });
 
 describe("getRemoteRepo", () => {
-  test("リモートURLからowner/repoを解析する", async () => {
-    mockedExecFileAsync
-      // getRemoteName: upstream取得
-      .mockResolvedValueOnce({
-        stdout: "origin/master\n",
-        stderr: "",
-      } as Awaited<ReturnType<typeof execFileAsync>>)
-      // getRemoteRepo: remote get-url
-      .mockResolvedValueOnce({
-        stdout: "https://github.com/test-owner/test-repo.git\n",
-        stderr: "",
-      } as Awaited<ReturnType<typeof execFileAsync>>);
+  it.effect("リモートURLからowner/repoを解析する", () =>
+    getRemoteRepo().pipe(
+      Effect.tap((repo) =>
+        Effect.sync(() =>
+          expect(repo).toEqual({
+            remoteName: "origin",
+            owner: "test-owner",
+            repo: "test-repo",
+          }),
+        ),
+      ),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.succeed("origin/master\n"),
+            Effect.succeed("https://github.com/test-owner/test-repo.git\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 
-    const remoteRepo = await getRemoteRepo();
-
-    expect(remoteRepo).toEqual({
-      remoteName: "origin",
-      owner: "test-owner",
-      repo: "test-repo",
-    });
-  });
-
-  test("SSH形式のURLも解析できる", async () => {
-    mockedExecFileAsync
-      .mockResolvedValueOnce({
-        stdout: "origin/master\n",
-        stderr: "",
-      } as Awaited<ReturnType<typeof execFileAsync>>)
-      .mockResolvedValueOnce({
-        stdout: "git@github.com:test-owner/test-repo.git\n",
-        stderr: "",
-      } as Awaited<ReturnType<typeof execFileAsync>>);
-
-    const remoteRepo = await getRemoteRepo();
-
-    expect(remoteRepo).toEqual({
-      remoteName: "origin",
-      owner: "test-owner",
-      repo: "test-repo",
-    });
-  });
+  it.effect("SSH形式のURLも解析できる", () =>
+    getRemoteRepo().pipe(
+      Effect.tap((repo) =>
+        Effect.sync(() =>
+          expect(repo).toEqual({
+            remoteName: "origin",
+            owner: "test-owner",
+            repo: "test-repo",
+          }),
+        ),
+      ),
+      Effect.provide(
+        fakeCommandExecutor(
+          sequenceHandler([
+            Effect.succeed("origin/master\n"),
+            Effect.succeed("git@github.com:test-owner/test-repo.git\n"),
+          ]),
+        ),
+      ),
+    ),
+  );
 });
