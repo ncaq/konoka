@@ -27,7 +27,7 @@ const command = Command.make("get-review-info", { prUrl }, ({ prUrl }) =>
 
 const cli = Command.run(command, {
   name: "get-review-info",
-  version: "1.0.0",
+  version: "0.0.0",
 });
 
 cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);

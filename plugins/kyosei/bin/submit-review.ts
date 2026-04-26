@@ -25,7 +25,7 @@ const command = Command.make("submit-review", { json }, ({ json }) =>
 
 const cli = Command.run(command, {
   name: "submit-review",
-  version: "1.0.0",
+  version: "0.0.0",
 });
 
 cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
