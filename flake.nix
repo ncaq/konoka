@@ -136,6 +136,7 @@
               deadnix.enable = true;
               nixfmt.enable = true;
               prettier.enable = true;
+              rustfmt.enable = true;
               shellcheck.enable = true;
               shfmt.enable = true;
               statix.enable = true;
@@ -190,6 +191,13 @@
 
               # Node.js
               nodejs
+
+              # Rust toolchain (programming-tasukeのフックバイナリ用)
+              cargo
+              clippy
+              rust-analyzer
+              rustc
+              rustfmt
 
               # AIコーディングアシスタント設定のリンター。
               agnix

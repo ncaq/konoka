@@ -54,11 +54,17 @@ PreToolUseフックでBashツールのコマンドを監視し、
 `rm`と`trash`はフラグ仕様に互換性がないため、
 `rm -rf`のようなフラグ付きの形は書き換えずに通常の承認フロー(deny含む)に任せます。
 
-`jq`, `sed`, `grep`, `trash`コマンドが必要です。
+フック本体は`src/main.rs`のRustバイナリ`rm-to-trash`です。
+Bashツール毎に呼ばれるため起動コストを抑える目的で、シェル+`jq`/`sed`を避けてネイティブバイナリで実装しています。
+SessionStartフックの`hooks/build`が初回セッションで`cargo build --release`を走らせ、
+`target/release/rm-to-trash`を生成します。
+ビルド成果物はGitで追跡せず、プラグイン更新時は再ビルドされます。
+
+`cargo`(Rust toolchain)と`trash`コマンドが必要です。
 trash-cliなどのfreedesktop互換実装を想定しています。
 
-`\brm\b`で単語境界を見て置換するため、
-`rmdir`等は対象外です。
+単語境界はシェルのトークン境界(行頭/末、空白、`;`, `&`, `|`, `()`, `` ` ``)で判定するため、
+`rmdir`や`rm-utility`のように`rm`が他の文字と連続する形は対象外です。
 クォートやヒアドキュメント内の`rm`まで完全に分離するのは困難なため、
 `echo "rm a"`のような稀な誤マッチは許容しています。
 
