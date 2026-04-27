@@ -41,6 +41,32 @@ export function decodeReviewSubmission(input: string): typeof ReviewSubmissionSc
   return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), { onExcessProperty: "error" })(input);
 }
 
+/** `octokit.rest.pulls.createReview`に渡すパラメータ型。 */
+export type CreateReviewParams = NonNullable<Parameters<Octokit["rest"]["pulls"]["createReview"]>[0]>;
+
+/**
+ * `submission`とメタデータ付与済みの`body`から、`octokit.rest.pulls.createReview`へ渡すパラメータを組み立てます。
+ * API呼び出しは行いません。`submitReview`と`previewReview`の双方で共有されます。
+ */
+function buildCreateReviewParams(submission: typeof ReviewSubmissionSchema.Type, body: string): CreateReviewParams {
+  return {
+    owner: submission.owner,
+    repo: submission.repo,
+    pull_number: submission.prNumber,
+    commit_id: submission.headCommitId,
+    event: submission.event,
+    body,
+    comments:
+      submission.comments?.map((c) => ({
+        path: c.path,
+        body: formatReviewCommentBody(c),
+        line: c.line,
+        side: c.side ?? "RIGHT",
+        ...(c.startLine != null ? { start_line: c.startLine, start_side: c.side ?? "RIGHT" } : {}),
+      })) ?? [],
+  };
+}
+
 /**
  * PRレビューを投稿します。
  * `octokit.rest.pulls.createReview`を使い、
@@ -53,27 +79,25 @@ export function submitReview(
 ): Effect.Effect<typeof ReviewSubmissionResultSchema.Type, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     const body = yield* mkBodyAppendMetadata(submission);
-    const response = yield* Effect.tryPromise(() =>
-      octokit.rest.pulls.createReview({
-        owner: submission.owner,
-        repo: submission.repo,
-        pull_number: submission.prNumber,
-        commit_id: submission.headCommitId,
-        event: submission.event,
-        body,
-        comments:
-          submission.comments?.map((c) => ({
-            path: c.path,
-            body: formatReviewCommentBody(c),
-            line: c.line,
-            side: c.side ?? "RIGHT",
-            ...(c.startLine != null ? { start_line: c.startLine, start_side: c.side ?? "RIGHT" } : {}),
-          })) ?? [],
-      }),
-    );
+    const params = buildCreateReviewParams(submission, body);
+    const response = yield* Effect.tryPromise(() => octokit.rest.pulls.createReview(params));
     return {
       reviewId: response.data.id,
       htmlUrl: new URL(response.data.html_url),
     };
+  });
+}
+
+/**
+ * 投稿はせずに、`submitReview`が`octokit.rest.pulls.createReview`へ渡すであろうパラメータを組み立てて返します。
+ * 入力スキーマの検証(`decodeReviewSubmission`)とメタデータフッター生成(`mkBodyAppendMetadata`)を実走するため、
+ * パイプライン全体の動作確認に使えます。
+ */
+export function previewReview(
+  submission: typeof ReviewSubmissionSchema.Type,
+): Effect.Effect<CreateReviewParams, never, CommandExecutor.CommandExecutor> {
+  return Effect.gen(function* () {
+    const body = yield* mkBodyAppendMetadata(submission);
+    return buildCreateReviewParams(submission, body);
   });
 }

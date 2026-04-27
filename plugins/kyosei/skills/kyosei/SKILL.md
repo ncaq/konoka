@@ -235,6 +235,20 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 本文は空にできないため、
 簡潔な総評を記述してください。
 
+### 動作確認(`--dry-run`)
+
+組み立てたJSONがスキーマやメタデータ生成を通るかだけ検証したい場合は、
+`--dry-run`フラグを付けて実行します。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js --dry-run 'JSON_STRING'
+```
+
+GitHub APIへの投稿は行われず、
+`{"dryRun": true, "params": {...}}`の形式で、
+`createReview`に渡される予定のパラメータがJSON出力されます。
+通常のレビューワークフローでは使いません。
+
 ## ローカル出力の場合
 
 各フィードバックは以下の形式で出力します:

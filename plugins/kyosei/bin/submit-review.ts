@@ -4,19 +4,30 @@
  */
 
 import process from "node:process";
-import { Args, Command } from "@effect/cli";
+import { Args, Command, Options } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
 import { createOctokitClient } from "../src/client";
-import { decodeReviewSubmission, submitReview } from "../src/submit-review";
+import { decodeReviewSubmission, previewReview, submitReview } from "../src/submit-review";
+
+const dryRun = Options.boolean("dry-run").pipe(
+  Options.withDescription(
+    "投稿せずに、組み立て済みのcreateReviewパラメータをJSON出力します。スキーマ検証とメタデータフッター生成は実行されます。",
+  ),
+);
 
 const json = Args.text({ name: "json" }).pipe(
   Args.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),
 );
 
-const command = Command.make("submit-review", { json }, ({ json }) =>
+const command = Command.make("submit-review", { dryRun, json }, ({ dryRun, json }) =>
   Effect.gen(function* () {
     const submission = decodeReviewSubmission(json);
+    if (dryRun) {
+      const params = yield* previewReview(submission);
+      yield* Console.log(JSON.stringify({ dryRun: true, params }));
+      return;
+    }
     const octokit = yield* createOctokitClient();
     const submissionResult = yield* submitReview(octokit, submission);
     yield* Console.log(JSON.stringify(submissionResult));

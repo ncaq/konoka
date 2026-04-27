@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
-import { decodeReviewSubmission, submitReview } from "../src/submit-review";
+import { decodeReviewSubmission, previewReview, submitReview } from "../src/submit-review";
 import { fakeCommandExecutor } from "./fake-command";
 
 const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
@@ -349,6 +349,90 @@ describe("submitReview", () => {
         expect(submissionResult.htmlUrl).toEqual(
           new URL("https://github.com/test-owner/test-repo/pull/42#pullrequestreview-999"),
         );
+      }),
+    );
+  });
+});
+
+describe("previewReview", () => {
+  it.layer(claudeFakeLayer)((it) => {
+    it.effect("createReviewが呼ばれない", () =>
+      Effect.gen(function* () {
+        const createReview = vi.fn();
+        const octokit = { rest: { pulls: { createReview } } } as unknown as Octokit;
+        const submission = decodeReviewSubmission(JSON.stringify(validInput));
+        yield* previewReview(submission);
+
+        expect(createReview).not.toHaveBeenCalled();
+        // 念のため、Octokitの中身を全く触らないことを保証するため呼び出し回数で確認。
+        expect(octokit.rest.pulls.createReview).not.toHaveBeenCalled();
+      }),
+    );
+
+    it.effect("組み立て済みパラメータに必須フィールドが正しく入る", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...validInput, event: "REQUEST_CHANGES", headCommitId: "abc1234" }),
+        );
+        const params = yield* previewReview(submission);
+
+        expect(params.owner).toBe("test-owner");
+        expect(params.repo).toBe("test-repo");
+        expect(params.pull_number).toBe(42);
+        expect(params.commit_id).toBe("abc1234");
+        expect(params.event).toBe("REQUEST_CHANGES");
+        expect(params.body?.startsWith("review body")).toBe(true);
+      }),
+    );
+
+    it.effect("bodyにメタデータフッターが付与されている", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(validInput));
+        const params = yield* previewReview(submission);
+
+        expect(params.body ?? "").toContain("<details>");
+      }),
+    );
+
+    it.effect("インラインコメントが`submitReview`と同じく変換される", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({
+            ...validInput,
+            comments: [
+              {
+                path: "src/bar.ts",
+                body: "refactor",
+                line: 20,
+                startLine: 10,
+                side: "LEFT",
+                level: "TIP",
+                tags: ["test"],
+              },
+            ],
+          }),
+        );
+        const params = yield* previewReview(submission);
+
+        expect(params.comments).toEqual([
+          {
+            path: "src/bar.ts",
+            body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
+            line: 20,
+            start_line: 10,
+            side: "LEFT",
+            start_side: "LEFT",
+          },
+        ]);
+      }),
+    );
+
+    it.effect("commentsを省略するとparamsのcommentsは空配列になる", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(validInput));
+        const params = yield* previewReview(submission);
+
+        expect(params.comments).toEqual([]);
       }),
     );
   });
