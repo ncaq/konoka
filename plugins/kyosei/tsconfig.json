@@ -9,6 +9,7 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noEmit": true,
+    "isolatedDeclarations": false,
     "erasableSyntaxOnly": true,
     "strict": true,
     "exactOptionalPropertyTypes": true,

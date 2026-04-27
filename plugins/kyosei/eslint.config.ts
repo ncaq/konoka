@@ -75,8 +75,6 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
           allowIIFEs: true, // 即時実行関数の型を持ってもあまり意味がないので要求しません。
         },
       ],
-      // `--isolatedDeclarations`と互換性がないので無効化します。
-      "@typescript-eslint/no-inferrable-types": "off",
     },
   },
   {
