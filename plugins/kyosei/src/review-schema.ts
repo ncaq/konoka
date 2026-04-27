@@ -134,7 +134,8 @@ export const ReviewMetadataInputSchema = Schema.Struct({
 
 /**
  * レビュー実行中に発生した内部エラーの1件分。
- * `subject`は見出しに、`body`はその直下のコードブロックにそのまま展開されます。
+ * `subject`は見出しに、`body`はその直下のMarkdownとしてそのまま展開されます。
+ * スタックトレース等の生ログを載せる場合は呼び出し側でコードブロックで囲んでください。
  */
 export const InternalErrorSchema = Schema.Struct({
   subject: Schema.NonEmptyString,
