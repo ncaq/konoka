@@ -133,6 +133,19 @@ export const ReviewMetadataInputSchema = Schema.Struct({
 });
 
 /**
+ * レビュー実行中に発生した内部エラーの1件分。
+ * `subject`は見出しに、`body`はその直下のMarkdownとしてそのまま展開されます。
+ * スタックトレース等の生ログを載せる場合は呼び出し側でコードブロックで囲んでください。
+ */
+export const InternalErrorSchema = Schema.Struct({
+  subject: Schema.NonEmptyString,
+  body: Schema.NonEmptyString,
+});
+
+/** 内部エラーの配列。空配列も許容します(その場合はセクション自体を出力しません)。 */
+export const InternalErrorsSchema = Schema.Array(InternalErrorSchema);
+
+/**
  * レビュー投稿の全体の入力スキーマ。
  */
 export const ReviewSubmissionSchema = Schema.Struct({
@@ -143,6 +156,7 @@ export const ReviewSubmissionSchema = Schema.Struct({
   event: ReviewEventSchema,
   body: Schema.NonEmptyString,
   metadata: Schema.optionalWith(ReviewMetadataInputSchema, { exact: true }),
+  internalErrors: Schema.optionalWith(InternalErrorsSchema, { exact: true }),
   comments: Schema.optionalWith(Schema.Array(ReviewCommentSchema), { exact: true }),
 });
 

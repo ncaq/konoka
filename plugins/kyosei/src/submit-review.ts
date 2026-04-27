@@ -6,7 +6,7 @@
 import { type CommandExecutor } from "@effect/platform";
 import { Effect, Schema } from "effect";
 import type { Octokit } from "octokit";
-import { mkBodyAppendMetadata } from "./review-metadata";
+import { buildReviewBody } from "./review-metadata";
 import {
   ReviewSubmissionSchema,
   type ReviewCommentSchema,
@@ -78,7 +78,7 @@ export function submitReview(
   submission: typeof ReviewSubmissionSchema.Type,
 ): Effect.Effect<typeof ReviewSubmissionResultSchema.Type, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const body = yield* mkBodyAppendMetadata(submission);
+    const body = yield* buildReviewBody(submission);
     const params = buildCreateReviewParams(submission, body);
     const response = yield* Effect.tryPromise(() => octokit.rest.pulls.createReview(params));
     return {
@@ -90,14 +90,14 @@ export function submitReview(
 
 /**
  * 投稿はせずに、`submitReview`が`octokit.rest.pulls.createReview`へ渡すであろうパラメータを組み立てて返します。
- * 入力スキーマの検証(`decodeReviewSubmission`)とメタデータフッター生成(`mkBodyAppendMetadata`)を実走するため、
+ * 入力スキーマの検証(`decodeReviewSubmission`)とメタデータフッター生成(`buildReviewBody`)を実走するため、
  * パイプライン全体の動作確認に使えます。
  */
 export function previewReview(
   submission: typeof ReviewSubmissionSchema.Type,
 ): Effect.Effect<CreateReviewParams, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const body = yield* mkBodyAppendMetadata(submission);
+    const body = yield* buildReviewBody(submission);
     return buildCreateReviewParams(submission, body);
   });
 }

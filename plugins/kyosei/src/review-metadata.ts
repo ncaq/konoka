@@ -17,6 +17,7 @@ import { Command, type CommandExecutor } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
+import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
 import { ExecutionSchema, FooterViewSchema, pickNonBlank, ReviewSubmissionSchema } from "./review-schema";
 
@@ -91,10 +92,27 @@ export function buildFooterView(
 }
 
 /**
- * レビュー本文の末尾にメタデータフッターを付与した文字列を返します。
- * テンプレートエンジンにはmustacheを使い、文字列連結による組み立てやインジェクションの余地を避けています。
+ * 内部エラーセクションをレンダリングします。
+ * `internalErrors`が未指定または空配列の場合は空文字を返し、
+ * 呼び出し側で結合時にスキップできるようにします。
+ * `body`はMarkdownとしてそのまま埋め込みます。
+ * コードブロックで囲むかどうかなどの整形判断は呼び出し側のLLMに委ねます。
  */
-export function mkBodyAppendMetadata(
+function renderInternalErrorsSection(submission: typeof ReviewSubmissionSchema.Type): string {
+  const errors = submission.internalErrors;
+  if (errors == null || errors.length === 0) {
+    return "";
+  }
+  return mustache.render(internalErrorsSectionTemplate, { errors });
+}
+
+/**
+ * レビュー本文に追記要素(内部エラーセクション、メタデータフッター)を付与した文字列を返します。
+ * テンプレートエンジンにはmustacheを使い、文字列連結による組み立てやインジェクションの余地を避けています。
+ * 内部エラーセクションは`internalErrors`が空のときは出力されず、
+ * フッターは常時末尾に折りたたみで付与されます。
+ */
+export function buildReviewBody(
   submission: typeof ReviewSubmissionSchema.Type,
 ): Effect.Effect<string, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
@@ -103,6 +121,8 @@ export function mkBodyAppendMetadata(
       ...view,
       runUrl: view.runUrl?.toString(),
     };
-    return submission.body + "\n" + mustache.render(reviewMetadataFooterTemplate, renderInput);
+    const footer = mustache.render(reviewMetadataFooterTemplate, renderInput);
+    const internalErrorsSection = renderInternalErrorsSection(submission);
+    return [submission.body, internalErrorsSection, footer].filter((section) => section.length > 0).join("\n");
   });
 }
