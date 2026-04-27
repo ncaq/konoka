@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Bashツールに渡されたコマンドのうち`rm`を`trash`へ書き換えます。
+# `rm`は誤実行時に取り返しが付かないので、freedesktopのゴミ箱(trash-cli等)経由で削除します。
+# 書き換え後のコマンドはClaude側のretryを介さずそのまま実行されます。
+
+# 必要なコマンドが存在するか検証します。
+for cmd in jq sed; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "Error: required command $cmd is not found" >&2
+    exit 1
+  fi
+done
+
+INPUT=$(cat)
+COMMAND=$(jq -r '.tool_input.command // ""' <<<"$INPUT")
+
+# Bashツール以外のtool_inputや空文字は対象外として無音で終了します。
+if [[ -z "$COMMAND" ]]; then
+  exit 0
+fi
+
+# `\brm\b`で`rm`を単語として検出し、`rmdir`や`rm-`等を巻き込まないようにします。
+# クォートやヒアドキュメント内の`rm`まで完全に分離するのは困難なので、
+# `echo "rm a"`のような稀な誤マッチは許容します。
+if ! grep -qE '\brm\b' <<<"$COMMAND"; then
+  exit 0
+fi
+
+# `rm`と`trash`はフラグ仕様に互換性がないため、
+# `rm -rf`のようなフラグ付きの`rm`は書き換えずに通常の承認フロー(denyを含む)に任せます。
+# ファイル名引数のみで成立する単純な`rm`に限って書き換えます。
+if grep -qE '\brm[[:space:]]+-' <<<"$COMMAND"; then
+  exit 0
+fi
+
+NEW_COMMAND=$(sed -E 's/\brm\b/trash/g' <<<"$COMMAND")
+
+# 書き換え後のコマンドを含む完全なtool_inputを返します。
+# updatedInputは元のtool_inputを丸ごと置き換える仕様のため、
+# command以外のフィールドも残す形でマージしています。
+UPDATED_INPUT=$(jq --arg cmd "$NEW_COMMAND" '.tool_input | .command = $cmd' <<<"$INPUT")
+
+jq -n --argjson input "$UPDATED_INPUT" --arg original "$COMMAND" --arg rewritten "$NEW_COMMAND" '{
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "allow",
+    updatedInput: $input,
+    additionalContext: ("`rm`コマンドを`trash`コマンドに自動的に書き換えました。\n元: " + $original + "\n後: " + $rewritten)
+  }
+}'
