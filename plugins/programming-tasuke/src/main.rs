@@ -40,17 +40,18 @@ struct HookSpecificOutput {
     additional_context: String,
 }
 
-static RM_WORD_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(^|[\s;&|()`])rm($|[\s;&|`])").expect("static regex compiles"));
+static RM_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(^|[\s;&|(){}<>`])rm($|[\s;&|`])").expect("static regex compiles")
+});
 
 static RM_WITH_FLAG_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(^|[\s;&|()`])rm\s+-").expect("static regex compiles"));
+    LazyLock::new(|| Regex::new(r"(^|[\s;&|(){}<>`])rm\s+-").expect("static regex compiles"));
 
 /// 与えられたコマンド文字列を`trash`へ書き換えます。
 ///
 /// 書き換え対象でなければ`None`を返します。
 ///
-/// 単語境界はシェルのトークン境界(行頭/末、空白、`;`, `&`, `|`, `()`, `` ` ``)で判定し、
+/// 単語境界はシェルのトークン境界で判定し、
 /// `rm-utility`のような`-`接続のシンボルは対象外にします。
 fn rewrite(command: &str) -> Option<String> {
     if !RM_WORD_REGEX.is_match(command) || RM_WITH_FLAG_REGEX.is_match(command) {
