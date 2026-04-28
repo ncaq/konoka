@@ -31,6 +31,10 @@
       "source": "./plugins/nix-tasuke"
     },
     {
+      "name": "programming-tasuke",
+      "source": "./plugins/programming-tasuke"
+    },
+    {
       "name": "proofreading-ja",
       "source": "./plugins/proofreading-ja"
     },

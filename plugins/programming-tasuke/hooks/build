@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# `rm-to-trash`バイナリがビルド済みであれば何もしません。
+# プラグイン更新時は`CLAUDE_PLUGIN_ROOT`ごと入れ替わって`target/`も消えるため、
+# この存在チェックだけで初回・更新後の両方を検知できます。
+if [[ -x "${CLAUDE_PLUGIN_ROOT}/target/release/rm-to-trash" ]]; then
+  exit 0
+fi
+
+# 必要なコマンドが存在するか検証します。
+if ! command -v cargo &>/dev/null; then
+  echo "Error: cargo is not found. Install the Rust toolchain to use programming-tasuke." >&2
+  exit 1
+fi
+
+echo "Building programming-tasuke rm-to-trash..."
+cd "${CLAUDE_PLUGIN_ROOT}"
+cargo build --release

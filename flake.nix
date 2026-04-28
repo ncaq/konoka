@@ -45,8 +45,8 @@
           };
           nodejs = pkgs.nodejs_24;
 
-          # プラグインディレクトリのリストから全チェックのattrsetを生成する。
-          pluginChecks =
+          # プラグインディレクトリのリストから全npmチェックのattrsetを生成する。
+          pluginNpmChecks =
             let
               scriptList = [
                 "lint:eslint"
@@ -112,6 +112,86 @@
               ]
             );
 
+          # プラグインディレクトリのリストから全Rustチェックのattrsetを生成する。
+          pluginRustChecks =
+            let
+              scriptList = [
+                {
+                  name = "cargo-clippy";
+                  script = "cargo clippy --all-targets --frozen -- -D warnings";
+                  extraInputs = with pkgs; [ clippy ];
+                }
+                {
+                  # treefmtでも整形チェックは行うが、cargo純正のフォーマッタチェックも一応実施する。
+                  name = "cargo-fmt";
+                  script = "cargo fmt --all --check";
+                  extraInputs = with pkgs; [ rustfmt ];
+                }
+                {
+                  name = "cargo-test";
+                  script = "cargo test --frozen";
+                  extraInputs = [ ];
+                }
+              ];
+              mkPluginChecks =
+                pluginDir:
+                let
+                  pluginName = builtins.baseNameOf pluginDir;
+                  rustSrc = lib.fileset.toSource {
+                    root = ./.;
+                    fileset = lib.fileset.unions [
+                      (pluginDir + "/Cargo.lock")
+                      (pluginDir + "/Cargo.toml")
+                      (pluginDir + "/src")
+                    ];
+                  };
+                  cargoDeps = pkgs.rustPlatform.importCargoLock {
+                    lockFile = pluginDir + "/Cargo.lock";
+                  };
+                  mkCheck =
+                    {
+                      name,
+                      script,
+                      extraInputs,
+                    }:
+                    let
+                      checkName = "${name}-${pluginName}";
+                    in
+                    lib.nameValuePair checkName (
+                      pkgs.stdenv.mkDerivation {
+                        name = checkName;
+                        src = rustSrc;
+                        sourceRoot = "source/plugins/${pluginName}";
+                        inherit cargoDeps;
+                        nativeBuildInputs =
+                          with pkgs;
+                          [
+                            cargo
+                            rustPlatform.cargoSetupHook
+                            rustc
+                          ]
+                          ++ extraInputs;
+                        buildPhase = ''
+                          runHook preBuild
+                          ${script}
+                          runHook postBuild
+                        '';
+                        postBuild = ''
+                          touch $out
+                        '';
+                        doCheck = false;
+                        dontInstall = true;
+                      }
+                    );
+                in
+                lib.listToAttrs (map mkCheck scriptList);
+            in
+            lib.foldl' lib.mergeAttrs { } (
+              map mkPluginChecks [
+                ./plugins/programming-tasuke
+              ]
+            );
+
           agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
 
           agnixSrc = lib.fileset.toSource {
@@ -136,6 +216,7 @@
               deadnix.enable = true;
               nixfmt.enable = true;
               prettier.enable = true;
+              rustfmt.enable = true;
               shellcheck.enable = true;
               shfmt.enable = true;
               statix.enable = true;
@@ -163,7 +244,8 @@
                   touch $out
                 '';
           }
-          // pluginChecks;
+          // pluginNpmChecks
+          // pluginRustChecks;
 
           packages = {
             # flake.lockの管理バージョンをre-exportすることで安定した利用を促進。
@@ -190,6 +272,13 @@
 
               # Node.js
               nodejs
+
+              # Rust toolchain (programming-tasukeのフックバイナリ用)
+              cargo
+              clippy
+              rust-analyzer
+              rustc
+              rustfmt
 
               # AIコーディングアシスタント設定のリンター。
               agnix
