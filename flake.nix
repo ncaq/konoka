@@ -45,8 +45,8 @@
           };
           nodejs = pkgs.nodejs_24;
 
-          # プラグインディレクトリのリストから全チェックのattrsetを生成する。
-          pluginChecks =
+          # プラグインディレクトリのリストから全npmチェックのattrsetを生成する。
+          pluginNpmChecks =
             let
               scriptList = [
                 "lint:eslint"
@@ -164,7 +164,7 @@
                   touch $out
                 '';
           }
-          // pluginChecks;
+          // pluginNpmChecks;
 
           packages = {
             # flake.lockの管理バージョンをre-exportすることで安定した利用を促進。
