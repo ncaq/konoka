@@ -141,6 +141,16 @@ mod tests {
     }
 
     #[test]
+    fn rewrites_pipe() {
+        assert_eq!(rewrite("ls | rm foo").as_deref(), Some("ls | trash foo"));
+    }
+
+    #[test]
+    fn rewrites_replace() {
+        assert_eq!(rewrite("echo $(rm a)").as_deref(), Some("echo $(trash a)"));
+    }
+
+    #[test]
     fn skips_rm_with_short_flag() {
         assert!(rewrite("rm -rf /tmp/foo").is_none());
     }
@@ -148,6 +158,11 @@ mod tests {
     #[test]
     fn skips_rm_with_long_flag() {
         assert!(rewrite("rm --recursive foo").is_none());
+    }
+
+    #[test]
+    fn skips_partical_flag() {
+        assert!(rewrite("rm a && rm -rf b").is_none());
     }
 
     #[test]
