@@ -112,6 +112,86 @@
               ]
             );
 
+          # プラグインディレクトリのリストから全Rustチェックのattrsetを生成する。
+          pluginRustChecks =
+            let
+              scriptList = [
+                {
+                  name = "cargo-clippy";
+                  script = "cargo clippy --all-targets --frozen -- -D warnings";
+                  extraInputs = with pkgs; [ clippy ];
+                }
+                {
+                  # treefmtでも整形チェックは行うが、cargo純正のフォーマッタチェックも一応実施する。
+                  name = "cargo-fmt";
+                  script = "cargo fmt --all --check";
+                  extraInputs = with pkgs; [ rustfmt ];
+                }
+                {
+                  name = "cargo-test";
+                  script = "cargo test --frozen";
+                  extraInputs = [ ];
+                }
+              ];
+              mkPluginChecks =
+                pluginDir:
+                let
+                  pluginName = builtins.baseNameOf pluginDir;
+                  rustSrc = lib.fileset.toSource {
+                    root = ./.;
+                    fileset = lib.fileset.unions [
+                      (pluginDir + "/Cargo.lock")
+                      (pluginDir + "/Cargo.toml")
+                      (pluginDir + "/src")
+                    ];
+                  };
+                  cargoDeps = pkgs.rustPlatform.importCargoLock {
+                    lockFile = pluginDir + "/Cargo.lock";
+                  };
+                  mkCheck =
+                    {
+                      name,
+                      script,
+                      extraInputs,
+                    }:
+                    let
+                      checkName = "${name}-${pluginName}";
+                    in
+                    lib.nameValuePair checkName (
+                      pkgs.stdenv.mkDerivation {
+                        name = checkName;
+                        src = rustSrc;
+                        sourceRoot = "source/plugins/${pluginName}";
+                        inherit cargoDeps;
+                        nativeBuildInputs =
+                          with pkgs;
+                          [
+                            cargo
+                            rustPlatform.cargoSetupHook
+                            rustc
+                          ]
+                          ++ extraInputs;
+                        buildPhase = ''
+                          runHook preBuild
+                          ${script}
+                          runHook postBuild
+                        '';
+                        postBuild = ''
+                          touch $out
+                        '';
+                        doCheck = false;
+                        dontInstall = true;
+                      }
+                    );
+                in
+                lib.listToAttrs (map mkCheck scriptList);
+            in
+            lib.foldl' lib.mergeAttrs { } (
+              map mkPluginChecks [
+                ./plugins/programming-tasuke
+              ]
+            );
+
           agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
 
           agnixSrc = lib.fileset.toSource {
@@ -164,7 +244,8 @@
                   touch $out
                 '';
           }
-          // pluginNpmChecks;
+          // pluginNpmChecks
+          // pluginRustChecks;
 
           packages = {
             # flake.lockの管理バージョンをre-exportすることで安定した利用を促進。
