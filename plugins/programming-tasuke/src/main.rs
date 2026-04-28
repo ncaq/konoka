@@ -11,6 +11,7 @@ use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 use std::io::{self, Read};
 use std::process::ExitCode;
+use std::sync::LazyLock;
 
 #[derive(Deserialize, Serialize)]
 struct ToolInput {
@@ -39,6 +40,12 @@ struct HookSpecificOutput {
     additional_context: String,
 }
 
+static RM_WORD_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^|[\s;&|()`])rm($|[\s;&|`])").expect("static regex compiles"));
+
+static RM_WITH_FLAG_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^|[\s;&|()`])rm\s+-").expect("static regex compiles"));
+
 /// 与えられたコマンド文字列を`trash`へ書き換えます。
 ///
 /// 書き換え対象でなければ`None`を返します。
@@ -46,13 +53,14 @@ struct HookSpecificOutput {
 /// 単語境界はシェルのトークン境界(行頭/末、空白、`;`, `&`, `|`, `()`, `` ` ``)で判定し、
 /// `rm-utility`のような`-`接続のシンボルは対象外にします。
 fn rewrite(command: &str) -> Option<String> {
-    let rm_word = Regex::new(r"(^|[\s;&|()`])rm($|[\s;&|`])").expect("static regex compiles");
-    let rm_with_flag = Regex::new(r"(^|[\s;&|()`])rm\s+-").expect("static regex compiles");
-
-    if !rm_word.is_match(command) || rm_with_flag.is_match(command) {
+    if !RM_WORD_REGEX.is_match(command) || RM_WITH_FLAG_REGEX.is_match(command) {
         return None;
     }
-    Some(rm_word.replace_all(command, "${1}trash${2}").into_owned())
+    Some(
+        RM_WORD_REGEX
+            .replace_all(command, "${1}trash${2}")
+            .into_owned(),
+    )
 }
 
 fn main() -> ExitCode {
