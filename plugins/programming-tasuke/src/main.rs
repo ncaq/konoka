@@ -135,6 +135,11 @@ mod tests {
     }
 
     #[test]
+    fn rewrite_groups_of_commands() {
+        assert_eq!(rewrite("{rm a;}").as_deref(), Some("{trash a;}"),);
+    }
+
+    #[test]
     fn skips_rm_with_short_flag() {
         assert!(rewrite("rm -rf /tmp/foo").is_none());
     }
