@@ -161,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn skips_partical_flag() {
+    fn skips_partial_flag() {
         assert!(rewrite("rm a && rm -rf b").is_none());
     }
 
