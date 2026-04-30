@@ -57,7 +57,6 @@ const dummyConversation = {
 
 const dummyPreviousReview = Schema.decodeUnknownSync(PreviousReviewSchema)({
   reviewId: "R1",
-  commit: "abcdef1abcdef1abcdef1abcdef1abcdef1abcd1",
   event: "APPROVED",
   submittedAt: "2026-04-01T00:00:00Z",
   metadata: {
