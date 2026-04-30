@@ -50,7 +50,7 @@ export const MetadataSchema = Schema.Struct({
 /**
  * `claude --version` の出力からバージョン文字列を抽出します。
  * 取得に失敗した場合や出力が想定と異なる場合は警告ログを出して`Option.none`を返します。
- * 戻り値は`FooterViewSchema`に渡され、SemVer形式でなければ`"unknown"`に正規化されます。
+ * 戻り値は`MetadataSchema`に渡され、SemVer形式でなければ`"unknown"`に正規化されます。
  */
 function detectClaudeCodeVersion(): Effect.Effect<Option.Option<string>, never, CommandExecutor.CommandExecutor> {
   return Command.string(Command.make("claude", "--version")).pipe(
