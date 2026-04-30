@@ -50,7 +50,7 @@ GitHub出力モードでは常に含まれます。
 ローカル出力モードでもブランチに紐付くPRがあれば含まれます。
 PRが特定できない場合はフィールド自体が省略されます。
 
-トップレベルにPR自体の情報(`title`, `body`, `author`, `url`)があり、以下の3つのサブフィールドがあります。
+トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、以下の3つのサブフィールドがあります。
 
 - `comments`: PR全体へのコメント一覧。以下のフィールドを持ちます。
   - `id`
@@ -73,6 +73,75 @@ PRが特定できない場合はフィールド自体が省略されます。
   - `line`
   - `diffSide`
   - `comments`: スレッド内配列
+
+### `previousReview` フィールド(前回kyoseiレビューが復元できた場合のみ)
+
+過去のレビュー本文末尾のメタデータフッターから復元できた最新のkyoseiレビューが含まれます。
+復元できなければフィールド自体が省略されます。
+
+- `reviewId`: GitHubのreview ID
+- `event`: 前回のreview state(`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`等)
+- `submittedAt`: 投稿時刻(ISO 8601 UTC)
+- `metadata`: フッターから復元したメタデータ全体
+  - `commit`: 特にここに前回レビュー対象コミットSHAが入ります
+
+### `incrementalChangeset` フィールド(`previousReview`があり`headCommitId`が取れる場合のみ)
+
+前回レビュー対象コミットから現headへの増分判定です。
+`status`の値で取り扱いを分岐します。
+
+- `status`: 以下のいずれか
+  - `"tree-identical"`: 前回と現headのGit treeが同一。dependabot/renovateの典型挙動。
+    - rebaseして差分がない
+    - 署名し直し
+    - force pushで同一に戻った
+  - `"diff-empty"`: tree SHAは異なるが、`compareCommits.files`の実際の差分の行(`additions+deletions`合計)が0。masterマージのみなど。
+  - `"diff-present"`: 実コード変更行が存在する。通常レビューに倒します。
+  - `"lookup-failed"`: API取得失敗(SHAがGCで消えた等)。フェイルセーフで通常レビューに倒します。
+- `baseSha`, `headSha`: 比較対象コミット
+- 以下は参考情報。`lookup-failed`時は省略されます。
+  - `baseTreeSha`
+  - `headTreeSha`
+  - `aheadBy`
+  - `behindBy`
+  - `changedFileCount`
+  - `changedLineCount`
+
+# 前回レビューによる動作の分岐
+
+## 簡易レビューの実行
+
+`incrementalChangeset.status`が`"tree-identical"`または`"diff-empty"`の場合は、
+サブエージェントを一切起動せず、
+前回レビューの判定を引き継いだ簡易レビューを組み立てて投稿してください。
+Claudeの使用量を節約するための分岐です。
+
+投稿JSONは以下のように組み立ててください。
+
+- `body`は`status`に応じた一文を中心に組み立てます。
+  - `"tree-identical"`: 例
+    - 前回レビューのcommit (コミット番号) からツリー内容に変更はありません。
+      rebaseによる更新のみ。
+      前回判定を維持します。
+  - `"diff-empty"`: 例
+    - 前回レビューのcommit (コミット番号) 以降は実コード変更がないマージのみです。
+      前回判定を維持します。
+- `comments`は空配列。
+- `event`は`previousReview.event`を引き継ぐ。
+  `previousReview.event`が`APPROVED`なら`"APPROVE"`、
+  `CHANGES_REQUESTED`なら`"REQUEST_CHANGES"`、
+  `COMMENTED`等それ以外は`"COMMENT"`に、
+  マップしてください。
+- `metadata.model`は通常通り渡してください。
+- `headCommitId`は`changeset.headCommitId`を使います。
+
+フィードバックの出力セクションまでスキップしてください。
+
+## 通常レビューの実行
+
+`status`が`"diff-present"`/`"lookup-failed"`、
+もしくは`incrementalChangeset`/`previousReview`フィールド自体が無い場合は、
+通常フローを実行してください。
 
 # コードレビューの実行
 
