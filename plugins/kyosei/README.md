@@ -20,7 +20,7 @@ kyoseiは、
 [claude-code-action](https://github.com/anthropics/claude-code-action)
 リポジトリが採用しているレビューパターンをベースにこの問題を解決しています。
 
-内部でレビューエージェントを複数並列移動するスキルを作って、
+内部でレビューエージェントを複数並列起動するスキルを作って、
 それを起動する形をとっています。
 
 ### claude-code-actionからの改良
