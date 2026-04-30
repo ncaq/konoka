@@ -7,36 +7,75 @@ Covers code quality, dependency updates, performance, test coverage, documentati
 
 ## モチベーション
 
+### 公式のワークフローが再レビューを行わなくなった
+
 Claude Codeの`install-github-app`でインストールされるClaude Code Reviewのワークフローは、
 同じPRに対してpush後の再レビューを行いません。
 初回のレビュー以降、コードを修正してpushしても新たなレビューが実行されないため、
 指摘事項への対応が正しく行われたかを自動で確認できないという致命的な問題があります。
 
+### claude-code-actionが採用していた方式ベースで動くようにしました
+
 kyoseiは、
 [claude-code-action](https://github.com/anthropics/claude-code-action)
 リポジトリが採用しているレビューパターンをベースにこの問題を解決しています。
 
-ただしclaude-code-actionを直接使う場合にも以下の問題があるので、
+内部でレビューエージェントを複数並列移動するスキルを作って、
+それを起動する形をとっています。
+
+### claude-code-actionからの改良
+
+ただしclaude-code-actionが使っているパターンでは不十分に感じる点があったため、
 kyoseiではさらに改善を加えています。
+
+#### 同じ指摘の防止
+
+claude-code-actionのものをそのまま移植すると、
 
 - 同じPRにpushを繰り返すと、既に指摘済みの同じコメントが何度も投稿される
 - 「意図的です」「仕様です」と返答済みの指摘に対しても、再度同じコメントが投稿される
 
-kyoseiはPRの既存会話(コメント、インラインコメント、レビューコメント)を事前に収集し、
+という問題が発生します。
+
+kyoseiはPRの既存会話(コメント、インラインコメント、レビューコメントなど)を事前に収集し、
 既に指摘済みの内容やresolvedされたコメント、意図的であると返答済みの指摘を除外することで、
 本当に必要な新しいフィードバックだけを提供します。
 
-さらにkyoseiはCIだけでなくローカルでも実行できるため、
+#### コスト削減のため変更のない場合レビューをスキップ
+
+前回のkyoseiレビューと比較して以下のような形で実コードに変更がない場合、
+
+- masterのマージのみ
+- dependabot/renovateのrebase
+- `--no-edit`での署名し直しなど
+
+サブエージェントによる詳細調査をスキップして前回判定を引き継いだ簡易レビューを投稿します。
+これによりLLMの使用量を削減して、
+rate limitに達するリスクを減らします。
+
+レビュー本文末尾に付与されているメタデータフッターから前回対象コミットを復元することで、
+force pushでコミットSHAが変わったケースも追跡します。
+
+#### ローカルでも実行できます
+
+kyoseiはCIだけでなくローカルでも実行できるため、
 pushしてCIの完了を待つことなく手元で即座にレビューを確認でき、
 高速にイテレーションを回すことができます。
 
-またclaude-code-actionのエージェントに含まれている、
+#### プロジェクト特有のノイズの除去
+
+claude-code-actionのエージェントに含まれている、
 プロジェクト固有のコーディング規約によるノイズを除外しています。
+
 例えばclaude-code-actionのcode-quality-reviewerエージェントには
-「Prefer `type` over `interface` as per project standards」
-というTypeScript固有の指示が含まれていますが、
+
+> Prefer `type` over `interface` as per project standards
+
+と言ったTypeScript固有の指示が含まれていますが、
 これはレビュー対象がTypeScriptを含まないプロジェクトであっても適用されてしまいます。
-そういったプロジェクト固有の規約は`CLAUDE.md`などで指定することを想定しています。
+
+そういったプロジェクト固有の規約は`CLAUDE.md`やプラグインで指定することを想定して、
+レビュースキル自体からは削除しています。
 
 ## 前提条件
 

@@ -19,7 +19,33 @@ import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
-import { ExecutionSchema, FooterViewSchema, pickNonBlank, ReviewSubmissionSchema } from "./review-schema";
+import {
+  ExecutionSchema,
+  NonEmptyStringOrUnknownSchema,
+  pickNonBlank,
+  PrNumberSchema,
+  ReviewSubmissionSchema,
+  SemVerOrUnknownSchema,
+  SemVerSchema,
+  ShaSchema,
+} from "./review-schema";
+
+/**
+ * レビューフッターのメタデータスキーマ。
+ * レンダリング(投稿時)とパース復元(再レビュー時)の両方で同じ型を往復させます。
+ * `commit`/`pr`/`kyoseiVersion`は`unknown`フォールバックを設けません。
+ * これらが欠落しているフッターは復元失敗扱い(=通常レビューにフォールバック)とします。
+ */
+export const MetadataSchema = Schema.Struct({
+  commit: ShaSchema,
+  pr: PrNumberSchema,
+  kyoseiVersion: SemVerSchema,
+  kyoseiActionVersion: SemVerOrUnknownSchema,
+  claudeCodeVersion: SemVerOrUnknownSchema,
+  model: NonEmptyStringOrUnknownSchema,
+  execution: ExecutionSchema,
+  runUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+});
 
 /**
  * `claude --version` の出力からバージョン文字列を抽出します。
@@ -69,16 +95,16 @@ function lookupRunUrlString(): Option.Option<string> {
 
 /**
  * フッターレンダリング用のビューを構築します。
- * 各フィールドの正規化(SHA形式の判定、空文字の扱い、SemVer判定など)は`FooterViewSchema`が担うため、
+ * 各フィールドの正規化(SHA形式の判定、空文字の扱い、SemVer判定など)は`MetadataSchema`が担うため、
  * ここではrawな値をそのまま渡します。
  */
 export function buildFooterView(
   submission: typeof ReviewSubmissionSchema.Type,
-): Effect.Effect<typeof FooterViewSchema.Type, never, CommandExecutor.CommandExecutor> {
+): Effect.Effect<typeof MetadataSchema.Type, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     const claudeCodeVersion = yield* detectClaudeCodeVersion();
     const runUrl = lookupRunUrlString();
-    return Schema.decodeUnknownSync(FooterViewSchema)({
+    return Schema.decodeUnknownSync(MetadataSchema)({
       commit: submission.headCommitId,
       pr: submission.prNumber,
       kyoseiVersion: pluginManifest.version,

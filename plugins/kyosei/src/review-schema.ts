@@ -165,19 +165,3 @@ export const ReviewSubmissionResultSchema = Schema.Struct({
   reviewId: Schema.Number.pipe(Schema.int(), Schema.positive()),
   htmlUrl: Schema.URL,
 });
-
-/**
- * フッターレンダリング直前のビュー。
- * `commit`は`unknown`フォールバックを設けません。
- * レビュー対象を後から辿る上で必須の情報なので、欠落は入力スキーマ側で弾きます。
- */
-export const FooterViewSchema = Schema.Struct({
-  commit: ShaSchema,
-  pr: PrNumberSchema,
-  kyoseiVersion: SemVerSchema,
-  kyoseiActionVersion: SemVerOrUnknownSchema,
-  claudeCodeVersion: SemVerOrUnknownSchema,
-  model: NonEmptyStringOrUnknownSchema,
-  execution: ExecutionSchema,
-  runUrl: Schema.optionalWith(Schema.URL, { exact: true }),
-});

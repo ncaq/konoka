@@ -18,9 +18,11 @@
     "@effect/platform": "^0.96.1",
     "@effect/platform-node": "^0.106.0",
     "effect": "^3.21.1",
+    "fp-ts": "^2.16.11",
     "git-url-parse": "^16.1.0",
     "mustache": "^4.2.0",
     "octokit": "^5.0.5",
+    "parser-ts": "^0.7.0",
     "semver": "^7.7.4"
   },
   "devDependencies": {
