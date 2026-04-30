@@ -27,7 +27,7 @@ const decodeDateTimeUtc = Schema.decodeUnknownEither(Schema.DateTimeUtc);
 function toCandidate(review: Conversation["reviews"][number]): Option.Option<ReviewCandidate> {
   const metadata = parseFooterMetadata(review.body);
   const submittedAt = decodeDateTimeUtc(review.submittedAt);
-  if (review.submittedAt == null || Option.isNone(metadata) || Either.isLeft(submittedAt)) {
+  if (Option.isNone(metadata) || Either.isLeft(submittedAt)) {
     return Option.none();
   }
   return Option.some({
