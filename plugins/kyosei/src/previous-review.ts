@@ -59,10 +59,5 @@ export function pickPreviousKyoseiReview(conversation: Conversation): Option.Opt
   if (latest == null) {
     return Option.none();
   }
-  return Option.some({
-    reviewId: latest.reviewId,
-    event: latest.event,
-    submittedAt: latest.submittedAt,
-    metadata: latest.metadata,
-  });
+  return Option.some(latest);
 }
