@@ -3,7 +3,7 @@
  * レビューはフェイルセーフとして少しでも違う場合は積極的に復元失敗とします。
  */
 
-import { DateTime, Either, Option, Order, Schema } from "effect";
+import { DateTime, Either, Option, Schema } from "effect";
 import type { Conversation } from "./conversation";
 import { MetadataSchema } from "./review-metadata";
 import { parseFooterMetadata } from "./review-metadata-parser";
@@ -38,26 +38,19 @@ function toCandidate(review: Conversation["reviews"][number]): Option.Option<Rev
   });
 }
 
-const candidateOrderDesc = Order.reverse(
-  Order.mapInput(DateTime.Order, (candidate: ReviewCandidate) => candidate.submittedAt),
-);
-
 /**
  * conversationから、フッターメタデータを復元できる最新のkyoseiレビューを返します。
  * 候補がなければ`Option.none`。
  */
 export function pickPreviousKyoseiReview(conversation: Conversation): Option.Option<typeof PreviousReviewSchema.Type> {
-  const candidates = conversation.reviews
-    .map((review) => toCandidate(review))
-    .filter(Option.isSome)
-    .map((review) => review.value)
-    .toSorted(candidateOrderDesc);
-  if (candidates.length === 0) {
-    return Option.none();
-  }
-  const latest = candidates[0];
-  if (latest == null) {
-    return Option.none();
-  }
-  return Option.some(latest);
+  return conversation.reviews.reduce<Option.Option<ReviewCandidate>>((acc, review) => {
+    const candidate = toCandidate(review);
+    if (Option.isNone(candidate)) {
+      return acc;
+    }
+    if (Option.isNone(acc) || DateTime.Order(candidate.value.submittedAt, acc.value.submittedAt) > 0) {
+      return candidate;
+    }
+    return acc;
+  }, Option.none());
 }
