@@ -1,8 +1,11 @@
 # research
 
-Cross-source research via parallel survey agents. Use when the user asks to research or investigate.
+Gather up-to-date information from external sources (official docs, GitHub, MDN, Microsoft Learn, NixOS, web search) for comparing libraries, looking up APIs, evaluating approaches, or investigating library behavior. Runs investigations in an isolated context so the main conversation stays uncluttered.
 
-並列surveyエージェントを活用して複数の情報ソースを横断的に調査するClaude Codeプラグインです。
+ライブラリの比較、APIの調査、技術選定、ライブラリの挙動調査などを、
+公式ドキュメント、GitHub、MDN、Microsoft Learn、NixOS、Web検索といった複数の情報ソースを横断して行うClaude Codeプラグインです。
+調査はメインコンテキストから分離された環境で実行されるため、
+会話のコンテキストを圧迫しません。
 
 ## インストール
 
