@@ -1,0 +1,14 @@
+{
+  "name": "pull-request",
+  "version": "1.0.0",
+  "description": "Create a GitHub pull request from the current branch.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/pull-request",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["pull-request", "github", "git"]
+}

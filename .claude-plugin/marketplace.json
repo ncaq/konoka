@@ -39,6 +39,10 @@
       "source": "./plugins/proofreading-ja"
     },
     {
+      "name": "pull-request",
+      "source": "./plugins/pull-request"
+    },
+    {
       "name": "research",
       "source": "./plugins/research"
     },
