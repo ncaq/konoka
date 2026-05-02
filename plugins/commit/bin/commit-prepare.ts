@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { promisify } from "node:util";
@@ -24,11 +25,28 @@ async function git(...args: readonly string[]): Promise<string> {
   return stdout.trimEnd();
 }
 
+/** なるべくユーザの固有の作業ディレクトリを返します */
+function getPersonalWorkDir(): string {
+  const runtimeDir = process.env["XDG_RUNTIME_DIR"];
+  if (runtimeDir != null && runtimeDir !== "") {
+    return runtimeDir;
+  }
+  return tmpdir();
+}
+
+/** LLMエージェントなどが一時ファイルを置いて良さそうなディレクトリを返します。 */
+function getCodingAgentWorkDir(pluginName: string): string {
+  const personalWorkDir = getPersonalWorkDir();
+  return join(personalWorkDir, "coding-agent-work", pluginName);
+}
+
+const pluginName = "commit" as const;
+
 /** Create a secure temporary working directory under $XDG_RUNTIME_DIR. */
 async function createWorkdirPath(): Promise<string> {
-  const basePath = join(process.env["XDG_RUNTIME_DIR"] ?? "/tmp", "coding-agent-work", "commit");
-  await mkdir(basePath, { recursive: true, mode: 0o700 });
-  return mkdtemp(join(basePath, `${timestamp()}-`));
+  const codingAgentWorkDir = getCodingAgentWorkDir(pluginName);
+  await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
+  return mkdtemp(join(codingAgentWorkDir, `${timestamp()}-`));
 }
 
 /** Stage all changes if nothing is staged yet. Throws if there are no changes at all. */
