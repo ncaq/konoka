@@ -109,7 +109,7 @@
               map mkPluginChecks [
                 ./plugins/commit
                 ./plugins/kyosei
-                ./plugins/pull-request
+                ./plugins/pr
               ]
             );
 

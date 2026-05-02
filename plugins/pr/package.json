@@ -1,5 +1,5 @@
 {
-  "name": "konoka-pull-request",
+  "name": "konoka-pr",
   "private": true,
   "type": "module",
   "bin": {

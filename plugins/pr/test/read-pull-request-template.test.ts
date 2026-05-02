@@ -8,7 +8,7 @@ describe("readPullRequestTemplates", () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "konoka-pull-request-template-"));
+    root = await mkdtemp(join(tmpdir(), "konoka-pr-template-"));
   });
 
   afterEach(async () => {

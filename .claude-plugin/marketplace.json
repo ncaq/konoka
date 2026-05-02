@@ -31,16 +31,16 @@
       "source": "./plugins/nix-tasuke"
     },
     {
+      "name": "pr",
+      "source": "./plugins/pr"
+    },
+    {
       "name": "programming-tasuke",
       "source": "./plugins/programming-tasuke"
     },
     {
       "name": "proofreading-ja",
       "source": "./plugins/proofreading-ja"
-    },
-    {
-      "name": "pull-request",
-      "source": "./plugins/pull-request"
     },
     {
       "name": "research",

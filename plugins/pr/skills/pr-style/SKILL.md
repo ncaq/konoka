@@ -1,12 +1,12 @@
 ---
-name: pull-request-style
-description: Pull request title and body style guidelines. Use when writing or proposing GitHub pull request titles or descriptions, including direct `gh pr create` invocations outside the /pull-request skill.
+name: pr-style
+description: Pull request title and body style guidelines. Use when writing or proposing GitHub pull request titles or descriptions, including direct `gh pr create` invocations outside the /pr skill.
 allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(read-contributing.ts:*), Bash(read-pull-request-template.ts:*), mcp__github__list_pull_requests, mcp__github__pull_request_read
 user-invocable: false
 ---
 
 GitHubのpull requestを作成するときのタイトルと本文のスタイルガイドラインです。
-`/pull-request`スキル経由でないPR作成でも、
+`/pr`スキル経由でないPR作成でも、
 このガイドラインに従ってください。
 
 # 大前提: そのリポジトリのスタイルに従う

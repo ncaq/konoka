@@ -1,7 +1,7 @@
 ---
-name: pull-request
+name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
-allowed-tools: AskUserQuestion, Bash(editor:*), Bash(gh label list:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git rev-list:*), Bash(git rev-parse:*), Bash(git status:*), Bash(mktemp:*), Bash(sync-base.ts:*), Edit, Read, Skill(pull-request-style), Write, mcp__github__create_pull_request, mcp__github__get_me, mcp__github__issue_write, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(gh label list:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git rev-list:*), Bash(git rev-parse:*), Bash(git status:*), Bash(mktemp:*), Bash(sync-base.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__get_me, mcp__github__issue_write, mcp__github__list_pull_requests, mcp__github__pull_request_read
 ---
 
 GitHubのpull requestを作成します。
@@ -12,7 +12,7 @@ AIがタイトルと本文を生成し、
 
 # スタイルガイドラインの適用
 
-`Skill`ツールで`pull-request-style`スキルを呼び出し、
+`Skill`ツールで`pr-style`スキルを呼び出し、
 スタイルガイドラインに従ってください。
 
 このスキルがリポジトリ固有のCONTRIBUTINGとpull requestテンプレートも読み込むため、
@@ -74,7 +74,7 @@ git diff <base>...HEAD --stat
 
 # タイトルと本文の生成
 
-`pull-request-style`スキルのガイドラインに従い、
+`pr-style`スキルのガイドラインに従い、
 タイトルと本文を生成してください。
 
 PRに含まれるコミットが1つだけの場合は、
@@ -90,7 +90,7 @@ PR全体の変更を要約するタイトルと本文を新たに書いてくだ
 空行を挟んで本文という構造にします。
 
 ```bash
-mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/pull-request/XXXXXX"
+mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/coding-agent-work/pr/XXXXXX"
 ```
 
 上記で得たディレクトリ配下に`PR_EDITMSG`ファイルを作成し、

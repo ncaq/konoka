@@ -8,7 +8,7 @@ describe("readContributing", () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "konoka-pull-request-contributing-"));
+    root = await mkdtemp(join(tmpdir(), "konoka-pr-contributing-"));
   });
 
   afterEach(async () => {
