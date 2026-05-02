@@ -3,12 +3,27 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 
-const PLUGIN_NAME = "pr" as const;
-const FILE_NAME = "PR_EDITMSG" as const;
-
 export interface PrepareEditmsgOptions {
   readonly runtimeDir?: string;
 }
+
+/** なるべくユーザの固有の作業ディレクトリを返します */
+function getPersonalWorkDir(): string {
+  const runtimeDir = process.env["XDG_RUNTIME_DIR"];
+  if (runtimeDir != null && runtimeDir !== "") {
+    return runtimeDir;
+  }
+  return tmpdir();
+}
+
+/** LLMエージェントなどが一時ファイルを置いて良さそうなディレクトリを返します。 */
+function getCodingAgentWorkDir(pluginName: string): string {
+  const personalWorkDir = getPersonalWorkDir();
+  return join(personalWorkDir, "coding-agent-work", pluginName);
+}
+
+const pluginName = "pr" as const;
+const fileName = "PR_EDITMSG" as const;
 
 /**
  * セッション固有の一時ディレクトリを作成し、`PR_EDITMSG`ファイルのフルパスを返します。
@@ -20,9 +35,8 @@ export interface PrepareEditmsgOptions {
  * `PR_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
  */
 export async function prepareEditmsg(options: PrepareEditmsgOptions = {}): Promise<string> {
-  const runtimeDir = options.runtimeDir ?? process.env["XDG_RUNTIME_DIR"] ?? tmpdir();
-  const parent = join(runtimeDir, "coding-agent-work", PLUGIN_NAME);
-  await mkdir(parent, { recursive: true, mode: 0o700 });
-  const sessionDir = await mkdtemp(join(parent, "session-"));
-  return join(sessionDir, FILE_NAME);
+  const codingAgentWorkDir = getCodingAgentWorkDir(pluginName);
+  await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
+  const sessionDir = await mkdtemp(join(codingAgentWorkDir, "session-"));
+  return join(sessionDir, fileName);
 }
