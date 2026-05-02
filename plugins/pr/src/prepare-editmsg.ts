@@ -22,7 +22,7 @@ export interface PrepareEditmsgOptions {
 export async function prepareEditmsg(options: PrepareEditmsgOptions = {}): Promise<string> {
   const runtimeDir = options.runtimeDir ?? process.env["XDG_RUNTIME_DIR"] ?? tmpdir();
   const parent = join(runtimeDir, "coding-agent-work", PLUGIN_NAME);
-  await mkdir(parent, { recursive: true });
+  await mkdir(parent, { recursive: true, mode: 0o700 });
   const sessionDir = await mkdtemp(join(parent, "session-"));
   return join(sessionDir, FILE_NAME);
 }
