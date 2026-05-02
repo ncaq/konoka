@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "bin": {
+    "prepare-editmsg.ts": "./bin/prepare-editmsg.ts",
     "read-contributing.ts": "./bin/read-contributing.ts",
     "read-pull-request-template.ts": "./bin/read-pull-request-template.ts",
     "sync-base.ts": "./bin/sync-base.ts"
