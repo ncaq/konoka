@@ -6,11 +6,25 @@ const exec = promisify(execFile);
 export class SyncBaseError extends Error {
   public readonly stderr: string;
 
-  public constructor(message: string, stderr = "") {
-    super(message);
+  public constructor(message: string, stderr: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "SyncBaseError";
     this.stderr = stderr;
   }
+}
+
+/**
+ * `SyncBaseError`を投げるべき状況ならそれを投げ、
+ * そうでないなら普通に例外を再スローします。
+ */
+function throwSyncError(msg: string, err: unknown): never {
+  if (err instanceof SyncBaseError) {
+    throw new SyncBaseError(msg, err.stderr, { cause: err });
+  }
+  if (err instanceof Error) {
+    throw new Error(`${msg}\n${err.message}`, { cause: err });
+  }
+  throw new Error(`${msg}\n${String(err)}`, { cause: err });
 }
 
 export interface SyncBaseResult {
@@ -32,8 +46,7 @@ async function run(cmd: string, args: readonly string[]): Promise<string> {
     const { stdout } = await exec(cmd, args);
     return stdout.trim();
   } catch (err: unknown) {
-    const stderr = err instanceof Error && "stderr" in err && typeof err.stderr === "string" ? err.stderr : "";
-    throw new SyncBaseError(`${cmd} ${args.join(" ")} failed`, stderr);
+    throwSyncError(`Command failed: ${cmd} ${args.join(" ")}`, err);
   }
 }
 
@@ -61,11 +74,28 @@ function parseRepoInfo(json: string): RepoInfo {
       baseBranch: value.defaultBranchRef.name,
     };
   }
-  throw new SyncBaseError("Unexpected gh repo view output", json);
+  throwSyncError("Failed to parse gh repo view output.", json);
 }
 
 /**
- * baseブランチを最新化し、必要に応じて現在のブランチをbaseの上にrebaseします。
+ * baseブランチを最新化して、
+ * 元のブランチに戻ってきます。
+ */
+async function pullBase(baseBranch: string, currentBranch: string): Promise<void> {
+  try {
+    await run("git", ["switch", baseBranch]);
+    await run("git", ["pull", "--ff-only"]);
+  } catch (err: unknown) {
+    throwSyncError(`Failed to update base branch ${baseBranch}.`, err);
+  } finally {
+    // エラーが起きてもできるだけ元のブランチに戻るようにします。
+    await run("git", ["switch", currentBranch]);
+  }
+}
+
+/**
+ * baseブランチを最新化して、
+ * 必要に応じて現在のブランチをbaseの上にrebaseします。
  *
  * pushはこの関数では行いません。
  * upstreamの有無やrebaseの結果を踏まえたforce-with-leaseの判断は、
@@ -77,13 +107,11 @@ export async function syncBase(): Promise<SyncBaseResult> {
   const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 
   if (currentBranch === baseBranch) {
-    throw new SyncBaseError(`Current branch is the base branch ${baseBranch}.`);
+    throwSyncError(`Current branch is the base branch ${baseBranch}.`, "");
   }
 
   const initialBaseSha = await run("git", ["rev-parse", baseBranch]);
-  await run("git", ["switch", baseBranch]);
-  await run("git", ["pull", "--ff-only"]);
-  await run("git", ["switch", currentBranch]);
+  await pullBase(baseBranch, currentBranch);
 
   const newBaseSha = await run("git", ["rev-parse", baseBranch]);
   const rebased = initialBaseSha !== newBaseSha;
@@ -94,11 +122,7 @@ export async function syncBase(): Promise<SyncBaseResult> {
       // コンフリクト等でrebaseに失敗した場合、
       // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
       await run("git", ["rebase", "--abort"]);
-      const stderr = err instanceof SyncBaseError ? err.stderr : "";
-      throw new SyncBaseError(
-        `Rebase onto ${baseBranch} failed and has been aborted. Resolve conflicts manually before retrying.`,
-        stderr,
-      );
+      throwSyncError(`Failed to rebase ${currentBranch} onto ${baseBranch}.`, err);
     }
   }
 
