@@ -33,6 +33,10 @@ const fileName = "PR_EDITMSG" as const;
  * 親ディレクトリが無い場合は`mkdir -p`相当で再帰的に作成し、
  * その下に`mkdtemp`でセッション固有のサブディレクトリを掘ります。
  * `PR_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
+ *
+ * `options.runtimeDir`はテスト用のオプションであって、
+ * 通常使うことを想定していません。
+ * これが指定された時は`coding-agent-work/`サブパスを付けずに基底ディレクトリとして使います。
  */
 export async function prepareEditmsg(options: PrepareEditmsgOptions = {}): Promise<string> {
   const runtimeDir = options.runtimeDir !== "" ? options.runtimeDir : undefined;
