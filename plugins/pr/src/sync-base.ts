@@ -88,7 +88,18 @@ export async function syncBase(): Promise<SyncBaseResult> {
   const newBaseSha = await run("git", ["rev-parse", baseBranch]);
   const rebased = initialBaseSha !== newBaseSha;
   if (rebased) {
-    await run("git", ["rebase", baseBranch]);
+    try {
+      await run("git", ["rebase", baseBranch]);
+    } catch (err: unknown) {
+      // コンフリクト等でrebaseに失敗した場合、
+      // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
+      await run("git", ["rebase", "--abort"]);
+      const stderr = err instanceof SyncBaseError ? err.stderr : "";
+      throw new SyncBaseError(
+        `Rebase onto ${baseBranch} failed and has been aborted. Resolve conflicts manually before retrying.`,
+        stderr,
+      );
+    }
   }
 
   return { currentBranch, baseBranch, owner, repo, rebased };
