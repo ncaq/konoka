@@ -86,7 +86,7 @@ CLAUDE.md -> .github/copilot-instructions.md
 
 プラグインに変更を加えるPRでは、そのプラグインの`plugin.json`の`version`を適切に更新してください。
 
-### マーケットプレイスリリース
+### マーケットプレイスバージョン
 
 プラグインの追加・修正PRでは`marketplace.json`の`metadata.version`を変更しません。
 リリースは`metadata.version`のみを更新する専用のリリースPRで行います。
@@ -94,6 +94,7 @@ CLAUDE.md -> .github/copilot-instructions.md
 ### バージョンポリシー
 
 SemVerを使用します。
+プラグインバージョンにもマーケットプレイスバージョンにも同じ基準でSemVerを使用します。
 
 ユーザにとっての互換性を考えます。
 
