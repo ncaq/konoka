@@ -35,7 +35,8 @@ const fileName = "PR_EDITMSG" as const;
  * `PR_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
  */
 export async function prepareEditmsg(options: PrepareEditmsgOptions = {}): Promise<string> {
-  const codingAgentWorkDir = getCodingAgentWorkDir(pluginName);
+  const runtimeDir = options.runtimeDir !== "" ? options.runtimeDir : undefined;
+  const codingAgentWorkDir = runtimeDir ?? getCodingAgentWorkDir(pluginName);
   await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
   const sessionDir = await mkdtemp(join(codingAgentWorkDir, "session-"));
   return join(sessionDir, fileName);
