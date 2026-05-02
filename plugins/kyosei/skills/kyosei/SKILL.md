@@ -3,9 +3,6 @@ name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
 allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
-context: fork
-agent: general-purpose
-effort: medium
 ---
 
 # get-review-infoでの情報の取得
@@ -147,12 +144,16 @@ Claudeの使用量を節約するための分岐です。
 
 主要領域について以下の専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
 
-- [code-quality-reviewer](../../agents/code-quality-reviewer.md)
-- [dependency-reviewer](../../agents/dependency-reviewer.md)
-- [documentation-reviewer](../../agents/documentation-reviewer.md)
-- [performance-reviewer](../../agents/performance-reviewer.md)
-- [security-reviewer](../../agents/security-reviewer.md)
-- [test-reviewer](../../agents/test-reviewer.md)
+- [kyosei:code-quality-reviewer](../../agents/code-quality-reviewer.md)
+- [kyosei:dependency-reviewer](../../agents/dependency-reviewer.md)
+- [kyosei:documentation-reviewer](../../agents/documentation-reviewer.md)
+- [kyosei:performance-reviewer](../../agents/performance-reviewer.md)
+- [kyosei:security-reviewer](../../agents/security-reviewer.md)
+- [kyosei:test-reviewer](../../agents/test-reviewer.md)
+
+Taskツールの`subagent_type`にはプラグイン名を含めた完全修飾名(`kyosei:<agent-name>`)を指定してください。
+プラグインから提供されるサブエージェントは`<plugin-name>:<agent-name>`の形式で登録されているため、
+prefixを省略すると`Agent type 'code-quality-reviewer' not found`のようなエラーになります。
 
 サブエージェントは一度に全て並列に起動してください。
 
