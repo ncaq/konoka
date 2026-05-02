@@ -42,5 +42,5 @@ export async function findCaseInsensitive(dir: string, name: string): Promise<st
     return undefined;
   }
   const lower = name.toLowerCase();
-  return entries.find((entry) => entry.toLowerCase() === lower);
+  return entries.toSorted().find((entry) => entry.toLowerCase() === lower);
 }
