@@ -6,7 +6,7 @@ import { findCaseInsensitive, readIfExists } from "./read-if-exists.ts";
  *
  * Ordered by GitHub's display priority. The first match wins.
  */
-const CONTRIBUTING_LOCATIONS = [".", ".github", "docs"] as const;
+const CONTRIBUTING_LOCATIONS = [".github", ".", "docs"] as const;
 
 /**
  * Canonical file name. Case-insensitive variants are absorbed at runtime.
