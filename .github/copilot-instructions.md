@@ -91,7 +91,7 @@ CLAUDE.md -> .github/copilot-instructions.md
 プラグインの追加・修正PRでは`marketplace.json`の`metadata.version`を変更しません。
 リリースは`metadata.version`のみを更新する専用のリリースPRで行います。
 
-## バージョンポリシー
+### バージョンポリシー
 
 SemVerを使用します。
 
