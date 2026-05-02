@@ -33,12 +33,12 @@ describe("readContributing", () => {
     });
   });
 
-  test("複数候補が存在する場合はリポジトリ直下のCONTRIBUTING.mdを優先します", async () => {
+  test("複数候補が存在する場合は.github/CONTRIBUTING.mdを優先します", async () => {
     await mkdir(join(root, ".github"));
     await writeFile(join(root, "CONTRIBUTING.md"), "# direct\n");
     await writeFile(join(root, ".github/CONTRIBUTING.md"), "# github dir\n");
     const file = await readContributing(root);
-    expect(file?.path).toBe("CONTRIBUTING.md");
+    expect(file?.path).toBe(".github/CONTRIBUTING.md");
   });
 });
 
