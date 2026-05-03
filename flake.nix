@@ -189,7 +189,7 @@
             in
             lib.foldl' lib.mergeAttrs { } (
               map mkPluginChecks [
-                ./plugins/programming-tasuke
+                ./plugins/rm-to-trash
               ]
             );
 
@@ -274,7 +274,7 @@
               # Node.js
               nodejs
 
-              # Rust toolchain (programming-tasukeのフックバイナリ用)
+              # Rust toolchain (rm-to-trashのフックバイナリ用)
               cargo
               clippy
               rust-analyzer

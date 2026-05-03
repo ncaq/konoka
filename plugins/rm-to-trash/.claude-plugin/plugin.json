@@ -1,0 +1,14 @@
+{
+  "name": "rm-to-trash",
+  "version": "1.0.0",
+  "description": "Auto-rewrites bare `rm <file>` to `trash <file>` in Bash commands via PreToolUse hook.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/rm-to-trash",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["rm", "trash", "safety", "hook"]
+}
