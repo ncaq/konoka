@@ -47,6 +47,10 @@
       "source": "./plugins/research"
     },
     {
+      "name": "rm-to-trash",
+      "source": "./plugins/rm-to-trash"
+    },
+    {
       "name": "web-tasuke",
       "source": "./plugins/web-tasuke"
     }

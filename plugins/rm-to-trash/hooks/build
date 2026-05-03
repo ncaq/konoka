@@ -10,10 +10,10 @@ fi
 
 # 必要なコマンドが存在するか検証します。
 if ! command -v cargo &>/dev/null; then
-  echo "Error: cargo is not found. Install the Rust toolchain to use programming-tasuke." >&2
+  echo "Error: cargo is not found. Install the Rust toolchain to use rm-to-trash." >&2
   exit 1
 fi
 
-echo "Building programming-tasuke rm-to-trash..."
+echo "Building rm-to-trash..."
 cd "${CLAUDE_PLUGIN_ROOT}"
 cargo build --release
