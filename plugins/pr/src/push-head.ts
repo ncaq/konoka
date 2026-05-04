@@ -8,13 +8,6 @@ export interface PushHeadResult {
   readonly action: PushAction;
 }
 
-export interface PushHeadOptions {
-  /** カレントブランチ名。省略時は`git rev-parse --abbrev-ref HEAD`から取得。 */
-  readonly currentBranch?: string;
-  /** push先のremote名。省略時は`origin`。 */
-  readonly remote?: string;
-}
-
 interface AheadBehind {
   readonly behind: number;
   readonly ahead: number;
@@ -94,9 +87,9 @@ async function detectAction(): Promise<PushAction> {
  * `force`が必要な場合は事前に同名ブランチをheadとするopen PRが存在しないことを確認し、
  * 既に存在する場合はforce pushを行わずにエラーを投げてスキルの中断を促します。
  */
-export async function pushHead(options: PushHeadOptions = {}): Promise<PushHeadResult> {
-  const remote = options.remote ?? "origin";
-  const currentBranch = options.currentBranch ?? (await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]));
+export async function pushHead(): Promise<PushHeadResult> {
+  const remote = "origin";
+  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 
   const action = await detectAction();
 

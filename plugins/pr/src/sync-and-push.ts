@@ -15,7 +15,7 @@ export type SyncAndPushResult = SyncBaseResult & PushHeadResult;
  */
 export async function syncAndPush(): Promise<SyncAndPushResult> {
   const sync = await syncBase();
-  const push = await pushHead({ currentBranch: sync.currentBranch });
+  const push = await pushHead();
   return { ...sync, action: push.action };
 }
 
