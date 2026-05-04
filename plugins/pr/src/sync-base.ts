@@ -53,6 +53,9 @@ async function pullBase(baseBranch: string, currentBranch: string): Promise<void
     throwCommandError(`Failed to update base branch ${baseBranch}.`, err);
   } finally {
     // エラーが起きてもできるだけ元のブランチに戻るようにします。
+    // ここでエラーが起きた場合は元のエラーは上書きしてしまいますが、
+    // それが起きる理由がクリティカルな問題が起きている時以外は考えにくいので、
+    // 考慮しません。
     await run("git", ["switch", currentBranch]);
   }
 }
