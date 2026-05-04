@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
-allowed-tools: AskUserQuestion, Bash(editor:*), Bash(gh label list:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git rev-list:*), Bash(git rev-parse:*), Bash(git status:*), Bash(prepare-editmsg.ts:*), Bash(sync-base.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__get_me, mcp__github__issue_write, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(gh label list:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(prepare-editmsg.ts:*), Bash(sync-and-push.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__get_me, mcp__github__issue_write, mcp__github__list_pull_requests, mcp__github__pull_request_read
 ---
 
 GitHubのpull requestを作成します。
@@ -18,25 +18,49 @@ AIがタイトルと本文を生成し、
 このスキルがリポジトリ固有のCONTRIBUTINGとpull requestテンプレートを探索して読み込むため、
 このスキル内で改めて読み込む必要はありません。
 
-# baseブランチとの同期
+# baseとの同期とremoteへのpush
 
-!`sync-base.ts`
+!`sync-and-push.ts`
 
-上記の埋め込みコマンドはbaseブランチを最新化して、
-必要に応じて現在のブランチをrebaseした結果を返します。
+上記の埋め込みコマンドは、
+baseブランチとの同期(必要ならrebase)に続けて、
+headブランチをremoteへ同期します。
 
 このスクリプトは以下を行います。
 
 - 現在のブランチがbaseブランチでないことを確認します。
 - baseブランチに切り替えてpullし、元のブランチに戻ります。
 - baseブランチが進行していた場合は元のブランチをbaseの上にrebaseします。
-
-PR作成後にbaseが進行するとGitHub上でupdate baseの作業が必要になりますが、
-作成前にrebaseしておくことでこれを回避します。
-PR作成前なのでrebaseで履歴が書き換わっても他者に影響しません。
+  PR作成後にbaseが進行するとGitHub上でupdate baseの作業が必要になりますが、
+  作成前にrebaseしておくことでこれを回避します。
+  PR作成前なのでrebaseで履歴が書き換わっても他者に影響しません。
+- upstream未設定なら`git push -u origin <current>`で初回pushします。
+- upstreamと完全一致なら何もしません。
+- ローカルが先行(fast-forward可能)なら`git push origin <current>`で通常pushします。
+- 履歴が分岐(force pushが必要)なケースでは、
+  まず同名ブランチをheadとするopen PRが存在しないことを`gh pr list`で確認し、
+  存在しない場合のみ`git push --force-with-lease origin <current>`で上書きします。
 
 スクリプトの出力は`key=value`形式で、
-`current`、`base`、`owner`、`repo`、`rebased`が含まれます。
+
+- `current`
+- `base`
+- `owner`
+- `repo`
+- `rebased`
+- `action`
+
+が1ブロックにまとまって含まれます。
+
+`action`は、
+
+- `none`
+- `initial`
+- `normal`
+- `force`
+
+のいずれかです。
+
 これらの値を以降のステップで使用してください。
 
 スクリプトの実行が失敗していた場合はエラーメッセージをそのままユーザに報告し、
@@ -45,24 +69,11 @@ PRの作成は中止してスキルを終了してください。
 rebaseがコンフリクト等で失敗した場合は、
 スクリプト内で`git rebase --abort`が呼ばれてrebase状態は巻き戻されています。
 
-# remoteへのpush
-
-PR作成のためにはheadブランチがremoteに存在する必要があります。
-以下を判断してpushを実行してください。
-
-upstreamの有無は以下で確認できます。
-
-```bash
-git rev-parse --abbrev-ref --symbolic-full-name @{u}
-```
-
-判断基準は以下の通りです。
-
-- upstreamが未設定: `git push -u origin <current>`で初回pushします。
-- upstreamが設定済みかつ`rebased=true`: `git push --force-with-lease origin <current>`で上書きします。
-  PRがまだ存在しないため、history書き換えの影響範囲はローカル開発者のみです。
-- upstreamが設定済みかつ`rebased=false`でローカルが先行している場合(`git rev-list --count <upstream>..HEAD`が0でない): 通常の`git push origin <current>`で同期します。
-- upstreamが設定済みかつローカルとremoteが一致している場合: pushは不要です。
+特にforce pushが必要だが対象ブランチに対してopen PRが既に存在するケースでは、
+スクリプトはforce pushを行わずにエラー終了します。
+このスキルは新規PR作成のみを扱うため、
+既存PRがある場合はスキルの実行をキャンセルし、
+ユーザに既存PRの更新を促してください。
 
 # コミット履歴とdiffの把握
 
@@ -184,10 +195,10 @@ PR作成に進んでください。
 
 引数は以下の通りです。
 
-- `owner`: `sync-base.ts`の出力の`owner`
-- `repo`: `sync-base.ts`の出力の`repo`
-- `head`: `sync-base.ts`の出力の`current`
-- `base`: `sync-base.ts`の出力の`base`
+- `owner`: `sync-and-push.ts`の出力の`owner`
+- `repo`: `sync-and-push.ts`の出力の`repo`
+- `head`: `sync-and-push.ts`の出力の`current`
+- `base`: `sync-and-push.ts`の出力の`base`
 - `title`: 生成したタイトル
 - `body`: 生成した本文
 - `draft`: ユーザが明示的に指示した場合のみ`true`、それ以外は省略
@@ -209,8 +220,8 @@ PR作成からアサイン/ラベル設定までのタイムラグを最小化�
 `assignees`と`labels`を1回で設定してください。
 
 - `method`: `"update"`
-- `owner`: `sync-base.ts`の出力の`owner`
-- `repo`: `sync-base.ts`の出力の`repo`
+- `owner`: `sync-and-push.ts`の出力の`owner`
+- `repo`: `sync-and-push.ts`の出力の`repo`
 - `issue_number`: 作成したPRの番号
 - `assignees`: `[get_meで取得したlogin]`
 - `labels`: 選定したラベル(該当なしの場合は省略可)
