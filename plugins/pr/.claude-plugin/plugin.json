@@ -1,6 +1,6 @@
 {
   "name": "pr",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Create a GitHub pull request from the current branch.",
   "author": {
     "name": "ncaq",

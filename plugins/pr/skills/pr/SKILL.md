@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
-allowed-tools: AskUserQuestion, Bash(editor:*), Bash(gh label list:*), Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(prepare-editmsg.ts:*), Bash(sync-and-push.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__get_me, mcp__github__issue_write, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git status:*), Bash(prepare-editmsg.ts:*), Bash(sync-and-push.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
 ---
 
 GitHubのpull requestを作成します。
@@ -75,52 +75,12 @@ rebaseがコンフリクト等で失敗した場合は、
 既存PRがある場合はスキルの実行をキャンセルし、
 ユーザに既存PRの更新を促してください。
 
-# コミット履歴とdiffの把握
-
-baseブランチからの差分を以下のコマンドで取得してください。
-
-```bash
-git log <base>..HEAD --no-merges
-git diff <base>...HEAD --stat
-```
-
-差分が大きい場合は`--stat`で概要を把握してから、
-必要な範囲だけ`git diff`本体で内容を確認してください。
-
-# アサインの決定
-
-`mcp__github__get_me`で認証済みユーザの情報を取得し、
-`login`を控えてください。
-PRのアサインは基本的にこの自分自身のユーザを指定します。
-
-# ラベルの選定
-
-!`gh label list --json name,description,color --limit 100`
-
-上の埋め込みコマンドの結果はリポジトリで定義されているラベル一覧です。
-
-GitHub MCPにラベル一覧を取得するツールはないため、
-ここだけGitHub CLIを使っています。
-
-存在しないラベルを指定するとアサインとラベルの一括設定ステップが失敗するため、
-ここから外れたラベルは付与しないでください。
-
-その上で、過去のmerged PRでどのようなラベルがどんな変更に付与されているかも参考にしてください。
-ラベルの定義名だけでは用途の温度感が分からないため、
-実際の使われ方を観察することで適切な選定ができます。
-
-```text
-mcp__github__list_pull_requests(state="closed", sort="updated", direction="desc", perPage=30)
-```
-
-PRの内容を考慮して、
-取得したラベル一覧から適切なものを選んでください。
-適切なラベルが見当たらない場合はラベルなしで構いません。
-
-# タイトルと本文の生成
+# PR内容の準備
 
 `pr-style`スキルのガイドラインに従い、
-タイトルと本文を生成してください。
+コミット履歴とdiffの把握、
+タイトルと本文の生成、
+アサインとラベルの決定を済ませてください。
 
 PRに含まれるコミットが1つだけの場合は、
 そのコミットメッセージのタイトルと本文をそのまま流用してください。
@@ -223,7 +183,7 @@ PR作成からアサイン/ラベル設定までのタイムラグを最小化�
 - `owner`: `sync-and-push.ts`の出力の`owner`
 - `repo`: `sync-and-push.ts`の出力の`repo`
 - `issue_number`: 作成したPRの番号
-- `assignees`: `[get_meで取得したlogin]`
+- `assignees`: `pr-style`スキルで決定したloginの配列
 - `labels`: 選定したラベル(該当なしの場合は省略可)
 
 # 権限不足の場合
