@@ -71,20 +71,20 @@ async function pullBase(baseBranch: string, currentBranch: string): Promise<void
 export async function syncBase(): Promise<SyncBaseResult> {
   const repoInfoJson = await run("gh", ["repo", "view", "--json", "owner,name,defaultBranchRef"]);
   const { owner, repo, baseBranch } = parseRepoInfo(repoInfoJson);
-  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "--", "HEAD"]);
+  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 
   if (currentBranch === baseBranch) {
     throw new CommandError(`Current branch is the base branch ${baseBranch}.`, "");
   }
 
-  const initialBaseSha = await run("git", ["--", "rev-parse", baseBranch]);
+  const initialBaseSha = await run("git", ["rev-parse", "--end-of-options", baseBranch]);
   await pullBase(baseBranch, currentBranch);
 
-  const newBaseSha = await run("git", ["--", "rev-parse", baseBranch]);
+  const newBaseSha = await run("git", ["rev-parse", "--end-of-options", baseBranch]);
   const rebased = initialBaseSha !== newBaseSha;
   if (rebased) {
     try {
-      await run("git", ["rebase", baseBranch]);
+      await run("git", ["rebase", "--", baseBranch]);
     } catch (err: unknown) {
       // コンフリクト等でrebaseに失敗した場合、
       // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
