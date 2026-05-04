@@ -88,6 +88,9 @@ export async function syncBase(): Promise<SyncBaseResult> {
     } catch (err: unknown) {
       // コンフリクト等でrebaseに失敗した場合、
       // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
+      // `git rebase --abort`が失敗する可能性もありますが、
+      // その場合の方が問題なので、
+      // そちらの例外の表示を優先します。
       await run("git", ["rebase", "--abort"]);
       throwCommandError(`Failed to rebase ${currentBranch} onto ${baseBranch}.`, err);
     }
