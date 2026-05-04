@@ -104,7 +104,7 @@ async function detectAction(): Promise<PushAction> {
  */
 export async function pushHead(): Promise<PushHeadResult> {
   const remote = "origin";
-  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "--", "HEAD"]);
 
   const action = await detectAction();
 
