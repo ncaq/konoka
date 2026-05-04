@@ -1,104 +1,18 @@
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+#!/usr/bin/env node
 import process from "node:process";
-import { promisify } from "node:util";
-import { EmptyCommitError, buildEditmsgTemplate, hasStagedChanges, timestamp } from "../lib/commit-prepare.ts";
+import { EmptyCommitError, prepareCommit } from "../src/commit-prepare.ts";
 
-/**
- * Prepare for commit: stage changes, write COMMIT_EDITMSG template.
- *
- * Output (stdout): path to the COMMIT_EDITMSG file.
- * Side-effect: writes <workdir>/COMMIT_EDITMSG with scissors template.
- *
- * Exit codes:
- *   0 - success
- *   1 - no changes to commit
- */
-
-const execFileAsync = promisify(execFile);
-
-/** Run a git command and return its stdout with trailing whitespace trimmed. */
-async function git(...args: readonly string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { maxBuffer: 10 * 1024 * 1024 });
-  return stdout.trimEnd();
-}
-
-/** なるべくユーザの固有の作業ディレクトリを返します */
-function getPersonalWorkDir(): string {
-  const runtimeDir = process.env["XDG_RUNTIME_DIR"];
-  if (runtimeDir != null && runtimeDir !== "") {
-    return runtimeDir;
-  }
-  return tmpdir();
-}
-
-/** LLMエージェントなどが一時ファイルを置いて良さそうなディレクトリを返します。 */
-function getCodingAgentWorkDir(pluginName: string): string {
-  const personalWorkDir = getPersonalWorkDir();
-  return join(personalWorkDir, "coding-agent-work", pluginName);
-}
-
-const pluginName = "commit" as const;
-
-/** Create a secure temporary working directory under $XDG_RUNTIME_DIR. */
-async function createWorkdirPath(): Promise<string> {
-  const codingAgentWorkDir = getCodingAgentWorkDir(pluginName);
-  await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
-  return mkdtemp(join(codingAgentWorkDir, `${timestamp()}-`));
-}
-
-/** Stage all changes if nothing is staged yet. Throws if there are no changes at all. */
-async function ensureStaged(): Promise<void> {
-  const status = await git("status", "--porcelain");
-
-  if (status === "") {
-    throw new EmptyCommitError("No changes to commit.");
-  }
-
-  if (!hasStagedChanges(status)) {
-    await git("add", "--all");
-  }
-}
-
-/** Get the staged diff. Throws if no staged changes exist. */
-async function getStagedDiff(): Promise<string> {
-  const diff = await git("diff", "--cached");
-
-  if (diff === "") {
-    throw new EmptyCommitError("No staged changes to commit.");
-  }
-
-  return diff;
-}
-
-/** Ensure changes are staged and return the staged diff. */
-async function stageThenDiff(): Promise<string> {
-  await ensureStaged();
-  return getStagedDiff();
-}
-
-/** Write a COMMIT_EDITMSG file with scissors line and diff as template. */
-async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<string> {
-  const editmsgPath = join(workdirPath, "COMMIT_EDITMSG");
-  await writeFile(editmsgPath, buildEditmsgTemplate(diff));
-  return editmsgPath;
-}
-
-/** Stage changes, write COMMIT_EDITMSG template, and print its path. */
 async function main(): Promise<void> {
   try {
-    const [workdirPath, diff] = await Promise.all([createWorkdirPath(), stageThenDiff()]);
-    const editmsgPath = await writeEditmsgTemplate(workdirPath, diff);
-    console.log(editmsgPath);
+    const path = await prepareCommit();
+    process.stdout.write(`${path}\n`);
   } catch (err: unknown) {
     if (err instanceof EmptyCommitError) {
       console.error(err.message);
       process.exitCode = 1;
-    } else {
-      throw err;
+      return;
     }
+    throw err;
   }
 }
 

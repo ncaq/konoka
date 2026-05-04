@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(editor:*), Bash(git commit:*), Bash(node:*), Edit, Read, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare.ts:*), Bash(editor:*), Bash(git commit:*), Edit, Read, Skill(commit-style)
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -15,7 +15,7 @@ AIがコミットメッセージを生成し、
 
 # コミットメッセージファイルの生成
 
-!`node "${CLAUDE_PLUGIN_ROOT}/bin/commit-prepare.ts"`
+!`commit-prepare.ts`
 
 上記の出力は`COMMIT_EDITMSG`ファイルのパスです。
 コマンドが失敗した場合はコミットする変更がないので、

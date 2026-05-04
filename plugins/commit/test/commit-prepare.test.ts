@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { EmptyCommitError, buildEditmsgTemplate, hasStagedChanges, timestamp } from "../lib/commit-prepare.ts";
+import { EmptyCommitError, buildEditmsgTemplate, hasStagedChanges, timestamp } from "../src/commit-prepare.ts";
 
 describe("timestamp", () => {
   test("ISO 8601風のフォーマットを返す", () => {

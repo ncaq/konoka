@@ -2,6 +2,10 @@
   "name": "konoka-commit",
   "private": true,
   "type": "module",
+  "bin": {
+    "commit-prepare.ts": "./bin/commit-prepare.ts",
+    "read-commit-instructions.ts": "./bin/read-commit-instructions.ts"
+  },
   "scripts": {
     "fix": "run-p fix:*",
     "fix:eslint": "eslint --fix .",
