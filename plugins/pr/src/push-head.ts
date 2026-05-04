@@ -14,13 +14,17 @@ interface AheadBehind {
 }
 
 export function parseAheadBehind(out: string): AheadBehind {
+  function isPositiveInteger(x: unknown): boolean {
+    return typeof x === "number" && Number.isInteger(x) && 0 <= x;
+  }
+
   const parts = out.split(/\s+/);
   if (parts.length < 2) {
     throw new CommandError(`Failed to parse rev-list output: ${out}`, "");
   }
   const behind = Number(parts[0]);
   const ahead = Number(parts[1]);
-  if (!Number.isFinite(behind) || !Number.isFinite(ahead)) {
+  if (!isPositiveInteger(behind) || !isPositiveInteger(ahead)) {
     throw new CommandError(`Failed to parse rev-list output: ${out}`, "");
   }
   return { behind, ahead };
