@@ -1,20 +1,11 @@
-import { readFile } from "node:fs/promises";
+#!/usr/bin/env node
 import process from "node:process";
-
-/**
- * Read project-specific commit message guidelines if available.
- *
- * Output (stdout): contents of .github/git-commit-instructions.md, or empty.
- */
+import { readCommitInstructions } from "../src/read-commit-instructions.ts";
 
 async function main(): Promise<void> {
-  try {
-    process.stdout.write(await readFile(".github/git-commit-instructions.md", "utf8"));
-  } catch (err: unknown) {
-    // if the file doesn't exist, just output nothing; otherwise, rethrow the error
-    if (!(err instanceof Error && "code" in err && err.code === "ENOENT")) {
-      throw err;
-    }
+  const content = await readCommitInstructions();
+  if (content != null) {
+    process.stdout.write(content);
   }
 }
 
