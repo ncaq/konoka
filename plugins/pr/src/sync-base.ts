@@ -47,7 +47,7 @@ function parseRepoInfo(json: string): RepoInfo {
  */
 async function pullBase(baseBranch: string, currentBranch: string): Promise<void> {
   try {
-    await run("git", ["switch", baseBranch]);
+    await run("git", ["switch", "--", baseBranch]);
     await run("git", ["pull", "--ff-only"]);
   } catch (err: unknown) {
     throwCommandError(`Failed to update base branch ${baseBranch}.`, err);
@@ -56,7 +56,7 @@ async function pullBase(baseBranch: string, currentBranch: string): Promise<void
     // ここでエラーが起きた場合は元のエラーは上書きしてしまいますが、
     // それが起きる理由がクリティカルな問題が起きている時以外は考えにくいので、
     // 考慮しません。
-    await run("git", ["switch", currentBranch]);
+    await run("git", ["switch", "--", currentBranch]);
   }
 }
 
@@ -71,16 +71,16 @@ async function pullBase(baseBranch: string, currentBranch: string): Promise<void
 export async function syncBase(): Promise<SyncBaseResult> {
   const repoInfoJson = await run("gh", ["repo", "view", "--json", "owner,name,defaultBranchRef"]);
   const { owner, repo, baseBranch } = parseRepoInfo(repoInfoJson);
-  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "--", "HEAD"]);
 
   if (currentBranch === baseBranch) {
     throw new CommandError(`Current branch is the base branch ${baseBranch}.`, "");
   }
 
-  const initialBaseSha = await run("git", ["rev-parse", baseBranch]);
+  const initialBaseSha = await run("git", ["--", "rev-parse", baseBranch]);
   await pullBase(baseBranch, currentBranch);
 
-  const newBaseSha = await run("git", ["rev-parse", baseBranch]);
+  const newBaseSha = await run("git", ["--", "rev-parse", baseBranch]);
   const rebased = initialBaseSha !== newBaseSha;
   if (rebased) {
     try {

@@ -101,10 +101,10 @@ export async function pushHead(): Promise<PushHeadResult> {
     case "none":
       return { currentBranch, action };
     case "initial":
-      await run("git", ["push", "-u", remote, currentBranch]);
+      await run("git", ["push", "-u", "--", remote, currentBranch]);
       return { currentBranch, action };
     case "normal":
-      await run("git", ["push", remote, currentBranch]);
+      await run("git", ["push", "--", remote, currentBranch]);
       return { currentBranch, action };
     case "force": {
       const openPr = await findOpenPullRequest(currentBranch);
@@ -117,7 +117,7 @@ export async function pushHead(): Promise<PushHeadResult> {
           "",
         );
       }
-      await run("git", ["push", "--force-with-lease", remote, currentBranch]);
+      await run("git", ["push", "--force-with-lease", "--", remote, currentBranch]);
       return { currentBranch, action };
     }
   }
