@@ -14,7 +14,7 @@ interface AheadBehind {
 }
 
 export function parseAheadBehind(out: string): AheadBehind {
-  function isPositiveInteger(x: unknown): boolean {
+  function isNonNegativeInteger(x: unknown): boolean {
     return typeof x === "number" && Number.isInteger(x) && 0 <= x;
   }
 
@@ -24,7 +24,7 @@ export function parseAheadBehind(out: string): AheadBehind {
   }
   const behind = Number(parts[0]);
   const ahead = Number(parts[1]);
-  if (!isPositiveInteger(behind) || !isPositiveInteger(ahead)) {
+  if (!isNonNegativeInteger(behind) || !isNonNegativeInteger(ahead)) {
     throw new CommandError(`Failed to parse rev-list output: ${out}`, "");
   }
   return { behind, ahead };
