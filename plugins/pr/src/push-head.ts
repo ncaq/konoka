@@ -49,9 +49,20 @@ export function parseOpenPr(json: string): OpenPr | undefined {
 /**
  * カレントブランチ名で開いているPRを返します。
  * ない場合は`undefined`。
+ * fork経由で同名ブランチからPRが作成されているケースは検知できません。
  */
 async function findOpenPullRequest(branch: string): Promise<OpenPr | undefined> {
-  const json = await run("gh", ["pr", "list", "--head", branch, "--state", "open", "--json", "number", "--limit", "1"]);
+  const json = await run("gh", [
+    "pr",
+    "list",
+    `--head=${branch}`,
+    "--state",
+    "open",
+    "--json",
+    "number",
+    "--limit",
+    "1",
+  ]);
   return parseOpenPr(json);
 }
 
