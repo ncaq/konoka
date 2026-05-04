@@ -26,6 +26,9 @@ export function throwCommandError(msg: string, err: unknown): never {
   if (err instanceof CommandError) {
     throw new CommandError(msg, err.stderr, { cause: err });
   }
+  if (err instanceof Error && "stderr" in err && typeof err.stderr === "string") {
+    throw new CommandError(msg, err.stderr, { cause: err });
+  }
   if (err instanceof Error) {
     throw new Error(`${msg}\n${err.message}`, { cause: err });
   }
