@@ -4,6 +4,7 @@
   "type": "module",
   "bin": {
     "commit-prepare.ts": "./bin/commit-prepare.ts",
+    "editor.ts": "./bin/editor.ts",
     "read-commit-instructions.ts": "./bin/read-commit-instructions.ts"
   },
   "scripts": {
