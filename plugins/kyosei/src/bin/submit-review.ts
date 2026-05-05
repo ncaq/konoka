@@ -7,8 +7,9 @@ import process from "node:process";
 import { Args, Command, Options } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
-import { createOctokitClient } from "../src/client";
-import { decodeReviewSubmission, previewReview, submitReview } from "../src/submit-review";
+import { createOctokitClient } from "../client";
+import { decodeReviewSubmission } from "../review-decoder";
+import { previewReview, submitReview } from "../review-poster";
 
 const dryRun = Options.boolean("dry-run").pipe(
   Options.withDescription(

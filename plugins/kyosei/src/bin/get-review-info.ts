@@ -7,9 +7,9 @@ import process from "node:process";
 import { Args, Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Option } from "effect";
-import { createOctokitClient } from "../src/client";
-import { detectReviewContext } from "../src/context";
-import { getReviewInfo } from "../src/review-info";
+import { createOctokitClient } from "../client";
+import { detectReviewContext } from "../context";
+import { getReviewInfo } from "../review-info";
 
 const prUrl = Args.text({ name: "pr-url" }).pipe(
   Args.withDescription("対象PRのURL。省略時はカレントブランチからローカルコンテキストを推定します。"),

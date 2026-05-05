@@ -1,9 +1,9 @@
 import { it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { decodeReviewSubmission } from "../src/review-decoder";
 import { buildReviewBody } from "../src/review-metadata";
 import { parseFooterMetadata } from "../src/review-metadata-parser";
-import { decodeReviewSubmission } from "../src/submit-review";
 import { fakeCommandExecutor } from "./fake-command";
 
 const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
