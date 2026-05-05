@@ -1,8 +1,8 @@
 import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { decodeReviewSubmission } from "../src/review-decoder";
 import { buildFooterView, buildReviewBody } from "../src/review-metadata";
-import { decodeReviewSubmission } from "../src/submit-review";
 import { fakeCommandExecutor } from "./fake-command";
 
 // `claude --version`の呼び出しを失敗させ、`Option.none`にフォールバックさせます。

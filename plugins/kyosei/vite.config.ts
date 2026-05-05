@@ -17,8 +17,8 @@ export default defineConfig({
     minify: false,
     rollupOptions: {
       input: {
-        "get-review-info": "bin/get-review-info.ts",
-        "submit-review": "bin/submit-review.ts",
+        "get-review-info": "src/bin/get-review-info.ts",
+        "submit-review": "src/bin/submit-review.ts",
       },
       output: {
         format: "esm",

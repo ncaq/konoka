@@ -1,45 +1,14 @@
 /**
- * PRレビューを一括投稿するモジュール。
+ * PRレビューをGitHub APIに投稿するモジュール。
  * レビュー本文とインラインコメントを1回のAPI呼び出しで投稿します。
  */
 
 import { type CommandExecutor } from "@effect/platform";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import type { Octokit } from "octokit";
+import { formatReviewCommentBody } from "./review-comment-body";
 import { buildReviewBody } from "./review-metadata";
-import {
-  ReviewSubmissionSchema,
-  type ReviewCommentSchema,
-  type ReviewSubmissionResultSchema,
-  type ReviewTagSchema,
-} from "./review-schema";
-
-const reviewTagLabel: Record<typeof ReviewTagSchema.Type, string> = {
-  "code-quality": "🧹 Code Quality",
-  dependency: "📦 Dependency",
-  documentation: "📚 Documentation",
-  performance: "⚡ Performance",
-  security: "🔒 Security",
-  test: "🧪 Test",
-};
-
-function quoteAlertLine(line: string): string {
-  return `> ${line}`;
-}
-
-function formatReviewCommentBody(comment: typeof ReviewCommentSchema.Type): string {
-  const tagLabel =
-    comment.tags.length > 0 ? `${quoteAlertLine(comment.tags.map((tag) => reviewTagLabel[tag]).join(" "))}\n` : "";
-  return `> [!${comment.level}]\n${tagLabel}\n${comment.body}`;
-}
-
-/**
- * JSON文字列をパース・バリデーションして`ReviewSubmission`に変換します。
- * JSONパースまたはバリデーション失敗時はエラーメッセージを含む例外をスローします。
- */
-export function decodeReviewSubmission(input: string): typeof ReviewSubmissionSchema.Type {
-  return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), { onExcessProperty: "error" })(input);
-}
+import { ReviewSubmissionSchema, type ReviewSubmissionResultSchema } from "./review-schema";
 
 /** `octokit.rest.pulls.createReview`に渡すパラメータ型。 */
 export type CreateReviewParams = NonNullable<Parameters<Octokit["rest"]["pulls"]["createReview"]>[0]>;

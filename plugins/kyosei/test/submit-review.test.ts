@@ -2,7 +2,8 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, test, vi } from "vitest";
-import { decodeReviewSubmission, previewReview, submitReview } from "../src/submit-review";
+import { decodeReviewSubmission } from "../src/review-decoder";
+import { previewReview, submitReview } from "../src/review-poster";
 import { fakeCommandExecutor } from "./fake-command";
 
 const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
