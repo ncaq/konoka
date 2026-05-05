@@ -4,6 +4,7 @@
 //!
 //! - シェルのトークン境界(行頭/末、空白、`;`, `&`, `|`, `()`, `` ` ``)で`rm`が単独で現れる(`rmdir`や`rm-utility`等は対象外)
 //! - 直後にフラグ(`-`)が続かない(`rm -rf`は通常の承認フローに任せる)
+//! - `git rm`のように`rm`が`git`のサブコマンドとして使われていない(`git trash`は存在しないため書き換えるとそもそも動かない)
 //!
 //! 対象外のケースは無音で終了し、Claude Code側の通常の承認フローへ委ねます。
 
@@ -47,14 +48,24 @@ static RM_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 static RM_WITH_FLAG_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(^|[\s;&|(){}<>`])rm\s+-").expect("static regex compiles"));
 
+static GIT_RM_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(^|[\s;&|(){}<>`])git(\s+[^\s;&|()<>`]+)*\s+rm($|[\s;&|`])")
+        .expect("static regex compiles")
+});
+
 /// 与えられたコマンド文字列を`trash`へ書き換えます。
 ///
 /// 書き換え対象でなければ`None`を返します。
 ///
 /// 単語境界はシェルのトークン境界で判定し、
 /// `rm-utility`のような`-`接続のシンボルは対象外にします。
+/// `git rm`は`git trash`が存在せず置き換えると動作しないため、
+/// コマンド全体の書き換えをスキップしてユーザの設定(deny等)に任せます。
 fn rewrite(command: &str) -> Option<String> {
-    if !RM_WORD_REGEX.is_match(command) || RM_WITH_FLAG_REGEX.is_match(command) {
+    if !RM_WORD_REGEX.is_match(command)
+        || RM_WITH_FLAG_REGEX.is_match(command)
+        || GIT_RM_REGEX.is_match(command)
+    {
         return None;
     }
     Some(
@@ -178,5 +189,46 @@ mod tests {
     #[test]
     fn skips_unrelated_command() {
         assert!(rewrite("ls foo").is_none());
+    }
+
+    #[test]
+    fn skips_git_rm() {
+        assert!(rewrite("git rm foo").is_none());
+    }
+
+    #[test]
+    fn skips_git_rm_with_short_option() {
+        assert!(rewrite("git -C path rm foo").is_none());
+    }
+
+    #[test]
+    fn skips_git_rm_with_long_option() {
+        assert!(rewrite("git --no-pager rm foo").is_none());
+    }
+
+    #[test]
+    fn skips_command_containing_git_rm() {
+        assert!(rewrite("git rm foo && rm bar").is_none());
+    }
+
+    #[test]
+    fn rewrites_sudo_rm() {
+        assert_eq!(rewrite("sudo rm foo").as_deref(), Some("sudo trash foo"),);
+    }
+
+    #[test]
+    fn rewrites_xargs_rm() {
+        assert_eq!(
+            rewrite("ls | xargs rm").as_deref(),
+            Some("ls | xargs trash"),
+        );
+    }
+
+    #[test]
+    fn rewrites_timeout_rm() {
+        assert_eq!(
+            rewrite("timeout 5 rm foo").as_deref(),
+            Some("timeout 5 trash foo"),
+        );
     }
 }
