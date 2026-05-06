@@ -1,7 +1,7 @@
 {
   "name": "research",
   "version": "1.1.2",
-  "description": "Gather up-to-date information from external sources (official docs, GitHub, MDN, Microsoft Learn, NixOS, web search) for comparing libraries, looking up APIs, evaluating approaches, or investigating library behavior. Runs investigations in an isolated context so the main conversation stays uncluttered.",
+  "description": "Gather up-to-date information from external sources for comparing libraries, looking up APIs, evaluating approaches, or investigating library behavior.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",

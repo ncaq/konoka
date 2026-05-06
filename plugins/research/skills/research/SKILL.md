@@ -2,8 +2,6 @@
 name: research
 description: Search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval. Use when research, investigate, or look up technical topics.
 argument-hint: "query"
-context: fork
-agent: general-purpose
 allowed-tools: Agent(research:survey)
 ---
 
