@@ -1,6 +1,6 @@
 ---
 name: research
-description: Search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval. Use when research, investigate, or look up technical topics.
+description: Search for technical investigation, documentation lookup, library issue/PR tracking, and package information retrieval. Use when researching, investigating, or looking up technical topics.
 argument-hint: "query"
 allowed-tools: Agent(research:survey)
 ---
