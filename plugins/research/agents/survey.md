@@ -1,6 +1,6 @@
 ---
 name: survey
-description: Internal agent for the research skill. Do NOT call this agent directly — use the /research skill instead, which orchestrates parallel survey agents for efficient cross-source search.
+description: Internal agent for the research skill. Do NOT call this agent directly — use the /research skill instead.
 tools:
   - Glob
   - Grep

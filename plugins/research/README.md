@@ -1,11 +1,20 @@
 # research
 
-Gather up-to-date information from external sources (official docs, GitHub, MDN, Microsoft Learn, NixOS, web search) for comparing libraries, looking up APIs, evaluating approaches, or investigating library behavior. Runs investigations in an isolated context so the main conversation stays uncluttered.
+- ライブラリの比較
+- APIの調査
+- 技術選定
+- ライブラリの挙動調査
 
-ライブラリの比較、APIの調査、技術選定、ライブラリの挙動調査などを、
-公式ドキュメント、GitHub、MDN、Microsoft Learn、NixOS、Web検索といった複数の情報ソースを横断して行うClaude Codeプラグインです。
-調査はメインコンテキストから分離された環境で実行されるため、
-会話のコンテキストを圧迫しません。
+などを、
+
+- 公式ドキュメント
+- GitHub
+- MDN
+- Microsoft Learn
+- NixOS
+- Web検索
+
+といった複数の情報ソースを横断して行うClaude Codeプラグインです。
 
 ## インストール
 
@@ -30,11 +39,12 @@ Claude Codeで以下を実行します。
 ## 使い方
 
 技術調査や情報収集が必要な場面でClaude Codeが自動的にresearchスキルを起動します。
-`context: fork`により調査はメインコンテキストから分離されるため、
-コンテキストを圧迫しません。
 
 クエリは自動的に独立したサブクエリに分解され、
 `survey`エージェントが並列起動して調査を行います。
+
+`survey`エージェントはコスト節約のためと速度のために`sonnet`で動作します。
+
 例えばVitestとJestの比較であれば、
 それぞれが別のサブクエリとして並列に調査されます。
 
