@@ -37,7 +37,7 @@ PreToolUseフックでBashツールのコマンドを監視し、
 `git rm`を含むコマンドも書き換え対象から除外します。
 `git rm`自体を禁止したい場合はユーザ側の`settings.json`等の`deny`設定で制御してください。
 
-フック本体は`src/main.rs`のRustバイナリ`rm-to-trash`です。
+フック本体はRustバイナリ`rm-to-trash`です。
 Bashツール毎に呼ばれるため起動コストを抑える目的で、
 シェルスクリプト+`jq`/`sed`のような実装を避けてネイティブバイナリで実装しています。
 SessionStartフックの`hooks/build`が初回セッションで`cargo build --release`を走らせ、
@@ -48,7 +48,7 @@ SessionStartフックの`hooks/build`が初回セッションで`cargo build --r
 `cargo`(Rust toolchain)と`trash`コマンドが必要です。
 [trash-cli](https://github.com/andreafrancia/trash-cli)を想定しています。
 
-単語境界はシェルのトークン境界(行頭/末、空白、`;`, `&`, `|`, `()`, `` ` ``)で判定するため、
+単語境界はシェルのトークン境界(行頭/末、空白、各種記号)で判定するため、
 `rmdir`や`rm-utility`のように`rm`が他の文字と連続する形は対象外です。
 
 クォートやヒアドキュメント内の`rm`まで完全に分離するのは困難なため、
