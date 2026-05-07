@@ -19,16 +19,11 @@ use std::io::{self, Read};
 fn main() {
     // 標準入力からJSONを読み込む。
     let mut input = String::new();
-    if let Err(e) = io::stdin().read_to_string(&mut input) {
-        panic!("Error: failed to read input: {e}");
-    }
+    io::stdin()
+        .read_to_string(&mut input)
+        .expect("failed to read input");
     // デコードする。
-    let hook_input = match decode_hook_input(&input) {
-        Err(e) => {
-            panic!("Error: failed to decode input JSON: {e}");
-        }
-        Ok(payload) => payload,
-    };
+    let hook_input = decode_hook_input(&input).expect("Error: failed to decode input JSON");
     // 入力が空の場合は何もせずに終了する。
     if hook_input.tool_input.command.is_empty() {
         return;
@@ -47,10 +42,6 @@ fn main() {
         ..hook_input.tool_input
     };
     let output = mk_hook_output(rewritten_tool_input, &original, &rewritten);
-    match serde_json::to_string(&output) {
-        Err(e) => {
-            panic!("Error: failed to serialize hook output: {e}");
-        }
-        Ok(json) => println!("{json}"),
-    }
+    let json = serde_json::to_string(&output).expect("Error: failed to serialize hook output");
+    println!("{json}")
 }
