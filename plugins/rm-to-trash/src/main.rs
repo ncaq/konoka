@@ -33,10 +33,10 @@ fn main() {
 
     // 書き換えた内容を出力する。
     let rewritten_tool_input = ToolInput {
-        command: rewritten.clone(),
+        command: rewritten,
         ..hook_input.tool_input
     };
-    let output = mk_hook_output(rewritten_tool_input, &original, &rewritten);
+    let output = mk_hook_output(rewritten_tool_input, &original);
     let json = serde_json::to_string(&output).expect("failed to serialize hook output");
     println!("{json}")
 }
