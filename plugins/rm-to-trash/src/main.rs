@@ -7,12 +7,16 @@
 //! - `git rm`のように`rm`が`git`のサブコマンドとして使われていない(`git trash`は存在しないため書き換えるとそもそも動かない)
 //!
 //! 対象外のケースは無音で終了し、Claude Code側の通常の承認フローへ委ねます。
+//!
+//! 入力を空白/シェルメタ文字/それ以外の単語の3種に分けたトークン列に変換し、
+//! 各`rm`単語の前後をトークン単位で見て採否を決めます。
 
-use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
 use std::io::{self, Read};
 use std::process::ExitCode;
-use std::sync::LazyLock;
+use winnow::Parser;
+use winnow::combinator::{alt, repeat};
+use winnow::token::{one_of, take_while};
 
 #[derive(Deserialize, Serialize)]
 struct ToolInput {
@@ -41,38 +45,95 @@ struct HookSpecificOutput {
     additional_context: String,
 }
 
-static RM_WORD_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(^|[\s;&|(){}<>`])rm($|[\s;&|`])").expect("static regex compiles")
-});
+/// シェルコマンドを構成する最小単位のトークン。
+#[derive(Debug, PartialEq, Eq)]
+enum Tok<'s> {
+    /// 連続する空白文字。
+    Whitespace(&'s str),
+    /// シェルメタ文字を1文字単位で保持する。`&&`は2連続の`Punctuation('&')`になる。
+    Punctuation(char),
+    /// 上記以外の連続文字列。コマンド名や引数に相当する。
+    Word(&'s str),
+}
 
-static RM_WITH_FLAG_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(^|[\s;&|(){}<>`])rm\s+-").expect("static regex compiles"));
+const SHELL_PUNCTUATION: [char; 10] = ['(', ')', '{', '}', '<', '>', ';', '&', '|', '`'];
 
-static GIT_RM_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(^|[\s;&|(){}<>`])git(\s+[^\s;&|()<>`]+)*\s+rm($|[\s;&|`])")
-        .expect("static regex compiles")
-});
+fn is_shell_special(c: char) -> bool {
+    c.is_whitespace() || SHELL_PUNCTUATION.contains(&c)
+}
 
-/// 与えられたコマンド文字列を`trash`へ書き換えます。
+fn whitespace<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
+    take_while(1.., |c: char| c.is_whitespace())
+        .map(Tok::Whitespace)
+        .parse_next(input)
+}
+
+fn punctuation<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
+    one_of(SHELL_PUNCTUATION)
+        .map(Tok::Punctuation)
+        .parse_next(input)
+}
+
+fn word<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
+    take_while(1.., |c: char| !is_shell_special(c))
+        .map(Tok::Word)
+        .parse_next(input)
+}
+
+fn token<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
+    alt((whitespace, punctuation, word)).parse_next(input)
+}
+
+fn tokenize(input: &str) -> Option<Vec<Tok<'_>>> {
+    let result: Result<Vec<Tok<'_>>, _> = repeat(0.., token).parse(input);
+    result.ok()
+}
+
+/// `before`(`rm`より前のトークン列)の末尾コマンド片に`git`があるか。
 ///
-/// 書き換え対象でなければ`None`を返します。
+/// `Punctuation`(コマンド境界)に到達するまで末尾から遡り、
+/// 途中に`Word("git")`があれば`git`サブコマンドの`rm`と判定する。
+fn is_git_before(before: &[Tok]) -> bool {
+    before
+        .iter()
+        .rev()
+        .take_while(|t| !matches!(t, Tok::Punctuation(_)))
+        .any(|t| matches!(t, Tok::Word("git")))
+}
+
+/// `after`(`rm`より後のトークン列)が空白を挟んでフラグ的単語(先頭が`-`)で始まるか。
+fn is_flag_after(after: &[Tok]) -> bool {
+    matches!(after, [Tok::Whitespace(_), Tok::Word(w), ..] if w.starts_with('-'))
+}
+
+/// 与えられたコマンド文字列を`trash`へ書き換える。
 ///
-/// 単語境界はシェルのトークン境界で判定し、
-/// `rm-utility`のような`-`接続のシンボルは対象外にします。
-/// `git rm`は`git trash`が存在せず置き換えると動作しないため、
-/// コマンド全体の書き換えをスキップしてユーザの設定(deny等)に任せます。
+/// 書き換え対象でなければ`None`を返す。
 fn rewrite(command: &str) -> Option<String> {
-    if !RM_WORD_REGEX.is_match(command)
-        || RM_WITH_FLAG_REGEX.is_match(command)
-        || GIT_RM_REGEX.is_match(command)
-    {
+    let tokens = tokenize(command)?;
+
+    if !tokens.iter().any(|t| matches!(t, Tok::Word("rm"))) {
         return None;
     }
-    Some(
-        RM_WORD_REGEX
-            .replace_all(command, "${1}trash${2}")
-            .into_owned(),
-    )
+
+    let rejected = tokens.iter().enumerate().any(|(i, t)| {
+        matches!(t, Tok::Word("rm"))
+            && (is_git_before(&tokens[..i]) || is_flag_after(&tokens[i + 1..]))
+    });
+    if rejected {
+        return None;
+    }
+
+    let mut out = String::with_capacity(command.len() + 3);
+    for tok in &tokens {
+        match tok {
+            Tok::Whitespace(s) => out.push_str(s),
+            Tok::Punctuation(c) => out.push(*c),
+            Tok::Word("rm") => out.push_str("trash"),
+            Tok::Word(s) => out.push_str(s),
+        }
+    }
+    Some(out)
 }
 
 fn main() -> ExitCode {
