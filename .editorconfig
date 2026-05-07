@@ -25,6 +25,10 @@ indent_size = 4
 indent_style = tab
 indent_size = unset
 
+# インデントが倍数になるとは限らない言語。
+[*.el]
+indent_size = unset
+
 [*.md]
 # Markdownには最後にスペース2つ入れて強制改行するシンタックスがあるので末尾のスペースを許可。
 # 注意: なるべく強制改行は使わず、意味で段落して、改行位置はクライアントのデバイスに任せるべきです。
