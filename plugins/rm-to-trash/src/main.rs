@@ -4,26 +4,21 @@
 //! Claude Code側の通常の承認フローへ委ねます。
 //! このモジュールは入出力を行いロジックに渡します。
 
+mod input;
 mod rewrite;
 mod serialize;
 
+use crate::input::read_hook_input;
 use crate::rewrite::rewrite;
-use crate::serialize::{ToolInput, decode_hook_input, mk_hook_output};
-
-use std::io::{self, Read};
+use crate::serialize::{ToolInput, mk_hook_output};
 
 /// 標準入力からデータを読み込んで、
 /// 書き換えが発生した場合は標準出力にJSONを出力します。
 /// 書き換えが発生しなかった場合など何もする必要がない場合は何も出力せずに終了します。
 /// 異常なことが発生した場合はパニックしてエラーメッセージを出力します。
 fn main() {
-    // 標準入力からJSONを読み込む。
-    let mut input = String::new();
-    io::stdin()
-        .read_to_string(&mut input)
-        .expect("failed to read input");
-    // デコードする。
-    let hook_input = decode_hook_input(&input).expect("failed to decode input JSON");
+    // 入力を読み込んでデコードする。
+    let hook_input = read_hook_input().expect("failed to read and decode input");
     // 入力が空の場合は何もせずに終了する。
     if hook_input.tool_input.command.is_empty() {
         return;
