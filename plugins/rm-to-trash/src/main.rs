@@ -7,8 +7,8 @@
 mod rewrite;
 mod serialize;
 
-use crate::rewrite::*;
-use crate::serialize::*;
+use crate::rewrite::rewrite;
+use crate::serialize::{ToolInput, decode_hook_input, mk_hook_output};
 
 use std::io::{self, Read};
 
