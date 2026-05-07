@@ -23,7 +23,7 @@ fn main() {
         .read_to_string(&mut input)
         .expect("failed to read input");
     // デコードする。
-    let hook_input = decode_hook_input(&input).expect("Error: failed to decode input JSON");
+    let hook_input = decode_hook_input(&input).expect("failed to decode input JSON");
     // 入力が空の場合は何もせずに終了する。
     if hook_input.tool_input.command.is_empty() {
         return;
@@ -42,6 +42,6 @@ fn main() {
         ..hook_input.tool_input
     };
     let output = mk_hook_output(rewritten_tool_input, &original, &rewritten);
-    let json = serde_json::to_string(&output).expect("Error: failed to serialize hook output");
+    let json = serde_json::to_string(&output).expect("failed to serialize hook output");
     println!("{json}")
 }
