@@ -141,6 +141,11 @@ mod tests {
     }
 
     #[test]
+    fn skips_empty() {
+        assert!(rewrite("").is_none());
+    }
+
+    #[test]
     fn skips_rm_with_short_flag() {
         assert!(rewrite("rm -rf /tmp/foo").is_none());
     }

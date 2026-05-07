@@ -22,10 +22,6 @@ use crate::serialize::ToolInput;
 fn main() {
     // 入力を読み込んでデコードする。
     let hook_input = read_hook_input().expect("failed to read and decode input");
-    // 入力が空の場合は何もせずに終了する。
-    if hook_input.tool_input.command.is_empty() {
-        return;
-    }
     // ヒントのために元の文字列をとっておく。
     let original = hook_input.tool_input.command;
     // 書き換えロジックを動かす。
