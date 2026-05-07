@@ -1,6 +1,6 @@
 {
   "name": "rm-to-trash",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Auto-rewrites bare `rm <file>` to `trash <file>` in Bash commands via PreToolUse hook.",
   "author": {
     "name": "ncaq",
