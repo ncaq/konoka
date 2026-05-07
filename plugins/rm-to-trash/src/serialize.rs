@@ -114,11 +114,11 @@ mod tests {
             .as_str()
             .expect("additionalContext should be a string");
         assert!(
-            context.contains("rm foo"),
+            context.contains("元: rm foo"),
             "context should contain original"
         );
         assert!(
-            context.contains("trash foo"),
+            context.contains("後: trash foo"),
             "context should contain rewritten",
         );
     }
