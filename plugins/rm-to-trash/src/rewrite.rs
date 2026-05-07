@@ -1,8 +1,8 @@
 //! `rm`コマンド書き換えロジック。
 
+use winnow::Parser;
 use winnow::combinator::{alt, repeat};
 use winnow::token::{one_of, take_while};
-use winnow::Parser;
 
 /// シェルコマンドを構成する最小単位のトークン。
 #[derive(Debug, PartialEq, Eq)]
