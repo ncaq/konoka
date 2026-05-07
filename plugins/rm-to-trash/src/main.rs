@@ -5,12 +5,14 @@
 //! このモジュールは入出力を行いロジックに渡します。
 
 mod input;
+mod output;
 mod rewrite;
 mod serialize;
 
 use crate::input::read_hook_input;
+use crate::output::output_tool_input;
 use crate::rewrite::rewrite;
-use crate::serialize::{ToolInput, mk_hook_output};
+use crate::serialize::ToolInput;
 
 /// 標準入力からデータを読み込んで、
 /// 書き換えが発生した場合は標準出力にJSONを出力します。
@@ -23,20 +25,18 @@ fn main() {
     if hook_input.tool_input.command.is_empty() {
         return;
     }
-
-    // 書き換えロジックを動かす。
+    // ヒントのために元の文字列をとっておく。
     let original = hook_input.tool_input.command;
+    // 書き換えロジックを動かす。
     let Some(rewritten) = rewrite(&original) else {
         // 書き換え対象外のケースは無言で終了する。
         return;
     };
-
-    // 書き換えた内容を出力する。
+    // 書き換えた内容を反映した出力のための構造体を作る。
     let rewritten_tool_input = ToolInput {
         command: rewritten,
         ..hook_input.tool_input
     };
-    let output = mk_hook_output(rewritten_tool_input, &original);
-    let json = serde_json::to_string(&output).expect("failed to serialize hook output");
-    println!("{json}")
+    // 書き換えた内容を出力する。
+    output_tool_input(rewritten_tool_input, &original).expect("failed to output rewritten command");
 }
