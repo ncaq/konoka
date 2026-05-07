@@ -19,11 +19,8 @@ use std::io::{self, Read};
 fn main() {
     // 標準入力からJSONを読み込む。
     let mut input = String::new();
-    match io::stdin().read_to_string(&mut input) {
-        Err(e) => {
-            panic!("Error: failed to read input: {e}");
-        }
-        Ok(_) => {}
+    if let Err(e) = io::stdin().read_to_string(&mut input) {
+        panic!("Error: failed to read input: {e}");
     }
     // デコードする。
     let hook_input = match decode_hook_input(&input) {
