@@ -5,12 +5,19 @@ General-purpose programming guidance for AI coding assistants.
 特定の言語やエコシステムに依存しない、
 汎用的なプログラミングのガイダンスを提供するClaude Codeプラグインです。
 
-命名規則、コマンドの使い分け、GitHubアクセス方法、エラー処理、テスト方針など、
+- 命名規則
+- コマンドの使い分け
+- GitHubアクセス方法
+- エラー処理
+- テスト方針
+
+など、
 おおよその開発環境で共通して役立つ知識を扱います。
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 
