@@ -6,10 +6,16 @@ AIコーディングアシスタント(Claude Code等)のプラグインマー�
 
 ## 技術スタック
 
+### 開発ツール
+
 - Nix
+
+### [octokit.js](https://github.com/octokit/octokit.js)を使う場合
 
 - TypeScript
 - Node.js
+
+### 高速に動作するプログラムを書く場合
 
 - Rust
 
