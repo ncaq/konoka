@@ -4,12 +4,18 @@ Web development best practices, patterns, and guidance for AI coding assistants.
 
 Web開発のベストプラクティスやパターンなどを提供するClaude Codeプラグインです。
 
-HTML, TypeScript, JavaScript, React, アクセシビリティなど、
-Web技術全般をカバーします。
+- HTML
+- TypeScript
+- JavaScript
+- React
+- アクセシビリティ
+
+などWeb技術全般をカバーします。
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 
@@ -31,9 +37,11 @@ Claude Codeで以下を実行します。
 
 ### スキル(背景知識)
 
-HTMLのより良い書き方、
-TypeScriptの型の活用や命名規則のベストプラクティスと言った、
-Web開発の知識をスキルとして提供します。
+- HTMLのより良い書き方
+- TypeScriptの型の活用
+- 命名規則のベストプラクティス
+
+などのWeb開発の知識をスキルとして提供します。
 
 Claudeが関連するコンテキストを検出すると自動的に参照するため、
 ユーザーが明示的に呼び出す必要はありません。

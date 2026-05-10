@@ -1,7 +1,23 @@
 # Project
 
-konoka: AIコーディングアシスタント(Claude Code等)のプラグインマーケットプレイスリポジトリ。
-技術スタック: Nix(flake-parts, treefmt-nix), TypeScript, Node.js。
+## konoka
+
+AIコーディングアシスタント(Claude Code等)のプラグインのマーケットプレイスを管理するリポジトリ。
+
+## 技術スタック
+
+### 開発ツール
+
+- Nix
+
+### [octokit.js](https://github.com/octokit/octokit.js)を使う場合
+
+- TypeScript
+- Node.js
+
+### 高速に動作するプログラムを書く場合
+
+- Rust
 
 # 出力設定
 

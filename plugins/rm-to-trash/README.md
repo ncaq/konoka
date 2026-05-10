@@ -7,7 +7,8 @@ Bashツール経由の素の`rm`コマンドを`trash`へ自動的に書き換�
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 

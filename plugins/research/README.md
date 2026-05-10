@@ -18,7 +18,8 @@
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 
@@ -74,7 +75,8 @@ Claude Codeで以下を実行します。
 NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインに同梱されています。
 nix-tasukeを導入している場合はnixosの`.mcp.json`設定は不要です。
 
-Backlogは公開HTTPエンドポイントが提供されていないため、MCPサーバーを自分でビルド・ホストする必要があります。
+Backlogは公開HTTPエンドポイントが提供されていないため、
+MCPサーバーを自分でビルド・ホストする必要があります。
 
 `.mcp.json`の設定例(Backlog以外):
 

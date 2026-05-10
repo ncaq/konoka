@@ -7,7 +7,8 @@
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 
@@ -60,7 +61,8 @@ echo $XDG_RUNTIME_DIR
 }
 ```
 
-現時点ではClaude Codeの`additionalDirectories`は環境変数を展開しないため、絶対パスで指定する必要があります。
+現時点ではClaude Codeの`additionalDirectories`は環境変数を展開しないため、
+絶対パスで指定する必要があります。
 
 `$XDG_RUNTIME_DIR`が未設定の環境では`/tmp`にフォールバックします。
 

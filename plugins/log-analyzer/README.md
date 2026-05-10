@@ -7,7 +7,8 @@ Extract key information from verbose command output while keeping main conversat
 
 ## インストール
 
-このプラグインをインストールする前に、[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
+このプラグインをインストールする前に、
+[ncaq/konoka](../../README.md)マーケットプレイスをClaude Codeに追加してください。
 
 Claude Codeで以下を実行します。
 
@@ -27,7 +28,8 @@ Claude Codeで以下を実行します。
 
 ## セットアップ
 
-このプラグインはログファイルを`$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`配下にタイムスタンプ付きのサブディレクトリを作成して保存します。
+このプラグインはログファイルを`$XDG_RUNTIME_DIR/coding-agent-work/log-analyzer/`配下に、
+タイムスタンプ付きのサブディレクトリを作成して保存します。
 Claude Codeの自動承認ディレクトリに追加することを推奨します。
 
 ### 環境変数の確認
@@ -56,14 +58,16 @@ echo $XDG_RUNTIME_DIR
 }
 ```
 
-現時点ではClaude Codeの`additionalDirectories`は環境変数を展開しないため、絶対パスで指定する必要があります。
+現時点ではClaude Codeの`additionalDirectories`は環境変数を展開しないため、
+絶対パスで指定する必要があります。
 
 `$XDG_RUNTIME_DIR`が未設定の環境では`/tmp`にフォールバックします。
 
 ## 使い方
 
 Claude Codeがlog-analyzerエージェントを自動的に利用可能になります。
-ビルドログやテスト出力など長大なコマンド出力の解析が必要な場面で、メインのコンテキストから分離されたサブエージェントとして起動されます。
+ビルドログやテスト出力など長大なコマンド出力の解析が必要な場面で、
+メインのコンテキストから分離されたサブエージェントとして起動されます。
 
 ## 動作
 
