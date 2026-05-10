@@ -1,6 +1,6 @@
 # Project
 
-## konoka:
+## konoka
 
 AIコーディングアシスタント(Claude Code等)のプラグインマーケットプレイスリポジトリ。
 
