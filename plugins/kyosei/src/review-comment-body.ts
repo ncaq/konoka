@@ -21,6 +21,8 @@ function quoteAlertLine(line: string): string {
 /** GitHub Alert形式とタグラベルを付与したコメント本文を生成します。 */
 export function formatReviewCommentBody(comment: typeof ReviewCommentSchema.Type): string {
   const tagLabel =
-    comment.tags.length > 0 ? `${quoteAlertLine(comment.tags.map((tag) => reviewTagLabel[tag]).join(" "))}\n` : "";
+    comment.tags.length > 0
+      ? `${quoteAlertLine(comment.tags.map((tag) => reviewTagLabel[tag]).join(" "))}\n`
+      : "";
   return `> [!${comment.level}]\n${tagLabel}\n${comment.body}`;
 }

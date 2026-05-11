@@ -19,7 +19,11 @@ describe("formatReviewCommentBody", () => {
   });
 
   test("単一tagはラベルが付与される", () => {
-    const result = formatReviewCommentBody({ ...baseComment, level: "WARNING", tags: ["security"] });
+    const result = formatReviewCommentBody({
+      ...baseComment,
+      level: "WARNING",
+      tags: ["security"],
+    });
 
     expect(result).toBe("> [!WARNING]\n> 🔒 Security\n\nfix this");
   });

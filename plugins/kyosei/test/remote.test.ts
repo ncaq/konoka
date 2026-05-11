@@ -43,7 +43,10 @@ describe("getRemoteName", () => {
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(NoGitRemotes))),
       Effect.provide(
         fakeCommandExecutor(
-          sequenceHandler([Effect.fail(new Error("fatal: no upstream configured")), Effect.succeed("\n")]),
+          sequenceHandler([
+            Effect.fail(new Error("fatal: no upstream configured")),
+            Effect.succeed("\n"),
+          ]),
         ),
       ),
     ),

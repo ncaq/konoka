@@ -23,7 +23,9 @@ export function parsePrUrl(argument: string): Either.Either<GitHubOutputContext,
         : `unexpected URL parsing error: ${String(cause)}`,
   }).pipe(
     Either.flatMap((url) => {
-      const [owner, repo, pullLiteral, prNumberStr] = url.pathname.split("/").filter((s) => s !== "");
+      const [owner, repo, pullLiteral, prNumberStr] = url.pathname
+        .split("/")
+        .filter((s) => s !== "");
       if (owner == null || repo == null || pullLiteral !== "pull" || prNumberStr == null) {
         return Either.left("URL path is not in /owner/repo/pull/<number> form");
       }

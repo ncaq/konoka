@@ -11,13 +11,18 @@ import { buildReviewBody } from "./review-metadata";
 import { ReviewSubmissionSchema, type ReviewSubmissionResultSchema } from "./review-schema";
 
 /** `octokit.rest.pulls.createReview`に渡すパラメータ型。 */
-export type CreateReviewParams = NonNullable<Parameters<Octokit["rest"]["pulls"]["createReview"]>[0]>;
+export type CreateReviewParams = NonNullable<
+  Parameters<Octokit["rest"]["pulls"]["createReview"]>[0]
+>;
 
 /**
  * `submission`とメタデータ付与済みの`body`から、`octokit.rest.pulls.createReview`へ渡すパラメータを組み立てます。
  * API呼び出しは行いません。`submitReview`と`previewReview`の双方で共有されます。
  */
-function buildCreateReviewParams(submission: typeof ReviewSubmissionSchema.Type, body: string): CreateReviewParams {
+function buildCreateReviewParams(
+  submission: typeof ReviewSubmissionSchema.Type,
+  body: string,
+): CreateReviewParams {
   return {
     owner: submission.owner,
     repo: submission.repo,

@@ -21,7 +21,10 @@ describe("readContributing", () => {
 
   test("リポジトリ直下のCONTRIBUTING.mdを読み込みます", async () => {
     await writeFile(join(root, "CONTRIBUTING.md"), "# direct\n");
-    expect(await readContributing(root)).toEqual({ path: "CONTRIBUTING.md", content: "# direct\n" });
+    expect(await readContributing(root)).toEqual({
+      path: "CONTRIBUTING.md",
+      content: "# direct\n",
+    });
   });
 
   test(".github/CONTRIBUTING.mdを読み込みます", async () => {
@@ -44,6 +47,8 @@ describe("readContributing", () => {
 
 describe("formatContributing", () => {
   test("ファイルパスを見出しとして整形します", () => {
-    expect(formatContributing({ path: "CONTRIBUTING.md", content: "body\n" })).toBe("# CONTRIBUTING.md\n\nbody\n");
+    expect(formatContributing({ path: "CONTRIBUTING.md", content: "body\n" })).toBe(
+      "# CONTRIBUTING.md\n\nbody\n",
+    );
   });
 });

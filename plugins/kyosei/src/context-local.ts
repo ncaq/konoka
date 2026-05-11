@@ -13,9 +13,13 @@ import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
  * gitのsymbolic-refからリモートのデフォルトブランチ名を取得します。
  * `git remote set-head`で設定されている必要があります。
  */
-function getDefaultBranchFromGit(remoteName: string): Effect.Effect<string, Error, CommandExecutor.CommandExecutor> {
+function getDefaultBranchFromGit(
+  remoteName: string,
+): Effect.Effect<string, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const symbolicRef = yield* Command.string(Command.make("git", "symbolic-ref", `refs/remotes/${remoteName}/HEAD`));
+    const symbolicRef = yield* Command.string(
+      Command.make("git", "symbolic-ref", `refs/remotes/${remoteName}/HEAD`),
+    );
     // "refs/remotes/origin/main" → "main"
     const prefix = `refs/remotes/${remoteName}/`;
     const ref = symbolicRef.trim();
@@ -30,7 +34,11 @@ function getDefaultBranchFromGit(remoteName: string): Effect.Effect<string, Erro
  * リモートURLからGitHubリポジトリ情報の取得を試みます。
  * リモート未設定やURL解析失敗は`Option.none`で表現し、それ以外のエラーはそのまま伝播します。
  */
-function tryGetRemoteRepo(): Effect.Effect<Option.Option<RemoteRepo>, Error, CommandExecutor.CommandExecutor> {
+function tryGetRemoteRepo(): Effect.Effect<
+  Option.Option<RemoteRepo>,
+  Error,
+  CommandExecutor.CommandExecutor
+> {
   return getRemoteRepo().pipe(
     Effect.map(Option.some),
     // GitHubリポジトリが特定できない正当なケースは`None`に畳んで上位に渡します。

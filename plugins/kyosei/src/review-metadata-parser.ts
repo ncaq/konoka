@@ -104,8 +104,15 @@ export function parseFooterMetadata(body: string): Option.Option<typeof Metadata
   if (!isRight(result)) {
     return Option.none();
   }
-  const { commit, pr, kyoseiVersion, kyoseiActionVersion, claudeCodeVersion, model, executionInfo } =
-    result.right.value;
+  const {
+    commit,
+    pr,
+    kyoseiVersion,
+    kyoseiActionVersion,
+    claudeCodeVersion,
+    model,
+    executionInfo,
+  } = result.right.value;
   const decoded = Schema.decodeUnknownEither(MetadataSchema)({
     commit,
     pr,

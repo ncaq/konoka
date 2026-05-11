@@ -2,7 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { formatPullRequestTemplates, readPullRequestTemplates } from "../src/read-pull-request-template.ts";
+import {
+  formatPullRequestTemplates,
+  readPullRequestTemplates,
+} from "../src/read-pull-request-template.ts";
 
 describe("readPullRequestTemplates", () => {
   let root: string;
@@ -35,7 +38,10 @@ describe("readPullRequestTemplates", () => {
 
     const templates = await readPullRequestTemplates(root);
     const paths = templates.map((t) => t.path).sort();
-    expect(paths).toEqual([".github/PULL_REQUEST_TEMPLATE/bug.md", ".github/PULL_REQUEST_TEMPLATE/feature.md"]);
+    expect(paths).toEqual([
+      ".github/PULL_REQUEST_TEMPLATE/bug.md",
+      ".github/PULL_REQUEST_TEMPLATE/feature.md",
+    ]);
   });
 
   test("単一テンプレートと複数テンプレートが両方ある場合は全てを返します", async () => {

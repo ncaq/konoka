@@ -42,13 +42,18 @@ function toCandidate(review: Conversation["reviews"][number]): Option.Option<Rev
  * conversationから、フッターメタデータを復元できる最新のkyoseiレビューを返します。
  * 候補がなければ`Option.none`。
  */
-export function pickPreviousKyoseiReview(conversation: Conversation): Option.Option<typeof PreviousReviewSchema.Type> {
+export function pickPreviousKyoseiReview(
+  conversation: Conversation,
+): Option.Option<typeof PreviousReviewSchema.Type> {
   return conversation.reviews.reduce<Option.Option<ReviewCandidate>>((acc, review) => {
     const candidate = toCandidate(review);
     if (Option.isNone(candidate)) {
       return acc;
     }
-    if (Option.isNone(acc) || DateTime.Order(candidate.value.submittedAt, acc.value.submittedAt) > 0) {
+    if (
+      Option.isNone(acc) ||
+      DateTime.Order(candidate.value.submittedAt, acc.value.submittedAt) > 0
+    ) {
       return candidate;
     }
     return acc;

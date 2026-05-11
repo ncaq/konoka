@@ -26,7 +26,10 @@ export interface Changeset {
  * GitHub APIからdiff形式で差分を取得し、
  * コミット一覧もAPIから取得します。
  */
-function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Effect.Effect<Changeset, Error> {
+function getPrChangeset(
+  octokit: Octokit,
+  context: GitHubOutputContext,
+): Effect.Effect<Changeset, Error> {
   return Effect.gen(function* () {
     const [diffResponse, allCommits] = yield* Effect.all(
       [
@@ -54,7 +57,12 @@ function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Effect.
         // まず入ってないことはないと思うので雑なフォールバック値を設定しています。
         const authorName = c.commit.author?.name ?? "unknown-author-name";
         const authorDate = c.commit.author?.date ?? "unknown-author-date";
-        return `commit ${c.sha}\nAuthor: ${authorName}\nDate: ${authorDate}\n\n    ${c.commit.message}\n`;
+        return `commit ${c.sha}
+Author: ${authorName}
+Date: ${authorDate}
+
+    ${c.commit.message}
+`;
       })
       .join("\n");
     // mediaType diffを指定するとレスポンスが文字列になります。
@@ -83,7 +91,10 @@ function getLocalChangeset(
   context: LocalOutputContext,
 ): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const base = context.remoteName != null ? `${context.remoteName}/${context.baseBranch}` : context.baseBranch;
+    const base =
+      context.remoteName != null
+        ? `${context.remoteName}/${context.baseBranch}`
+        : context.baseBranch;
     const range = `${base}...HEAD`;
     const [diff, log] = yield* Effect.all(
       [

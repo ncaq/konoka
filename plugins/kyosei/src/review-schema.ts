@@ -115,7 +115,9 @@ export const ReviewCommentSchema = Schema.Struct({
   path: Schema.NonEmptyString,
   body: Schema.NonEmptyString,
   line: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  startLine: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), { exact: true }),
+  startLine: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), {
+    exact: true,
+  }),
   side: Schema.optionalWith(DiffSideSchema, { exact: true }),
   level: ReviewLevelSchema,
   tags: Schema.Array(ReviewTagSchema),

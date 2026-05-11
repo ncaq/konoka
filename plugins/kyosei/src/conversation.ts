@@ -317,7 +317,10 @@ function mapReviewThreadNode(
  * PRの会話情報をGraphQL APIで取得します。
  * コメント、レビュー、レビュースレッドを全件取得します。
  */
-export function getConversation(octokit: Octokit, target: PrIdentifier): Effect.Effect<Conversation, Error> {
+export function getConversation(
+  octokit: Octokit,
+  target: PrIdentifier,
+): Effect.Effect<Conversation, Error> {
   return Effect.gen(function* () {
     const variables = {
       owner: target.owner,
@@ -326,7 +329,9 @@ export function getConversation(octokit: Octokit, target: PrIdentifier): Effect.
     };
 
     // 初回クエリで3つのconnectionを同時に取得します。
-    const initial = yield* Effect.tryPromise(() => octokit.graphql<GraphQLInitialResponse>(INITIAL_QUERY, variables));
+    const initial = yield* Effect.tryPromise(() =>
+      octokit.graphql<GraphQLInitialResponse>(INITIAL_QUERY, variables),
+    );
     const pr = initial.repository.pullRequest;
 
     const commentNodes: GraphQLCommentNode[] = [...pr.comments.nodes];
@@ -336,8 +341,22 @@ export function getConversation(octokit: Octokit, target: PrIdentifier): Effect.
     // 追加ページが必要なconnectionを並列で取得します。
     yield* Effect.all(
       [
-        paginateConnection(octokit, variables, "comments", COMMENT_FIELDS, pr.comments.pageInfo, commentNodes),
-        paginateConnection(octokit, variables, "reviews", REVIEW_FIELDS, pr.reviews.pageInfo, reviewNodes),
+        paginateConnection(
+          octokit,
+          variables,
+          "comments",
+          COMMENT_FIELDS,
+          pr.comments.pageInfo,
+          commentNodes,
+        ),
+        paginateConnection(
+          octokit,
+          variables,
+          "reviews",
+          REVIEW_FIELDS,
+          pr.reviews.pageInfo,
+          reviewNodes,
+        ),
         paginateConnection(
           octokit,
           variables,
@@ -394,7 +413,9 @@ function paginateConnection<TNode>(
       );
       const connection = page.repository.pullRequest[connectionName];
       if (connection == null) {
-        return yield* Effect.fail(new Error(`GraphQL response missing connection: ${connectionName}`));
+        return yield* Effect.fail(
+          new Error(`GraphQL response missing connection: ${connectionName}`),
+        );
       }
       accumulator.push(...connection.nodes);
       hasNextPage = connection.pageInfo.hasNextPage;

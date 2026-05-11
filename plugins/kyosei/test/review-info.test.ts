@@ -18,7 +18,8 @@ vi.mock("../src/conversation", () => ({
 }));
 
 vi.mock("../src/previous-review", async () => {
-  const actual = await vi.importActual<typeof import("../src/previous-review")>("../src/previous-review");
+  const actual =
+    await vi.importActual<typeof import("../src/previous-review")>("../src/previous-review");
   return {
     ...actual,
     pickPreviousKyoseiReview: vi.fn(),
@@ -26,7 +27,9 @@ vi.mock("../src/previous-review", async () => {
 });
 
 vi.mock("../src/incremental-changeset", async () => {
-  const actual = await vi.importActual<typeof import("../src/incremental-changeset")>("../src/incremental-changeset");
+  const actual = await vi.importActual<typeof import("../src/incremental-changeset")>(
+    "../src/incremental-changeset",
+  );
   return {
     ...actual,
     getIncrementalChangeset: vi.fn(),
@@ -77,7 +80,9 @@ const dummyIncrementalChangeset = Schema.decodeUnknownSync(IncrementalChangesetS
   status: "tree-identical",
 });
 
-const noCommandLayer = fakeCommandExecutor(() => Effect.die(new Error("CommandExecutor should not be invoked")));
+const noCommandLayer = fakeCommandExecutor(() =>
+  Effect.die(new Error("CommandExecutor should not be invoked")),
+);
 
 describe("getReviewInfo", () => {
   beforeEach(() => {

@@ -63,7 +63,9 @@ describe("pickPreviousKyoseiReview", () => {
       expect(result.value.metadata.commit).toBe("a214aef83b6ce8f");
       expect(result.value.event).toBe("APPROVED");
       expect(result.value.metadata.pr).toBe(178);
-      expect(DateTime.toDateUtc(result.value.submittedAt).toISOString()).toBe("2026-04-01T00:00:00.000Z");
+      expect(DateTime.toDateUtc(result.value.submittedAt).toISOString()).toBe(
+        "2026-04-01T00:00:00.000Z",
+      );
     }
   });
 
@@ -115,7 +117,11 @@ describe("pickPreviousKyoseiReview", () => {
 
   test("submittedAtがnullのレビューはスキップ", () => {
     const conversation = makeConversation([
-      makeReview({ id: "no-submitted-at", body: `summary\n\n${buildFooter("aaaaaaa")}`, submittedAt: null }),
+      makeReview({
+        id: "no-submitted-at",
+        body: `summary\n\n${buildFooter("aaaaaaa")}`,
+        submittedAt: null,
+      }),
       makeReview({
         id: "valid",
         body: `summary\n\n${buildFooter("bbbbbbb")}`,
