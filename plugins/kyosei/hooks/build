@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# `dist/`が存在すればビルド済みなので何もしません。
-# プラグイン更新時は`CLAUDE_PLUGIN_ROOT`ごと入れ替わり`dist/`も消えるため、
-# この存在チェックだけで初回・更新後の両方を検知できます。
+# ビルド済みなら何もせず即座に終了します。
+# プラグイン更新時は`CLAUDE_PLUGIN_ROOT`ごと入れ替わりビルドしたファイルも消えるため、
+# 初回・更新後の両方でビルドされていないことを検知できます。
 [ -d "${CLAUDE_PLUGIN_ROOT}/dist" ] && exit 0
 
-# ビルドされていなかったのでビルドとインストールを行います。
-echo "Installing dependencies and building kyosei plugin..."
+# 競合防止のためにロックを取得します。
+exec 9>"${CLAUDE_PLUGIN_ROOT}/.build.lock"
+flock 9
 
-# プロジェクトのディレクトリに移動。
+# ロックしている間に他のプロセスがビルドしていたら終了します。
+[ -d "${CLAUDE_PLUGIN_ROOT}/dist" ] && exit 0
+
+# 必要なコマンドが存在するか簡易検証します。
+if ! command -v npm &>/dev/null; then
+  echo "Error: npm is not found. Install Node.js to build the plugin." >&2
+  exit 1
+fi
+
+# ディレクトリを固定します。
 cd "${CLAUDE_PLUGIN_ROOT}"
-# 依存関係をインストール。
+# 依存関係をインストールします。
 npm ci
-# プログラムをビルド。
+# ビルドします。
 npm run build
