@@ -8,7 +8,7 @@ set -euo pipefail
 
 # 競合防止のためにロックを取得します。
 exec 9>"${CLAUDE_PLUGIN_ROOT}/.build.lock"
-flock 9
+flock --wait 250 9
 
 # ロックしている間に他のプロセスがビルドしていたら終了します。
 [ -d "${CLAUDE_PLUGIN_ROOT}/dist" ] && exit 0
