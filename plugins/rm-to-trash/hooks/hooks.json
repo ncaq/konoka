@@ -17,6 +17,7 @@
         "hooks": [
           {
             "type": "command",
+            "if": "Bash(rm:*)",
             "command": "${CLAUDE_PLUGIN_ROOT}/target/release/rm-to-trash",
             "timeout": 10
           }
