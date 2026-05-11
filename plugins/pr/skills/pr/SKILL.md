@@ -133,7 +133,7 @@ PR作成に進んでください。
 タイムアウトは最大の600秒に設定してください。
 
 ```bash
-editor.ts <PR_EDITMSGのパス>
+editor.ts <PULLREQ_EDITMSGのパス>
 ```
 
 エディタが正常終了したら、
