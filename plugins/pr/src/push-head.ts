@@ -102,7 +102,7 @@ async function detectAction(): Promise<PushAction> {
   if (aheadBehind.behind > 0 && aheadBehind.ahead === 0) {
     throw new CommandError(
       `Local branch is behind upstream by ${String(aheadBehind.behind)} commit(s).` +
-        "Pull or rebase before retry.",
+        " Pull or rebase before retry.",
       "",
     );
   }
