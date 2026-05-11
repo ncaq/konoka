@@ -23,16 +23,16 @@ function getCodingAgentWorkDir(pluginName: string): string {
 }
 
 const pluginName = "pr" as const;
-const fileName = "PR_EDITMSG" as const;
+const fileName = "PULLREQ_EDITMSG" as const;
 
 /**
- * セッション固有の一時ディレクトリを作成し、`PR_EDITMSG`ファイルのフルパスを返します。
+ * セッション固有の一時ディレクトリを作成し、`PULLREQ_EDITMSG`ファイルのフルパスを返します。
  *
  * 作業ディレクトリの基底は`$XDG_RUNTIME_DIR/coding-agent-work/pr/`を使い、
  * 未設定環境では`os.tmpdir()`にフォールバックします。
  * 親ディレクトリが無い場合は`mkdir -p`相当で再帰的に作成し、
  * その下に`mkdtemp`でセッション固有のサブディレクトリを掘ります。
- * `PR_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
+ * `PULLREQ_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
  *
  * `options.runtimeDir`はテスト用のオプションであって、
  * 通常使うことを想定していません。
