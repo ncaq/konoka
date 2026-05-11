@@ -23,7 +23,7 @@ function getCodingAgentWorkDir(pluginName: string): string {
 }
 
 const pluginName = "pr" as const;
-const fileName = "PR_EDITMSG" as const;
+const fileName = "PULLREQ_EDITMSG" as const;
 
 /**
  * セッション固有の一時ディレクトリを作成し、`PR_EDITMSG`ファイルのフルパスを返します。

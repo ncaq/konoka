@@ -15,9 +15,9 @@ describe("prepareEditmsg", () => {
     await rm(runtimeDir, { recursive: true, force: true });
   });
 
-  test("PR_EDITMSGファイルのパスを返します", async () => {
+  test("PULLREQ_EDITMSGファイルのパスを返します", async () => {
     const path = await prepareEditmsg({ runtimeDir });
-    expect(path.endsWith("/PR_EDITMSG")).toBe(true);
+    expect(path.endsWith("/PULLREQ_EDITMSG")).toBe(true);
   });
 
   test("セッション固有のサブディレクトリを実体として作成します", async () => {
