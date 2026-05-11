@@ -57,7 +57,12 @@ function getPrChangeset(
         // まず入ってないことはないと思うので雑なフォールバック値を設定しています。
         const authorName = c.commit.author?.name ?? "unknown-author-name";
         const authorDate = c.commit.author?.date ?? "unknown-author-date";
-        return `commit ${c.sha}\nAuthor: ${authorName}\nDate: ${authorDate}\n\n    ${c.commit.message}\n`;
+        return `commit ${c.sha}
+Author: ${authorName}
+Date: ${authorDate}
+
+    ${c.commit.message}
+`;
       })
       .join("\n");
     // mediaType diffを指定するとレスポンスが文字列になります。

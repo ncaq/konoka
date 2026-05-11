@@ -29,7 +29,8 @@ export function detectReviewContext(
         return parsed.right;
       }
       yield* Effect.logWarning(
-        `argument: "${argument}" is not a recognizable PR URL (${parsed.left}); falling back to local context.`,
+        `argument: "${argument}" is not a recognizable PR URL (${parsed.left});` +
+          " falling back to local context.",
       );
     }
     // 引数が指定されていない場合はローカル出力向けにブランチ情報を解決します。

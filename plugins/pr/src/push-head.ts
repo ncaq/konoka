@@ -101,7 +101,8 @@ async function detectAction(): Promise<PushAction> {
   }
   if (aheadBehind.behind > 0 && aheadBehind.ahead === 0) {
     throw new CommandError(
-      `Local branch is behind upstream by ${String(aheadBehind.behind)} commit(s). Pull or rebase before retry.`,
+      `Local branch is behind upstream by ${String(aheadBehind.behind)} commit(s).` +
+        "Pull or rebase before retry.",
       "",
     );
   }
@@ -134,7 +135,8 @@ export async function pushHead(): Promise<PushHeadResult> {
       if (openPr !== undefined) {
         throw new CommandError(
           [
-            `An open pull request #${String(openPr.number)} already exists for branch ${currentBranch}.`,
+            `An open pull request #${String(openPr.number)}`,
+            `already exists for branch ${currentBranch}.`,
             "Cancel this skill and update the existing PR instead of force-pushing.",
           ].join(" "),
           "",
