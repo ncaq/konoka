@@ -65,7 +65,9 @@ function getNormalizedEnvironmentVariable(name: string): Option.Option<string> {
  * 指定した環境変数をURLとして取得します。
  * 未設定なら`EnvVarNotSet`、URLとして解釈できなければ`EnvVarInvalidUrl`で失敗します。
  */
-function getUrlEnvironmentVariable(name: string): Effect.Effect<URL, EnvVarNotSet | EnvVarInvalidUrl> {
+function getUrlEnvironmentVariable(
+  name: string,
+): Effect.Effect<URL, EnvVarNotSet | EnvVarInvalidUrl> {
   return Effect.gen(function* () {
     const value = getNormalizedEnvironmentVariable(name);
     if (Option.isNone(value)) {
@@ -110,7 +112,9 @@ function getGitHubBaseUrl(): Effect.Effect<URL, EnvVarNotSet | EnvVarInvalidUrl>
     Effect.catchTag("EnvVarNotSet", () =>
       getUrlEnvironmentVariable("GITHUB_SERVER_URL").pipe(
         Effect.map((url) =>
-          url.origin === "https://github.com" ? new URL("https://api.github.com") : new URL("/api/v3", url),
+          url.origin === "https://github.com"
+            ? new URL("https://api.github.com")
+            : new URL("/api/v3", url),
         ),
       ),
     ),
@@ -119,7 +123,9 @@ function getGitHubBaseUrl(): Effect.Effect<URL, EnvVarNotSet | EnvVarInvalidUrl>
       Option.match(getNormalizedEnvironmentVariable("GH_HOST"), {
         onSome: (host) =>
           Effect.succeed(
-            host === "github.com" ? new URL("https://api.github.com") : new URL("/api/v3", `https://${host}`),
+            host === "github.com"
+              ? new URL("https://api.github.com")
+              : new URL("/api/v3", `https://${host}`),
           ),
         onNone: () => Effect.fail(new EnvVarNotSet({ name: "GH_HOST" })),
       }),
@@ -148,13 +154,21 @@ function getGitHubAuthOptionsFromEnvironment(): Option.Option<GitHubAuthOptions>
  * GitHub CLIの認証情報からGitHubトークンを生成します。
  * 生成できなかったりコマンド実行に失敗した場合は失敗を伝達します。
  */
-function createGitHubAuthOptionsFromGh(): Effect.Effect<GitHubAuthOptions, Error, CommandExecutor.CommandExecutor> {
+function createGitHubAuthOptionsFromGh(): Effect.Effect<
+  GitHubAuthOptions,
+  Error,
+  CommandExecutor.CommandExecutor
+> {
   return Effect.gen(function* () {
     const githubHostname = yield* getGitHubHostname();
     const argumentList =
-      githubHostname === "github.com" ? ["auth", "token"] : ["auth", "token", "--hostname", githubHostname];
+      githubHostname === "github.com"
+        ? ["auth", "token"]
+        : ["auth", "token", "--hostname", githubHostname];
     const stdout = yield* Command.string(Command.make("gh", ...argumentList)).pipe(
-      Effect.mapError((err) => new Error(`failed to read GitHub token from gh: ${err.message}`, { cause: err })),
+      Effect.mapError(
+        (err) => new Error(`failed to read GitHub token from gh: ${err.message}`, { cause: err }),
+      ),
     );
     const token = normalizeEnvironmentVariable(stdout);
     if (Option.isNone(token)) {
@@ -171,7 +185,11 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<GitHubAuthOptions, Error
  * GitHubトークンを生成します。
  * まず環境変数経由を試して次にGitHub CLIの順で試行します。
  */
-function createGitHubAuthOptions(): Effect.Effect<GitHubAuthOptions, Error, CommandExecutor.CommandExecutor> {
+function createGitHubAuthOptions(): Effect.Effect<
+  GitHubAuthOptions,
+  Error,
+  CommandExecutor.CommandExecutor
+> {
   return Option.match(getGitHubAuthOptionsFromEnvironment(), {
     onSome: (options) => Effect.succeed(options),
     onNone: () => createGitHubAuthOptionsFromGh(),
@@ -188,7 +206,9 @@ function handleRateLimit(
   octokit: { log: { warn: (message: string) => void } },
   retryCount: number,
 ): boolean {
-  octokit.log.warn(`rate limit exhausted for ${options.method} ${options.url}, retry after ${retryAfter}s`);
+  octokit.log.warn(
+    `rate limit exhausted for ${options.method} ${options.url}, retry after ${retryAfter}s`,
+  );
   return retryCount < 2;
 }
 
@@ -202,7 +222,9 @@ function handleSecondaryRateLimit(
   octokit: { log: { warn: (message: string) => void } },
   retryCount: number,
 ): boolean {
-  octokit.log.warn(`secondary rate limit for ${options.method} ${options.url}, retry after ${retryAfter}s`);
+  octokit.log.warn(
+    `secondary rate limit for ${options.method} ${options.url}, retry after ${retryAfter}s`,
+  );
   return retryCount < 2;
 }
 
@@ -215,7 +237,11 @@ function handleSecondaryRateLimit(
  * 単一の環境変数に頼るようなシンプルな方法ではなく、
  * このような複雑な方法が必要でした。
  */
-export function createOctokitClient(): Effect.Effect<Octokit, Error, CommandExecutor.CommandExecutor> {
+export function createOctokitClient(): Effect.Effect<
+  Octokit,
+  Error,
+  CommandExecutor.CommandExecutor
+> {
   return Effect.gen(function* () {
     const githubAuthOptions = yield* createGitHubAuthOptions();
     // baseUrlが設定されている場合はオプションに追加します。そうでない場合は空のオブジェクトを展開して何もしないようにします。
@@ -240,5 +266,9 @@ export function createOctokitClient(): Effect.Effect<Octokit, Error, CommandExec
       },
       retry: { enabled: true },
     });
-  }).pipe(Effect.mapError((err) => new Error(`failed to create Octokit client: ${err.message}`, { cause: err })));
+  }).pipe(
+    Effect.mapError(
+      (err) => new Error(`failed to create Octokit client: ${err.message}`, { cause: err }),
+    ),
+  );
 }

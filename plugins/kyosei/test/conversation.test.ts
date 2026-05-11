@@ -75,7 +75,11 @@ describe("getConversation", () => {
       };
       const octokit = { graphql: makeGraphqlMock(prData) } as unknown as Octokit;
 
-      const conversation = yield* getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+      const conversation = yield* getConversation(octokit, {
+        owner: "test",
+        repo: "repo",
+        prNumber: 1,
+      });
 
       expect(conversation).toEqual({
         title: "Test PR",
@@ -141,7 +145,11 @@ describe("getConversation", () => {
       };
       const octokit = { graphql: makeGraphqlMock(prData) } as unknown as Octokit;
 
-      const conversation = yield* getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+      const conversation = yield* getConversation(octokit, {
+        owner: "test",
+        repo: "repo",
+        prNumber: 1,
+      });
 
       expect(conversation.author).toBeNull();
     }),
@@ -210,7 +218,11 @@ describe("getConversation", () => {
         });
       const octokit = { graphql: graphqlMock } as unknown as Octokit;
 
-      const conversation = yield* getConversation(octokit, { owner: "test", repo: "repo", prNumber: 1 });
+      const conversation = yield* getConversation(octokit, {
+        owner: "test",
+        repo: "repo",
+        prNumber: 1,
+      });
 
       const thread = conversation.reviewThreads.at(0);
       expect(thread).toBeDefined();

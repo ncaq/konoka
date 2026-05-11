@@ -12,7 +12,9 @@ import { detectReviewContext } from "../context";
 import { getReviewInfo } from "../review-info";
 
 const prUrl = Args.text({ name: "pr-url" }).pipe(
-  Args.withDescription("対象PRのURL。省略時はカレントブランチからローカルコンテキストを推定します。"),
+  Args.withDescription(
+    "対象PRのURL。省略時はカレントブランチからローカルコンテキストを推定します。",
+  ),
   Args.optional,
 );
 

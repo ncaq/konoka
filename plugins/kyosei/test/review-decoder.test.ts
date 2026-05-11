@@ -30,7 +30,9 @@ describe("decodeReviewSubmission", () => {
   });
 
   test("headCommitIdがSHA形式でない場合はエラーになる", () => {
-    expect(() => decodeReviewSubmission(JSON.stringify({ ...validInput, headCommitId: "not-a-sha" }))).toThrow();
+    expect(() =>
+      decodeReviewSubmission(JSON.stringify({ ...validInput, headCommitId: "not-a-sha" })),
+    ).toThrow();
   });
 
   test("全フィールドを含む入力をデコードできる", () => {
@@ -94,7 +96,9 @@ describe("decodeReviewSubmission", () => {
   });
 
   test("prNumberが小数の場合はエラーになる", () => {
-    expect(() => decodeReviewSubmission(JSON.stringify({ ...validInput, prNumber: 1.5 }))).toThrow();
+    expect(() =>
+      decodeReviewSubmission(JSON.stringify({ ...validInput, prNumber: 1.5 })),
+    ).toThrow();
   });
 
   test("コメントのlineが0の場合はエラーになる", () => {
@@ -143,7 +147,9 @@ describe("decodeReviewSubmission", () => {
   });
 
   test("不正なeventはエラーになる", () => {
-    expect(() => decodeReviewSubmission(JSON.stringify({ ...validInput, event: "INVALID" }))).toThrow();
+    expect(() =>
+      decodeReviewSubmission(JSON.stringify({ ...validInput, event: "INVALID" })),
+    ).toThrow();
   });
 
   test("不正なsideはエラーになる", () => {
@@ -162,7 +168,9 @@ describe("decodeReviewSubmission", () => {
   test("コメントに未知のプロパティがある場合はエラーになる", () => {
     const input = {
       ...validInput,
-      comments: [{ path: "a.ts", body: "x", line: 1, level: "NOTE", tags: [], unknownField: "unexpected" }],
+      comments: [
+        { path: "a.ts", body: "x", line: 1, level: "NOTE", tags: [], unknownField: "unexpected" },
+      ],
     };
     expect(() => decodeReviewSubmission(JSON.stringify(input))).toThrow();
   });

@@ -6,7 +6,9 @@ import { decodeReviewSubmission } from "../src/review-decoder";
 import { previewReview, submitReview } from "../src/review-poster";
 import { fakeCommandExecutor } from "./fake-command";
 
-const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
+const claudeFakeLayer = fakeCommandExecutor(() =>
+  Effect.fail(new Error("claude not installed in test environment")),
+);
 
 /** テスト用の最小限の有効な入力。 */
 const validInput = {
@@ -66,7 +68,15 @@ describe("submitReview", () => {
         const octokit = createMockOctokit();
         const input = {
           ...validInput,
-          comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["code-quality"] }],
+          comments: [
+            {
+              path: "src/foo.ts",
+              body: "fix",
+              line: 42,
+              level: "IMPORTANT",
+              tags: ["code-quality"],
+            },
+          ],
         };
         const submission = decodeReviewSubmission(JSON.stringify(input));
         yield* submitReview(octokit, submission);
@@ -103,14 +113,22 @@ describe("submitReview", () => {
         const input = {
           ...validInput,
           comments: [
-            { path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: ["security", "performance"] },
+            {
+              path: "src/foo.ts",
+              body: "fix",
+              line: 42,
+              level: "IMPORTANT",
+              tags: ["security", "performance"],
+            },
           ],
         };
         const submission = decodeReviewSubmission(JSON.stringify(input));
         yield* submitReview(octokit, submission);
 
         const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-        expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix");
+        expect(call?.comments?.[0]?.body).toBe(
+          "> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix",
+        );
       }),
     );
 
@@ -119,7 +137,15 @@ describe("submitReview", () => {
         const octokit = createMockOctokit();
         const input = {
           ...validInput,
-          comments: [{ path: "src/foo.ts", body: "line 1\n\nline 3", line: 42, level: "CAUTION", tags: ["security"] }],
+          comments: [
+            {
+              path: "src/foo.ts",
+              body: "line 1\n\nline 3",
+              line: 42,
+              level: "CAUTION",
+              tags: ["security"],
+            },
+          ],
         };
         const submission = decodeReviewSubmission(JSON.stringify(input));
         yield* submitReview(octokit, submission);
@@ -167,7 +193,16 @@ describe("submitReview", () => {
         const octokit = createMockOctokit();
         const input = {
           ...validInput,
-          comments: [{ path: "src/foo.ts", body: "x", line: 20, startLine: 10, level: "TIP", tags: ["test"] }],
+          comments: [
+            {
+              path: "src/foo.ts",
+              body: "x",
+              line: 20,
+              startLine: 10,
+              level: "TIP",
+              tags: ["test"],
+            },
+          ],
         };
         const submission = decodeReviewSubmission(JSON.stringify(input));
         yield* submitReview(octokit, submission);

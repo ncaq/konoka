@@ -10,5 +10,7 @@ import { ReviewSubmissionSchema } from "./review-schema";
  * JSONパースまたはバリデーション失敗時はエラーメッセージを含む例外をスローします。
  */
 export function decodeReviewSubmission(input: string): typeof ReviewSubmissionSchema.Type {
-  return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), { onExcessProperty: "error" })(input);
+  return Schema.decodeUnknownSync(Schema.parseJson(ReviewSubmissionSchema), {
+    onExcessProperty: "error",
+  })(input);
 }

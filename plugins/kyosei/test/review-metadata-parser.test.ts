@@ -6,7 +6,9 @@ import { buildReviewBody } from "../src/review-metadata";
 import { parseFooterMetadata } from "../src/review-metadata-parser";
 import { fakeCommandExecutor } from "./fake-command";
 
-const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
+const claudeFakeLayer = fakeCommandExecutor(() =>
+  Effect.fail(new Error("claude not installed in test environment")),
+);
 
 const baseInput = {
   owner: "test-owner",
@@ -68,7 +70,9 @@ describe("parseFooterMetadata", () => {
         expect(Option.isSome(restored)).toBe(true);
         if (Option.isSome(restored)) {
           expect(restored.value.execution).toBe("GitHub Actions");
-          expect(restored.value.runUrl).toEqual(new URL("https://github.com/ncaq/konoka/actions/runs/123"));
+          expect(restored.value.runUrl).toEqual(
+            new URL("https://github.com/ncaq/konoka/actions/runs/123"),
+          );
         }
       }),
     );

@@ -44,7 +44,11 @@ interface CompareResult {
   readonly files: readonly CompareFile[];
 }
 
-function getCommitTreeSha(octokit: Octokit, target: PrIdentifier, sha: string): Effect.Effect<string, Error> {
+function getCommitTreeSha(
+  octokit: Octokit,
+  target: PrIdentifier,
+  sha: string,
+): Effect.Effect<string, Error> {
   return Effect.tryPromise({
     try: async () => {
       const response = await octokit.rest.git.getCommit({
@@ -90,7 +94,10 @@ function sumLineChanges(files: readonly CompareFile[]): number {
   return files.reduce((acc, file) => acc + (file.additions ?? 0) + (file.deletions ?? 0), 0);
 }
 
-function buildLookupFailed(baseSha: string, headSha: string): typeof IncrementalChangesetSchema.Type {
+function buildLookupFailed(
+  baseSha: string,
+  headSha: string,
+): typeof IncrementalChangesetSchema.Type {
   return Schema.decodeUnknownSync(IncrementalChangesetSchema)({
     baseSha,
     headSha,
@@ -141,7 +148,8 @@ export function getIncrementalChangeset(
       });
     }
 
-    const status: "diff-empty" | "diff-present" = changedLineCount === 0 ? "diff-empty" : "diff-present";
+    const status: "diff-empty" | "diff-present" =
+      changedLineCount === 0 ? "diff-empty" : "diff-present";
     return Schema.decodeUnknownSync(IncrementalChangesetSchema)({
       baseSha,
       headSha,

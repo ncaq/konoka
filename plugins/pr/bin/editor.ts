@@ -11,7 +11,10 @@ const result = spawnSync(editor, [...defaultArgs, ...process.argv.slice(2)], {
   stdio: "inherit",
 });
 
-function assertEditorSuccess(editorName: string, { error, status }: { error?: Error; status: number | null }): void {
+function assertEditorSuccess(
+  editorName: string,
+  { error, status }: { error?: Error; status: number | null },
+): void {
   if (error !== undefined || status !== 0) {
     const detail = error !== undefined ? `: ${error.message}` : "";
     throw new Error(

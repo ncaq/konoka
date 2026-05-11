@@ -115,25 +115,27 @@ describe("getIncrementalChangeset", () => {
     }),
   );
 
-  it.effect("tree異なる + 一部fileに実差分行があれば diff-present(コンフリクト解決を含むmerge等)", () =>
-    Effect.gen(function* () {
-      const octokit = buildOctokit({
-        baseTreeSha: "bbb1000000000000000000000000000000000000",
-        headTreeSha: "ccc2000000000000000000000000000000000000",
-        aheadBy: 1,
-        behindBy: 0,
-        files: [
-          { additions: 0, deletions: 0 },
-          { additions: 3, deletions: 1 },
-        ],
-      });
+  it.effect(
+    "tree異なる + 一部fileに実差分行があれば diff-present(コンフリクト解決を含むmerge等)",
+    () =>
+      Effect.gen(function* () {
+        const octokit = buildOctokit({
+          baseTreeSha: "bbb1000000000000000000000000000000000000",
+          headTreeSha: "ccc2000000000000000000000000000000000000",
+          aheadBy: 1,
+          behindBy: 0,
+          files: [
+            { additions: 0, deletions: 0 },
+            { additions: 3, deletions: 1 },
+          ],
+        });
 
-      const result = yield* getIncrementalChangeset(octokit, target, baseSha, headSha);
+        const result = yield* getIncrementalChangeset(octokit, target, baseSha, headSha);
 
-      expect(result.status).toBe("diff-present");
-      expect(result.changedFileCount).toBe(2);
-      expect(result.changedLineCount).toBe(4);
-    }),
+        expect(result.status).toBe("diff-present");
+        expect(result.changedFileCount).toBe(2);
+        expect(result.changedLineCount).toBe(4);
+      }),
   );
 
   it.effect("getCommitが失敗したら lookup-failed", () =>

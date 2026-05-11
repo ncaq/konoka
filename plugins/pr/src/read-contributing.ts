@@ -18,7 +18,10 @@ export interface ContributingFile {
   readonly content: string;
 }
 
-async function readAtLocation(root: string, location: string): Promise<ContributingFile | undefined> {
+async function readAtLocation(
+  root: string,
+  location: string,
+): Promise<ContributingFile | undefined> {
   const dir = join(root, location);
   const found = await findCaseInsensitive(dir, CONTRIBUTING_NAME);
   if (found == null) {
@@ -38,7 +41,9 @@ async function readAtLocation(root: string, location: string): Promise<Contribut
  * @param root Repository root to search from. Defaults to the current working directory.
  */
 export async function readContributing(root = "."): Promise<ContributingFile | undefined> {
-  const candidates = await Promise.all(CONTRIBUTING_LOCATIONS.map((location) => readAtLocation(root, location)));
+  const candidates = await Promise.all(
+    CONTRIBUTING_LOCATIONS.map((location) => readAtLocation(root, location)),
+  );
   return candidates.find((candidate) => candidate != null);
 }
 

@@ -26,7 +26,10 @@ export interface Changeset {
  * GitHub APIからdiff形式で差分を取得し、
  * コミット一覧もAPIから取得します。
  */
-function getPrChangeset(octokit: Octokit, context: GitHubOutputContext): Effect.Effect<Changeset, Error> {
+function getPrChangeset(
+  octokit: Octokit,
+  context: GitHubOutputContext,
+): Effect.Effect<Changeset, Error> {
   return Effect.gen(function* () {
     const [diffResponse, allCommits] = yield* Effect.all(
       [
@@ -83,7 +86,10 @@ function getLocalChangeset(
   context: LocalOutputContext,
 ): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const base = context.remoteName != null ? `${context.remoteName}/${context.baseBranch}` : context.baseBranch;
+    const base =
+      context.remoteName != null
+        ? `${context.remoteName}/${context.baseBranch}`
+        : context.baseBranch;
     const range = `${base}...HEAD`;
     const [diff, log] = yield* Effect.all(
       [

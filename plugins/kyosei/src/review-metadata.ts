@@ -52,7 +52,11 @@ export const MetadataSchema = Schema.Struct({
  * 取得に失敗した場合や出力が想定と異なる場合は警告ログを出して`Option.none`を返します。
  * 戻り値は`MetadataSchema`に渡され、SemVer形式でなければ`"unknown"`に正規化されます。
  */
-function detectClaudeCodeVersion(): Effect.Effect<Option.Option<string>, never, CommandExecutor.CommandExecutor> {
+function detectClaudeCodeVersion(): Effect.Effect<
+  Option.Option<string>,
+  never,
+  CommandExecutor.CommandExecutor
+> {
   return Command.string(Command.make("claude", "--version")).pipe(
     Effect.matchEffect({
       onFailure: (err) =>
@@ -90,7 +94,11 @@ function lookupRunUrlString(): Option.Option<string> {
     serverUrl: Option.fromNullable(pickNonBlank(process.env["GITHUB_SERVER_URL"])),
     repository: Option.fromNullable(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
     runId: Option.fromNullable(pickNonBlank(process.env["GITHUB_RUN_ID"])),
-  }).pipe(Option.map(({ serverUrl, repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`));
+  }).pipe(
+    Option.map(
+      ({ serverUrl, repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`,
+    ),
+  );
 }
 
 /**
@@ -149,6 +157,8 @@ export function buildReviewBody(
     };
     const footer = mustache.render(reviewMetadataFooterTemplate, renderInput);
     const internalErrorsSection = renderInternalErrorsSection(submission);
-    return [submission.body, internalErrorsSection, footer].filter((section) => section.length > 0).join("\n");
+    return [submission.body, internalErrorsSection, footer]
+      .filter((section) => section.length > 0)
+      .join("\n");
   });
 }

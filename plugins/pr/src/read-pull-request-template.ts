@@ -27,7 +27,10 @@ function locationPath(location: string, name: string): string {
   return location === "." ? name : join(location, name);
 }
 
-async function readSingleAtLocation(root: string, location: string): Promise<PullRequestTemplate | undefined> {
+async function readSingleAtLocation(
+  root: string,
+  location: string,
+): Promise<PullRequestTemplate | undefined> {
   const dir = join(root, location);
   const found = await findCaseInsensitive(dir, TEMPLATE_FILE_NAME);
   if (found == null) {
@@ -41,7 +44,10 @@ async function readSingleAtLocation(root: string, location: string): Promise<Pul
   return { path, content };
 }
 
-async function readMultiAtLocation(root: string, location: string): Promise<readonly PullRequestTemplate[]> {
+async function readMultiAtLocation(
+  root: string,
+  location: string,
+): Promise<readonly PullRequestTemplate[]> {
   const dir = join(root, location);
   const found = await findCaseInsensitive(dir, TEMPLATE_DIR_NAME);
   if (found == null) {
@@ -76,7 +82,9 @@ async function readMultiAtLocation(root: string, location: string): Promise<read
  *
  * @param root Repository root to search from. Defaults to the current working directory.
  */
-export async function readPullRequestTemplates(root = "."): Promise<readonly PullRequestTemplate[]> {
+export async function readPullRequestTemplates(
+  root = ".",
+): Promise<readonly PullRequestTemplate[]> {
   const [singleResults, multiResults] = await Promise.all([
     Promise.all(TEMPLATE_LOCATIONS.map((location) => readSingleAtLocation(root, location))),
     Promise.all(TEMPLATE_LOCATIONS.map((location) => readMultiAtLocation(root, location))),

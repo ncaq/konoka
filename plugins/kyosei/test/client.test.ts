@@ -33,7 +33,12 @@ function withEnv(overrides: Record<string, string | undefined>): () => void {
 describe("createOctokitClient", () => {
   // GitHub ActionsのCI環境で設定される典型的な環境変数をテスト前にクリアして、
   // テスト後に復元します。
-  const envKeysToClean = [...tokenEnvironmentVariableNameList, "GH_HOST", "GITHUB_API_URL", "GITHUB_SERVER_URL"];
+  const envKeysToClean = [
+    ...tokenEnvironmentVariableNameList,
+    "GH_HOST",
+    "GITHUB_API_URL",
+    "GITHUB_SERVER_URL",
+  ];
 
   beforeEach(() => {
     const overrides: Record<string, undefined> = {};
@@ -102,29 +107,34 @@ describe("createOctokitClient", () => {
         env: {},
         expectedOrigin: "https://api.github.com",
       },
-    ])("$labelの場合、$expectedOriginにリクエストが送られる", async ({ env, expectedOrigin, expectedPathPrefix }) => {
-      const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
-      try {
-        const requestedUrls = mockFetchAndCaptureUrls();
+    ])(
+      "$labelの場合、$expectedOriginにリクエストが送られる",
+      async ({ env, expectedOrigin, expectedPathPrefix }) => {
+        const restore = withEnv({ GITHUB_TOKEN: "ghp_test_token", ...env });
+        try {
+          const requestedUrls = mockFetchAndCaptureUrls();
 
-        const layer = fakeCommandExecutor(() =>
-          Effect.die(new Error("gh should not be invoked when token env is set")),
-        );
-        const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));
-        await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
+          const layer = fakeCommandExecutor(() =>
+            Effect.die(new Error("gh should not be invoked when token env is set")),
+          );
+          const octokit = await Effect.runPromise(
+            createOctokitClient().pipe(Effect.provide(layer)),
+          );
+          await octokit.rest.repos.get({ owner: "test-owner", repo: "test-repo" });
 
-        expect(requestedUrls.length).toBeGreaterThan(0);
-        for (const urlString of requestedUrls) {
-          const url = new URL(urlString);
-          expect(url.origin).toBe(expectedOrigin);
-          if (expectedPathPrefix != null) {
-            expect(url.pathname).toSatisfy((p: string) => p.startsWith(expectedPathPrefix));
+          expect(requestedUrls.length).toBeGreaterThan(0);
+          for (const urlString of requestedUrls) {
+            const url = new URL(urlString);
+            expect(url.origin).toBe(expectedOrigin);
+            if (expectedPathPrefix != null) {
+              expect(url.pathname).toSatisfy((p: string) => p.startsWith(expectedPathPrefix));
+            }
           }
+        } finally {
+          restore();
         }
-      } finally {
-        restore();
-      }
-    });
+      },
+    );
   });
 
   // URL.toString()は末尾スラッシュを付けるため、

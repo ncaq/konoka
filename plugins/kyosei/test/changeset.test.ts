@@ -6,7 +6,9 @@ import { getChangeset } from "../src/changeset";
 import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type";
 import { fakeCommandExecutor } from "./fake-command";
 
-const noGitLayer = fakeCommandExecutor(() => Effect.die(new Error("git should not be invoked in GitHub mode")));
+const noGitLayer = fakeCommandExecutor(() =>
+  Effect.die(new Error("git should not be invoked in GitHub mode")),
+);
 
 describe("getChangeset", () => {
   describe("GitHub出力モード", () => {
@@ -94,8 +96,14 @@ describe("getChangeset", () => {
 
         expect(changeset.diff).toBe("local diff");
         expect(changeset.log).toBe("local log");
-        expect(calls).toContainEqual({ command: "git", args: ["diff", "--end-of-options", "origin/master...HEAD"] });
-        expect(calls).toContainEqual({ command: "git", args: ["log", "--end-of-options", "origin/master...HEAD"] });
+        expect(calls).toContainEqual({
+          command: "git",
+          args: ["diff", "--end-of-options", "origin/master...HEAD"],
+        });
+        expect(calls).toContainEqual({
+          command: "git",
+          args: ["log", "--end-of-options", "origin/master...HEAD"],
+        });
       }),
     );
 
@@ -113,8 +121,14 @@ describe("getChangeset", () => {
 
         yield* getChangeset({} as Octokit, context).pipe(Effect.provide(layer));
 
-        expect(calls).toContainEqual({ command: "git", args: ["diff", "--end-of-options", "master...HEAD"] });
-        expect(calls).toContainEqual({ command: "git", args: ["log", "--end-of-options", "master...HEAD"] });
+        expect(calls).toContainEqual({
+          command: "git",
+          args: ["diff", "--end-of-options", "master...HEAD"],
+        });
+        expect(calls).toContainEqual({
+          command: "git",
+          args: ["log", "--end-of-options", "master...HEAD"],
+        });
       }),
     );
   });

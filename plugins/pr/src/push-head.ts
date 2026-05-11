@@ -40,7 +40,12 @@ export function parseOpenPr(json: string): OpenPr | undefined {
     return undefined;
   }
   const first: unknown = value[0];
-  if (typeof first === "object" && first !== null && "number" in first && typeof first.number === "number") {
+  if (
+    typeof first === "object" &&
+    first !== null &&
+    "number" in first &&
+    typeof first.number === "number"
+  ) {
     return { number: first.number };
   }
   throw new CommandError(`Failed to parse gh pr list output: ${json}`, "");
@@ -76,11 +81,18 @@ async function findOpenPullRequest(branch: string): Promise<OpenPr | undefined> 
  * - リモートのみ先行: 異常状態としてエラーを投げる
  */
 async function detectAction(): Promise<PushAction> {
-  const upstream = await tryRun("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]);
+  const upstream = await tryRun("git", [
+    "rev-parse",
+    "--abbrev-ref",
+    "--symbolic-full-name",
+    "@{u}",
+  ]);
   if (upstream === undefined) {
     return "initial";
   }
-  const aheadBehind = parseAheadBehind(await run("git", ["rev-list", "--left-right", "--count", "@{u}...HEAD"]));
+  const aheadBehind = parseAheadBehind(
+    await run("git", ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
+  );
   if (aheadBehind.behind === 0 && aheadBehind.ahead === 0) {
     return "none";
   }

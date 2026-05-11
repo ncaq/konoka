@@ -21,13 +21,19 @@ export interface RemoteRepo {
 export class NoGitRemotes extends Data.TaggedError("NoGitRemotes") {}
 
 /** リモートURLがGitHub形式として解釈できない場合の失敗。 */
-export class RemoteUrlParseError extends Data.TaggedError("RemoteUrlParseError")<{ readonly url: string }> {}
+export class RemoteUrlParseError extends Data.TaggedError("RemoteUrlParseError")<{
+  readonly url: string;
+}> {}
 
 /**
  * 現在のブランチのupstream設定からリモート名を取得します。
  * upstreamが設定されていない場合はgit remoteの先頭を使います。
  */
-export function getRemoteName(): Effect.Effect<string, Error | NoGitRemotes, CommandExecutor.CommandExecutor> {
+export function getRemoteName(): Effect.Effect<
+  string,
+  Error | NoGitRemotes,
+  CommandExecutor.CommandExecutor
+> {
   return Effect.gen(function* () {
     // 現在のブランチのupstreamからリモート名を取得します。
     // 例: @{upstream}が"origin/main"ならリモート名は"origin"です。
@@ -40,7 +46,9 @@ export function getRemoteName(): Effect.Effect<string, Error | NoGitRemotes, Com
       Effect.map((stdout) => {
         const upstream = stdout.trim();
         const separatorIndex = upstream.indexOf("/");
-        return separatorIndex > 0 ? Option.some(upstream.slice(0, separatorIndex)) : Option.none<string>();
+        return separatorIndex > 0
+          ? Option.some(upstream.slice(0, separatorIndex))
+          : Option.none<string>();
       }),
       Effect.catchAll(() => Effect.succeed(Option.none<string>())),
     );
@@ -67,7 +75,9 @@ export function getRemoteRepo(): Effect.Effect<
 > {
   return Effect.gen(function* () {
     const remoteName = yield* getRemoteName();
-    const remoteUrlOutput = yield* Command.string(Command.make("git", "remote", "get-url", remoteName));
+    const remoteUrlOutput = yield* Command.string(
+      Command.make("git", "remote", "get-url", remoteName),
+    );
     const url = remoteUrlOutput.trim();
     const parsed = gitUrlParse(url);
     if (parsed.owner === "" || parsed.name === "") {

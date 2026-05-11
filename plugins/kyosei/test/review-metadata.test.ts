@@ -6,7 +6,9 @@ import { buildFooterView, buildReviewBody } from "../src/review-metadata";
 import { fakeCommandExecutor } from "./fake-command";
 
 // `claude --version`の呼び出しを失敗させ、`Option.none`にフォールバックさせます。
-const claudeFakeLayer = fakeCommandExecutor(() => Effect.fail(new Error("claude not installed in test environment")));
+const claudeFakeLayer = fakeCommandExecutor(() =>
+  Effect.fail(new Error("claude not installed in test environment")),
+);
 
 const baseInput = {
   owner: "test-owner",
@@ -33,7 +35,9 @@ afterEach(() => {
 
 describe("decodeReviewSubmission with metadata", () => {
   test("metadata.modelを受け入れる", () => {
-    const submission = decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }));
+    const submission = decodeReviewSubmission(
+      JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }),
+    );
     expect(submission.metadata?.model).toBe("claude-opus-4-7");
   });
 
@@ -44,12 +48,16 @@ describe("decodeReviewSubmission with metadata", () => {
 
   test("metadata内の未知のプロパティはエラー", () => {
     expect(() =>
-      decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "x", unknown: "y" } })),
+      decodeReviewSubmission(
+        JSON.stringify({ ...baseInput, metadata: { model: "x", unknown: "y" } }),
+      ),
     ).toThrow();
   });
 
   test("metadata.modelが空文字ならエラー", () => {
-    expect(() => decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "" } }))).toThrow();
+    expect(() =>
+      decodeReviewSubmission(JSON.stringify({ ...baseInput, metadata: { model: "" } })),
+    ).toThrow();
   });
 });
 
@@ -82,20 +90,27 @@ describe("decodeReviewSubmission with internalErrors", () => {
 
   test("subject が空文字ならエラー", () => {
     expect(() =>
-      decodeReviewSubmission(JSON.stringify({ ...baseInput, internalErrors: [{ subject: "", body: "x" }] })),
+      decodeReviewSubmission(
+        JSON.stringify({ ...baseInput, internalErrors: [{ subject: "", body: "x" }] }),
+      ),
     ).toThrow();
   });
 
   test("body が空文字ならエラー", () => {
     expect(() =>
-      decodeReviewSubmission(JSON.stringify({ ...baseInput, internalErrors: [{ subject: "x", body: "" }] })),
+      decodeReviewSubmission(
+        JSON.stringify({ ...baseInput, internalErrors: [{ subject: "x", body: "" }] }),
+      ),
     ).toThrow();
   });
 
   test("internalErrors 内の未知のプロパティはエラー", () => {
     expect(() =>
       decodeReviewSubmission(
-        JSON.stringify({ ...baseInput, internalErrors: [{ subject: "x", body: "y", unknown: "z" }] }),
+        JSON.stringify({
+          ...baseInput,
+          internalErrors: [{ subject: "x", body: "y", unknown: "z" }],
+        }),
       ),
     ).toThrow();
   });
@@ -263,7 +278,9 @@ describe("buildReviewBody", () => {
 
     it.effect("internalErrors が空配列でも Internal errors 見出しが出ない", () =>
       Effect.gen(function* () {
-        const submission = decodeReviewSubmission(JSON.stringify({ ...baseInput, internalErrors: [] }));
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, internalErrors: [] }),
+        );
 
         const output = yield* buildReviewBody(submission);
 
