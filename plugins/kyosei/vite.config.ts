@@ -29,6 +29,8 @@ export default defineConfig({
   },
   ssr: {
     // 全依存をバンドルに含めます(デフォルトは external のため明示)。
+    // `fp-ts`のようにディレクトリインポート(`from "fp-ts/Either"`)を使うCJSパッケージは、
+    // 外部化したままだとNode.jsのESM resolverが解決できず`ERR_UNSUPPORTED_DIR_IMPORT`になります。
     noExternal: true,
   },
 });
