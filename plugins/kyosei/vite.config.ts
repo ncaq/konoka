@@ -24,16 +24,13 @@ export default defineConfig({
         format: "esm",
         entryFileNames: "[name].js",
         chunkFileNames: "[name].js",
-        // ESM出力下でもCJS依存(octokit配下など)が`require`を期待する場合のフォールバック。
-        banner: [
-          "import { createRequire as ___createRequire } from 'node:module';",
-          "const require = ___createRequire(import.meta.url);",
-        ].join("\n"),
       },
     },
   },
   ssr: {
     // 全依存をバンドルに含めます(デフォルトは external のため明示)。
+    // `fp-ts`のようにディレクトリインポート(`from "fp-ts/Either"`)を使うCJSパッケージは、
+    // 外部化したままだとNode.jsのESM resolverが解決できず`ERR_UNSUPPORTED_DIR_IMPORT`になります。
     noExternal: true,
   },
 });
