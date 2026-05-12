@@ -63,7 +63,10 @@ Suspenseが使えない場合は、状態を排他的に表現する判別共用
 
 ```typescript
 // Good: 状態が排他的に表現されている
-type AsyncState<T> = { status: "loading" } | { status: "error"; error: Error } | { status: "success"; data: T };
+type AsyncState<T> =
+  | { status: "loading" }
+  | { status: "error"; error: Error }
+  | { status: "success"; data: T };
 ```
 
 `status`フィールドで分岐することで、各状態で利用可能なフィールドが型レベルで保証されます。
