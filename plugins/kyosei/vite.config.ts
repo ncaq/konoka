@@ -24,11 +24,6 @@ export default defineConfig({
         format: "esm",
         entryFileNames: "[name].js",
         chunkFileNames: "[name].js",
-        // ESM出力下でもCJS依存(octokit配下など)が`require`を期待する場合のフォールバック。
-        banner: [
-          "import { createRequire as ___createRequire } from 'node:module';",
-          "const require = ___createRequire(import.meta.url);",
-        ].join("\n"),
       },
     },
   },
