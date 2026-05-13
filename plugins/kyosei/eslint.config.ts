@@ -6,7 +6,7 @@ import { defineConfig } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import { flatConfigs as importPluginConfig } from "eslint-plugin-import-x";
-import { configs as nodePluginConfigs } from "eslint-plugin-n";
+import node from "eslint-plugin-n";
 import { default as tseslint } from "typescript-eslint";
 
 /** ES Modulesだと使用できない変数のエミュレート。 */
@@ -95,9 +95,10 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
     },
     ...tseslint.configs.disableTypeChecked, // JavaScriptではESLint側での型チェックが必要なルールは無効化。
   },
-  // Node.js向けのルール。
-  nodePluginConfigs["flat/recommended-module"],
   {
+    // Node.js向けのルール。
+    plugins: { n: node },
+    extends: ["n/recommended-module"],
     rules: {
       // 複雑な設定下でのimportを解決できないため無効化します。eslint-plugin-import-xがあるため問題になりません。
       "n/no-missing-import": "off",
