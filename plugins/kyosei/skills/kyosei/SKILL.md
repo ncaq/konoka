@@ -200,6 +200,27 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
 
 除外後に残った特筆すべきフィードバックのみを出力します。
 
+# cross-reference機能の注意
+
+サマリーでもインラインコメントでも、
+あらゆる場所のテキストに言えることですが、
+issueやPRを参照する時には常にUsernameとRepositoryを含めてください。
+
+外部のリポジトリのissueやPRに言及したつもりで、
+内部のリポジトリへの誤った参照をしてしまうのを防ぐためです。
+
+以下のような記法は避けてください。
+
+```markdown
+see #26
+```
+
+代わりに以下のような記法を使ってください。
+
+```markdown
+see jlord/sheetsee.js#26
+```
+
 # フィードバックの出力
 
 ## GitHub出力の場合
