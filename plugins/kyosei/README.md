@@ -1,8 +1,5 @@
 # kyosei
 
-Code review for PRs or local changes.
-Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.
-
 専門サブエージェントを並列起動して包括的なコードレビューを行うClaude Codeプラグインです。
 
 ## モチベーション
@@ -79,8 +76,10 @@ claude-code-actionのエージェントに含まれている、
 
 ## 前提条件
 
-- Node.js version 20.20以上。GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンに合わせています。
-- npm。Node.jsに同梱されているはず。
+- Node.js version 20.20以上。
+  GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンに合わせています。
+- npm。
+  Node.jsに同梱されているはずです。
 
 セッション開始時にビルド済みでなければ`npm ci`と`npm run build`が自動実行されます。
 
