@@ -1,6 +1,6 @@
 {
   "name": "commit",
-  "version": "2.6.3",
+  "version": "2.7.0",
   "description": "Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.",
   "author": {
     "name": "ncaq",
@@ -10,5 +10,8 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/commit",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": ["commit", "git"]
+  "keywords": [
+    "commit",
+    "git"
+  ]
 }
