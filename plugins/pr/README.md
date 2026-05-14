@@ -3,7 +3,10 @@
 現在のブランチからAIがGitHub pull requestのタイトルと本文を生成し、
 ユーザが確認してから作成するClaude Codeプラグインです。
 
-リポジトリ固有の`CONTRIBUTING.md`と`pull_request_template.md`を実行時に読み込んでスタイルに反映します。
+以下のリポジトリ固有のファイルを実行時に読み込んでスタイルに反映します。
+
+- `CONTRIBUTING.md`
+- `pull_request_template.md`
 
 ## インストール
 
@@ -35,7 +38,8 @@ Claude Codeで以下を実行します。
 
 ## セットアップ
 
-このプラグインは一時ファイルを`$XDG_RUNTIME_DIR/coding-agent-work/pr/`配下にサブディレクトリを作成して保存します。
+このプラグインは一時ファイルを`$XDG_RUNTIME_DIR/coding-agent-work/pr/`配下に、
+サブディレクトリを作成して保存します。
 Claude Codeの自動承認ディレクトリに追加することを推奨します。
 
 ### 環境変数の確認
@@ -76,9 +80,12 @@ Claude Codeで`/pr`スキルを呼び出してください。
 スキルは以下のフローで動作します。
 
 1. baseブランチを最新化し、必要に応じて現在のブランチをrebaseします。
-2. 現在のブランチをremoteへpushします。 PR作成前なのでrebase後はforce-with-leaseで安全に上書きできます。
-3. リポジトリの`CONTRIBUTING.md`と`pull_request_template.md`を読み込み、過去のmerged PRも参考にしてタイトルと本文を生成します。
-4. ユーザが内容を確認します。 必要なら`$EDITOR`で本文を編集できます。
+2. 現在のブランチをremoteへpushします。
+   PR作成前なのでrebase後はforce-with-leaseで安全に上書きできます。
+3. リポジトリの`CONTRIBUTING.md`と`pull_request_template.md`を読み込み、
+   過去のmerged PRも参考にしてタイトルと本文を生成します。
+4. ユーザが内容を確認します。
+   必要なら`$EDITOR`で本文を編集できます。
 5. PRを作成し、自分自身をアサインして適切なラベルを付与します。
 
 このスキルは新規作成のみを扱います。
@@ -97,7 +104,13 @@ pr-styleスキルは以下を行います。
 - リポジトリの`CONTRIBUTING.md`を読み込む
 - リポジトリの`pull_request_template.md`を読み込む
 - 過去のmerged PRからタイトルと本文の傾向を把握する
-- デフォルトのスタイル(言語、行長、強調シンタックスや絵文字や全角形の禁則、issueへの関連付け方など)を適用する
+- デフォルトのスタイルを適用する。
+  以下の要素はその一部です。
+  - 言語
+  - 行長
+  - 強調シンタックス
+  - 絵文字や全角形の禁則
+  - issueへの関連付け方
 
 ## ライセンス
 
