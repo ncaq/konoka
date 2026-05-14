@@ -3,10 +3,10 @@
 現在のブランチからAIがGitHub pull requestのタイトルと本文を生成し、
 ユーザが確認してから作成するClaude Codeプラグインです。
 
-リポジトリ固有の、
-`CONTRIBUTING.md`と、
-`pull_request_template.md`を、
-実行時に読み込んでスタイルに反映します。
+以下のリポジトリ固有のファイルを実行時に読み込んでスタイルに反映します。
+
+- `CONTRIBUTING.md`
+- `pull_request_template.md`
 
 ## インストール
 
