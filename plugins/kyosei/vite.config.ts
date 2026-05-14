@@ -3,8 +3,10 @@ import { defineConfig } from "vite";
 /**
  * Vite設定。
  * テスト(vitest)とCLIエントリのバンドルの両方をViteで行います。
- * Node.jsターゲットなので`build.ssr`を有効にし、依存はすべて`ssr.noExternal`でバンドルに含めます。
- * `.mustache`テンプレートは`assetsInclude`でアセット扱いにし、`?raw`サフィックス付きインポートで文字列として取り込みます。
+ * Node.jsターゲットなので`build.ssr`を有効にし、
+ * 依存はすべて`ssr.noExternal`でバンドルに含めます。
+ * `.mustache`テンプレートは`assetsInclude`でアセット扱いにし、
+ * `?raw`サフィックス付きインポートで文字列として取り込みます。
  */
 export default defineConfig({
   assetsInclude: ["**/*.mustache"],

@@ -47,7 +47,8 @@ GitHub出力モードでは常に含まれます。
 ローカル出力モードでもブランチに紐付くPRがあれば含まれます。
 PRが特定できない場合はフィールド自体が省略されます。
 
-トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、以下の3つのサブフィールドがあります。
+トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、
+以下の3つのサブフィールドがあります。
 
 - `comments`: PR全体へのコメント一覧。以下のフィールドを持ちます。
   - `id`
@@ -92,7 +93,9 @@ PRが特定できない場合はフィールド自体が省略されます。
     - rebaseして差分がない
     - 署名し直し
     - force pushで同一に戻った
-  - `"diff-empty"`: tree SHAは異なるが、`compareCommits.files`の実際の差分の行(`additions+deletions`合計)が0。masterマージのみなど。
+  - `"diff-empty"`:
+    tree SHAは異なるが`compareCommits.files`の実際の差分の行である`additions+deletions`の合計が0。
+    masterマージのみなど。
   - `"diff-present"`: 実コード変更行が存在する。通常レビューに倒します。
   - `"lookup-failed"`: API取得失敗(SHAがGCで消えた等)。フェイルセーフで通常レビューに倒します。
 - `baseSha`, `headSha`: 比較対象コミット
@@ -151,7 +154,8 @@ Claudeの使用量を節約するための分岐です。
 - [kyosei:security-reviewer](../../agents/security-reviewer.md)
 - [kyosei:test-reviewer](../../agents/test-reviewer.md)
 
-Taskツールの`subagent_type`にはプラグイン名を含めた完全修飾名(`kyosei:<agent-name>`)を指定してください。
+Taskツールの`subagent_type`には、
+プラグイン名を含めた完全修飾名(`kyosei:<agent-name>`)を指定してください。
 プラグインから提供されるサブエージェントは`<plugin-name>:<agent-name>`の形式で登録されているため、
 prefixを省略すると`Agent type 'code-quality-reviewer' not found`のようなエラーになります。
 
@@ -178,7 +182,8 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
 
 統合時のルール:
 
-- `level`が異なる場合: `CAUTION`, `WARNING`, `IMPORTANT`, `TIP`, `NOTE`の順でより高い重大度を採用する
+- `level`が異なる場合: 以下の順でより高い重大度を採用する
+  - `CAUTION` > `WARNING` > `IMPORTANT` > `TIP` > `NOTE`
 - `tags`が異なる場合: 両方のタグを重複なく含める
 - `body`が異なる場合: 両方の固有の情報を含めてマージする
 - `line`がずれている場合: より正確な行を採用する
@@ -206,7 +211,8 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
 - `owner`: リポジトリオーナー(`context.pr.owner`)
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
-- `headCommitId`: headコミットSHA(`changeset.headCommitId`)。必須かつSHA形式(7〜40桁の16進)である必要があります。
+- `headCommitId`: headコミットSHA(`changeset.headCommitId`)。
+  必須かつSHA形式(7〜40桁の16進)である必要があります。
 - `event`: レビューイベント。以下のいずれか。
   - `"APPROVE"`
   - `"COMMENT"`
@@ -218,7 +224,9 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
   - `line`: コメントを付ける行番号(複数行の場合は終了行)
   - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)
   - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
-  - `tags`: 指摘のタグ配列。以下の文字列を必要なだけ指定してください。該当タグがない場合は空配列にしてください。
+  - `tags`: 指摘のタグ配列。
+    以下の文字列を必要なだけ指定してください。
+    該当タグがない場合は空配列にしてください。
     - `"code-quality"`
     - `"dependency"`
     - `"documentation"`
@@ -232,12 +240,17 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
     - `"TIP"`
     - `"NOTE"`
 - `metadata`: LLM 自身しか確実には知らないメタデータ(省略可)
-  - `model`: 現在使っている Claude モデルの識別子。例:`"claude-opus-4-7"`。省略時は`unknown`と表示されます。
+  - `model`: 現在使っている Claude モデルの識別子。
+    例: `"claude-opus-4-7"`。
+    省略時は`unknown`と表示されます。
 - `internalErrors`: レビュー実行中に発生した想定外の内部エラーの配列(省略可)。
   詳細は後述「内部エラーの報告」を参照してください。
   以下の各要素を持ちます。
   - `subject`: エラーの要約(1行)。`### {subject}`としてレビュー本文中に展開されます。
-  - `body`: エラーの詳細(自由記述)。Markdownとしてそのまま展開されます。スタックトレース等の生ログを載せる場合は自分でコードブロックで囲んでください。
+  - `body`:
+    エラーの詳細(自由記述)。
+    Markdownとしてそのまま展開されます。
+    スタックトレース等の生ログを載せる場合は自分でコードブロックで囲んでください。
 
 レビュー本文とインラインコメントは1回のプログラム呼び出しで一括投稿されます。
 インラインコメントの本文には`level`に対応するGitHub Alertと、
@@ -260,8 +273,10 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
 
 ### 内部エラーの報告
 
-レビューワークフロー実行中に想定外のエラーが発生した場合、`internalErrors`に`{ subject, body }`の形で詰めてください。
-レビュー本文の直下に`## Internal errors`セクションが生成され、後からトリアージできるようになります。
+レビューワークフロー実行中に想定外のエラーが発生した場合、
+`internalErrors`に`{ subject, body }`の形で詰めてください。
+レビュー本文の直下に`## Internal errors`セクションが生成され、
+後からトリアージできるようになります。
 
 報告すべき例(想定外で実行を乱したエラー):
 
@@ -288,7 +303,8 @@ prefixを省略すると`Agent type 'code-quality-reviewer' not found`のよう�
 今回のレビューで新たに投稿するコメントだけでなく、
 `conversation`フィールドの既存レビュー状態も考慮して総合的に判定してください。
 
-対応や修正がされているかどうかは差分やコミットログや`conversation`フィールドの返信から判断してください。
+対応や修正がされているかどうかは、
+差分やコミットログや`conversation`フィールドの返信から判断してください。
 
 判定基準は以下の通りです。
 順番に判定してください。
