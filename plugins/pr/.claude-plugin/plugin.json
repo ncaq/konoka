@@ -10,9 +10,5 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/pr",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": [
-    "pull-request",
-    "github",
-    "git"
-  ]
+  "keywords": ["pull-request", "github", "git"]
 }

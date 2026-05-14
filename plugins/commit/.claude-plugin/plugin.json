@@ -10,8 +10,5 @@
   "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/commit",
   "repository": "https://github.com/ncaq/konoka",
   "license": "Apache-2.0",
-  "keywords": [
-    "commit",
-    "git"
-  ]
+  "keywords": ["commit", "git"]
 }
