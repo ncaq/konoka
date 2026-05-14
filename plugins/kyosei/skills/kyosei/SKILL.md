@@ -96,7 +96,7 @@ PRが特定できない場合はフィールド自体が省略されます。
   - `"diff-empty"`:
     tree SHAは異なるが`compareCommits.files`の実際の差分の行である`additions+deletions`の合計が0。
     masterマージのみなど。
-  - `"diff-present"`:実コード変更行が存在する。通常レビューに倒します。
+  - `"diff-present"`: 実コード変更行が存在する。通常レビューに倒します。
   - `"lookup-failed"`: API取得失敗(SHAがGCで消えた等)。フェイルセーフで通常レビューに倒します。
 - `baseSha`, `headSha`: 比較対象コミット
 - 以下は参考情報。`lookup-failed`時は省略されます。
