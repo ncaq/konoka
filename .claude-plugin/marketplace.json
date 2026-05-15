@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Claude Code plugins by ncaq",
-    "version": "7.0.3",
+    "version": "7.1.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [
