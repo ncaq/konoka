@@ -11,15 +11,15 @@ const editorParts: Effect.Effect<readonly string[]> = Config.nonEmptyString("EDI
   Effect.orElseSucceed(() => defaultEditor),
 );
 
-const editmsgFileArg = Args.file({ name: "commit-msg-file", exists: "yes" });
+const commitEditmsgArg = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
 
-const command = CliCommand.make("konoka-editor", { editmsgFileArg }, ({ editmsgFileArg }) =>
+const command = CliCommand.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
   Effect.gen(function* () {
     const [editor, ...defaultArgs] = yield* editorParts;
     if (editor == null) {
       return yield* Effect.dieMessage("Editor command is empty");
     }
-    const cmd = Command.make(editor, ...defaultArgs, editmsgFileArg).pipe(
+    const cmd = Command.make(editor, ...defaultArgs, commitEditmsgArg).pipe(
       Command.stdin("inherit"),
       Command.stdout("inherit"),
       Command.stderr("inherit"),
