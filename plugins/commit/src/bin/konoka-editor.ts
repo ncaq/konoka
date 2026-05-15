@@ -1,4 +1,5 @@
 import process from "node:process";
+import { Args, Command as CliCommand } from "@effect/cli";
 import { Command } from "@effect/platform";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Config, Effect } from "effect";
@@ -10,21 +11,29 @@ const editorParts: Effect.Effect<readonly string[]> = Config.nonEmptyString("EDI
   Effect.orElseSucceed(() => defaultEditor),
 );
 
-const program = Effect.gen(function* () {
-  const [editor, ...defaultArgs] = yield* editorParts;
-  if (editor == null) {
-    return yield* Effect.dieMessage("Editor command is empty");
-  }
-  const args = [...defaultArgs, ...process.argv.slice(2)];
-  const cmd = Command.make(editor, ...args).pipe(
-    Command.stdin("inherit"),
-    Command.stdout("inherit"),
-    Command.stderr("inherit"),
-  );
-  const exitCode = yield* Command.exitCode(cmd);
-  if (exitCode !== 0) {
-    return yield* Effect.dieMessage(`Editor "${editor}" failed (status ${exitCode})`);
-  }
+const editmsgFileArg = Args.file({ name: "commit-msg-file", exists: "yes" });
+
+const command = CliCommand.make("konoka-editor", { editmsgFileArg }, ({ editmsgFileArg }) =>
+  Effect.gen(function* () {
+    const [editor, ...defaultArgs] = yield* editorParts;
+    if (editor == null) {
+      return yield* Effect.dieMessage("Editor command is empty");
+    }
+    const cmd = Command.make(editor, ...defaultArgs, editmsgFileArg).pipe(
+      Command.stdin("inherit"),
+      Command.stdout("inherit"),
+      Command.stderr("inherit"),
+    );
+    const exitCode = yield* Command.exitCode(cmd);
+    if (exitCode !== 0) {
+      return yield* Effect.dieMessage(`Editor "${editor}" failed (status ${exitCode})`);
+    }
+  }),
+);
+
+const cli = CliCommand.run(command, {
+  name: "konoka-editor",
+  version: "0.0.0",
 });
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
