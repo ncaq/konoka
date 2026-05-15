@@ -1,4 +1,4 @@
-import { CommandError, run, tryRun } from "./run.ts";
+import { CommandError, run, tryRun } from "./run";
 
 /** push-head.tsが取り得る動作の種類。 */
 export type PushAction = "none" | "initial" | "normal" | "force";

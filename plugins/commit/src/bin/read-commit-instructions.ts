@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 import process from "node:process";
-import { readCommitInstructions } from "../src/read-commit-instructions.ts";
+import { readCommitInstructions } from "../read-commit-instructions";
 
 async function main(): Promise<void> {
   const content = await readCommitInstructions();

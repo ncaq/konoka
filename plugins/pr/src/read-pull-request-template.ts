@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { findCaseInsensitive, readIfExists, readdirIfExists } from "./read-if-exists.ts";
+import { findCaseInsensitive, readIfExists, readdirIfExists } from "./read-if-exists";
 
 /**
  * Search locations for pull request templates.

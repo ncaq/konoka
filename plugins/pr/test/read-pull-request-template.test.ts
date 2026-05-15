@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
   formatPullRequestTemplates,
   readPullRequestTemplates,
-} from "../src/read-pull-request-template.ts";
+} from "../src/read-pull-request-template";
 
 describe("readPullRequestTemplates", () => {
   let root: string;

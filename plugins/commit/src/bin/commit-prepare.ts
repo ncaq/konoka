@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 import process from "node:process";
-import { EmptyCommitError, prepareCommit } from "../src/commit-prepare.ts";
+import { EmptyCommitError, prepareCommit } from "../commit-prepare";
 
 async function main(): Promise<void> {
   try {

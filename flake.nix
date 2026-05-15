@@ -43,7 +43,7 @@
                 "claude-code-bin"
               ];
           };
-          nodejs = pkgs.nodejs_24;
+          inherit (pkgs) nodejs;
 
           # プラグインディレクトリのリストから全npmチェックのattrsetを生成する。
           pluginNpmChecks =

@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 import process from "node:process";
-import { formatContributing, readContributing } from "../src/read-contributing.ts";
+import { formatContributing, readContributing } from "../read-contributing";
 
 async function main(): Promise<void> {
   const file = await readContributing();

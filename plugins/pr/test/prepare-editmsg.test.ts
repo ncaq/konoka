@@ -2,7 +2,7 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { prepareEditmsg } from "../src/prepare-editmsg.ts";
+import { prepareEditmsg } from "../src/prepare-editmsg";
 
 describe("prepareEditmsg", () => {
   let runtimeDir: string;

@@ -2,12 +2,8 @@
   "name": "konoka-commit",
   "private": true,
   "type": "module",
-  "bin": {
-    "commit-prepare.ts": "./bin/commit-prepare.ts",
-    "editor.ts": "./bin/editor.ts",
-    "read-commit-instructions.ts": "./bin/read-commit-instructions.ts"
-  },
   "scripts": {
+    "build": "vite build",
     "fix": "run-p fix:*",
     "fix:eslint": "eslint --fix .",
     "fix:prettier": "prettier --write .",
@@ -20,7 +16,7 @@
   "devDependencies": {
     "@eslint/compat": "2.1.0",
     "@eslint/js": "10.0.1",
-    "@types/node": "24.12.3",
+    "@types/node": "22.19.19",
     "eslint": "10.3.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.4",
@@ -31,9 +27,10 @@
     "prettier": "3.8.3",
     "typescript": "6.0.3",
     "typescript-eslint": "8.59.2",
+    "vite": "7.3.3",
     "vitest": "4.1.5"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=22.19.0"
   }
 }

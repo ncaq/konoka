@@ -1,7 +1,7 @@
 ---
 name: pr-style
 description: Pull request style guidelines covering title, body, assignee, and label selection. Use when writing or proposing GitHub pull requests, including direct `gh pr create` invocations outside the /pr skill.
-allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing.ts:*), Bash(read-pull-request-template.ts:*), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
 user-invocable: false
 ---
 
@@ -18,7 +18,7 @@ GitHubのpull requestを作成するときのスタイルガイドラインで�
 
 # リポジトリ固有のCONTRIBUTING
 
-!`read-contributing.ts`
+!`read-contributing`
 
 上記の内容が空でなければリポジトリの`CONTRIBUTING.md`の内容です。
 `CONTRIBUTING.md`ファイルが典型的に存在する場所を探索して、
@@ -27,7 +27,7 @@ GitHubのpull requestを作成するときのスタイルガイドラインで�
 
 # リポジトリ固有のpull requestテンプレート
 
-!`read-pull-request-template.ts`
+!`read-pull-request-template`
 
 上記の内容が空でなければリポジトリのpull requestテンプレートです。
 GitHub標準のテンプレートの置き場所を探索して、

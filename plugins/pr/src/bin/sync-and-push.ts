@@ -1,7 +1,6 @@
-#!/usr/bin/env node
 import process from "node:process";
-import { displayErrorMessage } from "../src/run.ts";
-import { formatSyncAndPush, syncAndPush } from "../src/sync-and-push.ts";
+import { displayErrorMessage } from "../run";
+import { formatSyncAndPush, syncAndPush } from "../sync-and-push";
 
 async function main(): Promise<void> {
   try {
@@ -11,7 +10,6 @@ async function main(): Promise<void> {
   } catch (err: unknown) {
     console.error(displayErrorMessage(err));
     process.exitCode = 1;
-    return;
   }
 }
 

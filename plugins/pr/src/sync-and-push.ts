@@ -1,5 +1,5 @@
-import { type PushHeadResult, pushHead } from "./push-head.ts";
-import { type SyncBaseResult, syncBase } from "./sync-base.ts";
+import { type PushHeadResult, pushHead } from "./push-head";
+import { type SyncBaseResult, syncBase } from "./sync-base";
 
 /**
  * `syncBase`と`pushHead`の結果を1つにまとめた型。

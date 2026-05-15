@@ -12,18 +12,18 @@
     // 出力するモジュール形式。
     // バンドラに委ねる`preserve`、Node.jsの解決に委ねる`node20`、純粋ESMの`es2022`。
     // あたりから大抵は選択することになります。
-    "module": "node20",
+    "module": "preserve",
     // import文のパス解決アルゴリズム。
     // バンドラを想定した寛容な解決を行う`bundler`、Node.js公式の解決を行う`node16`。
     // あたりから大抵は選択することになります。
-    "moduleResolution": "node16",
+    "moduleResolution": "bundler",
     // JSONファイルをimportできるようになります。
     // インポートされたJSONは型安全なオブジェクトとして扱われます。
     "resolveJsonModule": true,
     // `.js`ではなく`.ts`などでimportできるようになります。
     // tscはトランスパイルせず型チェックのみを行うプロジェクトでは有効にできます。
     // `true`にするには`noEmit`などのオプションを調整する必要があります。
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
     // トランスパイル時に`.ts`などの拡張子が`.js`系統に書き換えられます。
     // Node.jsなどによる直接実行も、
     // tscによるトランスパイル後の実行も両立したい時に利用できます。

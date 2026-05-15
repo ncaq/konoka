@@ -4,7 +4,7 @@ import {
   buildEditmsgTemplate,
   hasStagedChanges,
   timestamp,
-} from "../src/commit-prepare.ts";
+} from "../src/commit-prepare";
 
 describe("timestamp", () => {
   test("ISO 8601風のフォーマットを返す", () => {

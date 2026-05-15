@@ -31,7 +31,8 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- Node.js >= 24(TypeScriptファイルのフラグなし実行に必要)
+- Node.js >= 22.19.0
+- npm。Node.jsに同梱されているはずです。
 - [GitHub CLI(`gh`)](https://cli.github.com/) (`gh repo view`、`gh label list`で使用)
 - 認証済みのGitHub MCPサーバ (PR作成、アサイン、ラベル設定で利用)
 - リモートにブランチをpushできるgit設定
