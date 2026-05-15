@@ -18,7 +18,7 @@
     "test": "vitest run --reporter=verbose"
   },
   "devDependencies": {
-    "@eslint/compat": "2.0.5",
+    "@eslint/compat": "2.1.0",
     "@eslint/js": "10.0.1",
     "@types/node": "24.12.3",
     "eslint": "10.3.0",
