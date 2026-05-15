@@ -32,7 +32,6 @@ Claude Codeで以下を実行します。
 - Node.js >= 22.19.0
 - npm。Node.jsに同梱されているはずです。
 
-
 ## セットアップ
 
 このプラグインは一時ファイルを`$XDG_RUNTIME_DIR/coding-agent-work/commit/`配下に、
