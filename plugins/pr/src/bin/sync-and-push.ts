@@ -10,7 +10,6 @@ async function main(): Promise<void> {
   } catch (err: unknown) {
     console.error(displayErrorMessage(err));
     process.exitCode = 1;
-    return;
   }
 }
 
