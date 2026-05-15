@@ -68,7 +68,7 @@
                   nodeModules = pkgs.importNpmLock.buildNodeModules {
                     inherit nodejs npmRoot;
                   };
-                  tsSrc = lib.fileset.toSource {
+                  tsRoot = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
                       ./.editorconfig
@@ -91,7 +91,7 @@
                           ];
                         }
                         ''
-                          cp -r ${tsSrc}/. .
+                          cp -r ${tsRoot}/. .
                           # nix storeから複製したファイル/ディレクトリはread-onlyのため、
                           # 書き込みを伴うツール(viteのconfig bundleやvitestのキャッシュ書き出しなど)が、
                           # 動くように書き込み権限を付与する。
@@ -123,7 +123,8 @@
                   extraInputs = with pkgs; [ clippy ];
                 }
                 {
-                  # treefmtでも整形チェックは行うが、cargo純正のフォーマッタチェックも一応実施する。
+                  # treefmtでも整形チェックは行えるが、
+                  # プロジェクト固有の設定をこちらのほうが読み込みやすい。
                   name = "cargo-fmt";
                   script = "cargo fmt --all --check";
                   extraInputs = with pkgs; [ rustfmt ];
