@@ -76,7 +76,7 @@ claude-code-actionのエージェントに含まれている、
 
 ## 前提条件
 
-- Node.js version 20.20以上。
+- Node.js >= 20.20.0
   GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンに合わせています。
 - npm。
   Node.jsに同梱されているはずです。

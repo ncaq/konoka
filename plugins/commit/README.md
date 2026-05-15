@@ -29,7 +29,7 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- Node.js >= 22.19
+- Node.js >= 22.19.0
 - npm。Node.jsに同梱されているはずです。
 
 
