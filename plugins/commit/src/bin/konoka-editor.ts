@@ -1,26 +1,30 @@
-import { spawnSync } from "node:child_process";
 import process from "node:process";
+import { Command } from "@effect/platform";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Config, Effect } from "effect";
 
-const editorEnv = process.env["EDITOR"];
-const [editor = "emacsclient", ...defaultArgs] = editorEnv
-  ? editorEnv.split(" ")
-  : ["emacsclient", "--reuse-frame", "--alternate-editor=emacs"];
+const defaultEditor = ["emacsclient", "--reuse-frame", "--alternate-editor=emacs"] as const;
 
-const result = spawnSync(editor, [...defaultArgs, ...process.argv.slice(2)], {
-  stdio: "inherit",
+const editorParts: Effect.Effect<readonly string[]> = Config.nonEmptyString("EDITOR").pipe(
+  Effect.map((s) => s.split(" ")),
+  Effect.orElseSucceed(() => defaultEditor),
+);
+
+const program = Effect.gen(function* () {
+  const [editor, ...defaultArgs] = yield* editorParts;
+  if (editor == null) {
+    return yield* Effect.dieMessage("Editor command is empty");
+  }
+  const args = [...defaultArgs, ...process.argv.slice(2)];
+  const cmd = Command.make(editor, ...args).pipe(
+    Command.stdin("inherit"),
+    Command.stdout("inherit"),
+    Command.stderr("inherit"),
+  );
+  const exitCode = yield* Command.exitCode(cmd);
+  if (exitCode !== 0) {
+    return yield* Effect.dieMessage(`Editor "${editor}" failed (status ${exitCode})`);
+  }
 });
 
-function assertEditorSuccess(
-  editorName: string,
-  { error, status }: { error?: Error; status: number | null },
-): void {
-  if (error !== undefined || status !== 0) {
-    const detail = error !== undefined ? `: ${error.message}` : "";
-    throw new Error(
-      `Editor "${editorName}" failed (status ${status})${detail}`,
-      error !== undefined ? { cause: error } : undefined,
-    );
-  }
-}
-
-assertEditorSuccess(editor, result);
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));

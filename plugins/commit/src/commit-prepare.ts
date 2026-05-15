@@ -1,19 +1,15 @@
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import process from "node:process";
-import { promisify } from "node:util";
+import { Command, FileSystem, Path } from "@effect/platform";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
+import { Config, Data, Effect } from "effect";
 
-const execFileAsync = promisify(execFile);
+const pluginName = "commit" as const;
 
-/** Thrown when there is nothing to commit. */
-export class EmptyCommitError extends Error {
-  override name = "EmptyCommitError" as const;
-  constructor(message: string) {
-    super(message);
-  }
-}
+/** Raised when there is nothing to commit. */
+export class EmptyCommitError extends Data.TaggedError("EmptyCommitError")<{
+  readonly message: string;
+}> {}
 
 /** Generate an ISO 8601-like timestamp for use in directory names. */
 export function timestamp(): string {
@@ -37,58 +33,63 @@ export function buildEditmsgTemplate(diff: string): string {
   return `\n# ------------------------ >8 ------------------------\n${diff}\n`;
 }
 
-const pluginName = "commit" as const;
-
-async function git(...args: readonly string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { maxBuffer: 10 * 1024 * 1024 });
-  return stdout.trimEnd();
+/** Run git with the given args and return trimmed stdout. */
+function git(...args: readonly string[]): Effect.Effect<string, PlatformError, CommandExecutor> {
+  return Command.string(Command.make("git", ...args)).pipe(Effect.map((s) => s.trimEnd()));
 }
 
-function getPersonalWorkDir(): string {
-  const runtimeDir = process.env["XDG_RUNTIME_DIR"];
-  if (runtimeDir != null && runtimeDir !== "") {
-    return runtimeDir;
-  }
-  return tmpdir();
-}
+const personalWorkDir: Effect.Effect<string> = Config.nonEmptyString("XDG_RUNTIME_DIR").pipe(
+  Effect.orElseSucceed(() => tmpdir()),
+);
 
-function getCodingAgentWorkDir(): string {
-  return join(getPersonalWorkDir(), "coding-agent-work", pluginName);
-}
+const codingAgentWorkDir: Effect.Effect<string, never, Path.Path> = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const base = yield* personalWorkDir;
+  return path.join(base, "coding-agent-work", pluginName);
+});
 
-async function createWorkdirPath(): Promise<string> {
-  const codingAgentWorkDir = getCodingAgentWorkDir();
-  await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
-  return mkdtemp(join(codingAgentWorkDir, `${timestamp()}-`));
-}
+const createWorkdirPath: Effect.Effect<string, PlatformError, FileSystem.FileSystem | Path.Path> =
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const base = yield* codingAgentWorkDir;
+    yield* fs.makeDirectory(base, { recursive: true, mode: 0o700 });
+    return yield* fs.makeTempDirectory({ directory: base, prefix: `${timestamp()}-` });
+  });
 
-async function ensureStaged(): Promise<void> {
-  const status = await git("status", "--porcelain");
-  if (status === "") {
-    throw new EmptyCommitError("No changes to commit.");
-  }
-  if (!hasStagedChanges(status)) {
-    await git("add", "--all");
-  }
-}
+const ensureStaged: Effect.Effect<void, PlatformError | EmptyCommitError, CommandExecutor> =
+  Effect.gen(function* () {
+    const status = yield* git("status", "--porcelain");
+    if (status === "") {
+      return yield* new EmptyCommitError({ message: "No changes to commit." });
+    }
+    if (!hasStagedChanges(status)) {
+      yield* git("add", "--all");
+    }
+  });
 
-async function getStagedDiff(): Promise<string> {
-  const diff = await git("diff", "--cached");
-  if (diff === "") {
-    throw new EmptyCommitError("No staged changes to commit.");
-  }
-  return diff;
-}
+const getStagedDiff: Effect.Effect<string, PlatformError | EmptyCommitError, CommandExecutor> =
+  Effect.gen(function* () {
+    const diff = yield* git("diff", "--cached");
+    if (diff === "") {
+      return yield* new EmptyCommitError({ message: "No staged changes to commit." });
+    }
+    return diff;
+  });
 
-async function stageThenDiff(): Promise<string> {
-  await ensureStaged();
-  return getStagedDiff();
-}
+const stageThenDiff: Effect.Effect<string, PlatformError | EmptyCommitError, CommandExecutor> =
+  ensureStaged.pipe(Effect.zipRight(getStagedDiff));
 
-async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<string> {
-  const editmsgPath = join(workdirPath, "COMMIT_EDITMSG");
-  await writeFile(editmsgPath, buildEditmsgTemplate(diff));
-  return editmsgPath;
+function writeEditmsgTemplate(
+  workdirPath: string,
+  diff: string,
+): Effect.Effect<string, PlatformError, FileSystem.FileSystem | Path.Path> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const editmsgPath = path.join(workdirPath, "COMMIT_EDITMSG");
+    yield* fs.writeFileString(editmsgPath, buildEditmsgTemplate(diff));
+    return editmsgPath;
+  });
 }
 
 /**
@@ -99,9 +100,15 @@ async function writeEditmsgTemplate(workdirPath: string, diff: string): Promise<
  * 一時ディレクトリを作り、scissors lineと差分を含むテンプレートを配置します。
  * 未設定環境では`os.tmpdir()`にフォールバックします。
  *
- * 何もステージできるものが無い場合は`EmptyCommitError`を投げます。
+ * 何もステージできるものが無い場合は`EmptyCommitError`で失敗します。
  */
-export async function prepareCommit(): Promise<string> {
-  const [workdirPath, diff] = await Promise.all([createWorkdirPath(), stageThenDiff()]);
-  return writeEditmsgTemplate(workdirPath, diff);
-}
+export const prepareCommit: Effect.Effect<
+  string,
+  PlatformError | EmptyCommitError,
+  FileSystem.FileSystem | Path.Path | CommandExecutor
+> = Effect.gen(function* () {
+  const [workdirPath, diff] = yield* Effect.all([createWorkdirPath, stageThenDiff], {
+    concurrency: 2,
+  });
+  return yield* writeEditmsgTemplate(workdirPath, diff);
+});

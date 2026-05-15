@@ -1,19 +1,25 @@
-import { readFile } from "node:fs/promises";
+import { FileSystem } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect, Option } from "effect";
 
 const COMMIT_INSTRUCTIONS_PATH = ".github/git-commit-instructions.md" as const;
 
 /**
- * Read project-specific commit message guidelines if available.
+ * プロジェクト固有のコミットメッセージガイドラインを読み込みます。
  *
- * Returns the file contents as UTF-8 text, or `undefined` when the file does not exist.
+ * UTF-8として読み取った内容を`Option.some`で返します。
+ * ファイルが存在しない場合は`Option.none`を返します。
  */
-export async function readCommitInstructions(): Promise<string | undefined> {
-  try {
-    return await readFile(COMMIT_INSTRUCTIONS_PATH, "utf8");
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && err.code === "ENOENT") {
-      return undefined;
-    }
-    throw err;
-  }
-}
+export const readCommitInstructions: Effect.Effect<
+  Option.Option<string>,
+  PlatformError,
+  FileSystem.FileSystem
+> = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  return yield* fs.readFileString(COMMIT_INSTRUCTIONS_PATH, "utf8").pipe(
+    Effect.map(Option.some),
+    Effect.catchTag("SystemError", (err) =>
+      err.reason === "NotFound" ? Effect.succeed(Option.none<string>()) : Effect.fail(err),
+    ),
+  );
+});
