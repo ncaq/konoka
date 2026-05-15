@@ -20,7 +20,7 @@
   "devDependencies": {
     "@eslint/compat": "2.0.5",
     "@eslint/js": "10.0.1",
-    "@types/node": "24.12.2",
+    "@types/node": "24.12.3",
     "eslint": "10.3.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.4",
