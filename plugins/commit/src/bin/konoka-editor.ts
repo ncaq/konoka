@@ -24,10 +24,12 @@ const command = CliCommand.make("konoka-editor", { commitEditmsgArg }, ({ commit
       Command.stdout("inherit"),
       Command.stderr("inherit"),
     );
-    const exitCode = yield* Command.exitCode(cmd);
-    if (exitCode !== 0) {
-      return yield* Effect.dieMessage(`Editor "${editor}" failed (status ${exitCode})`);
-    }
+    yield* Command.exitCode(cmd).pipe(
+      Effect.filterOrDie(
+        (code) => code === 0,
+        (code) => new Error(`Editor "${editor}" failed (status ${code})`),
+      ),
+    );
   }),
 );
 
