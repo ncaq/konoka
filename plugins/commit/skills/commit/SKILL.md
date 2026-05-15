@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(commit-prepare.ts:*), Bash(editor.ts:*), Bash(git commit:*), Edit, Read, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-editor:*), Edit, Read, Skill(commit-style)
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -15,7 +15,7 @@ AIがコミットメッセージを生成し、
 
 # コミットメッセージファイルの生成
 
-!`commit-prepare.ts`
+!`commit-prepare`
 
 上記の出力は`COMMIT_EDITMSG`ファイルのパスです。
 コマンドが失敗した場合はコミットする変更がないので、
@@ -67,7 +67,7 @@ AIがコミットメッセージを生成し、
 タイムアウトは最大の600秒(10分)に設定してください。
 
 ```bash
-editor.ts <editmsgのパス>
+konoka-editor <editmsgのパス>
 ```
 
 エディタが正常終了したら、

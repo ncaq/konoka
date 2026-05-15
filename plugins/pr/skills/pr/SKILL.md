@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
-allowed-tools: AskUserQuestion, Bash(editor.ts:*), Bash(git status:*), Bash(prepare-editmsg.ts:*), Bash(sync-and-push.ts:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
+allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-editor:*), Bash(prepare-editmsg:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
 ---
 
 GitHubのpull requestを作成します。
@@ -20,7 +20,7 @@ AIがタイトルと本文を生成し、
 
 # baseとの同期とremoteへのpush
 
-!`sync-and-push.ts`
+!`sync-and-push`
 
 上記の埋め込みコマンドは、
 baseブランチとの同期(必要ならrebase)に続けて、
@@ -93,7 +93,7 @@ PR全体の変更を要約するタイトルと本文を新たに書いてくだ
 以下のスクリプトでセッション固有の一時ディレクトリを作成し、
 `PULLREQ_EDITMSG`ファイルのフルパスが取得されます。
 
-!`prepare-editmsg.ts`
+!`prepare-editmsg`
 
 スクリプトは`$XDG_RUNTIME_DIR/coding-agent-work/pr/`配下にディレクトリを作り、
 存在しない場合は再帰的に作成します。
@@ -133,7 +133,7 @@ PR作成に進んでください。
 タイムアウトは最大の600秒に設定してください。
 
 ```bash
-editor.ts <PULLREQ_EDITMSGのパス>
+konoka-editor <PULLREQ_EDITMSGのパス>
 ```
 
 エディタが正常終了したら、
@@ -155,10 +155,10 @@ PR作成に進んでください。
 
 引数は以下の通りです。
 
-- `owner`: `sync-and-push.ts`の出力の`owner`
-- `repo`: `sync-and-push.ts`の出力の`repo`
-- `head`: `sync-and-push.ts`の出力の`current`
-- `base`: `sync-and-push.ts`の出力の`base`
+- `owner`: `sync-and-push`の出力の`owner`
+- `repo`: `sync-and-push`の出力の`repo`
+- `head`: `sync-and-push`の出力の`current`
+- `base`: `sync-and-push`の出力の`base`
 - `title`: 生成したタイトル
 - `body`: 生成した本文
 - `draft`: ユーザが明示的に指示した場合のみ`true`、それ以外は省略
@@ -180,8 +180,8 @@ PR作成からアサイン/ラベル設定までのタイムラグを最小化�
 `assignees`と`labels`を1回で設定してください。
 
 - `method`: `"update"`
-- `owner`: `sync-and-push.ts`の出力の`owner`
-- `repo`: `sync-and-push.ts`の出力の`repo`
+- `owner`: `sync-and-push`の出力の`owner`
+- `repo`: `sync-and-push`の出力の`repo`
 - `issue_number`: 作成したPRの番号
 - `assignees`: `pr-style`スキルで決定したloginの配列
 - `labels`: 選定したラベル(該当なしの場合は省略可)

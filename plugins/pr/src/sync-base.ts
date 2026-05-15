@@ -1,4 +1,4 @@
-import { CommandError, run, throwCommandError } from "./run.ts";
+import { CommandError, run, throwCommandError } from "./run";
 
 export interface SyncBaseResult {
   readonly currentBranch: string;

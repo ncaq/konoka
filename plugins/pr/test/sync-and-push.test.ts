@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSyncAndPush } from "../src/sync-and-push.ts";
+import { formatSyncAndPush } from "../src/sync-and-push";
 
 describe("formatSyncAndPush", () => {
   it("rebase未実施かつpushなしのケース", () => {

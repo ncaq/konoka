@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 import process from "node:process";
 import {
   formatPullRequestTemplates,
   readPullRequestTemplates,
-} from "../src/read-pull-request-template.ts";
+} from "../read-pull-request-template";
 
 async function main(): Promise<void> {
   const templates = await readPullRequestTemplates();

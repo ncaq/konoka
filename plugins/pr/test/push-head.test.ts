@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseAheadBehind, parseOpenPr } from "../src/push-head.ts";
-import { CommandError } from "../src/run.ts";
+import { parseAheadBehind, parseOpenPr } from "../src/push-head";
+import { CommandError } from "../src/run";
 
 describe("parseAheadBehind", () => {
   it("git rev-list --left-right --countの出力をパースします", () => {
