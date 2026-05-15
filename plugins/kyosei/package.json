@@ -11,6 +11,7 @@
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --check .",
     "lint:tsc": "tsc --noEmit",
+    "prepare": "effect-language-service patch",
     "test": "vitest run --reporter=verbose"
   },
   "dependencies": {
