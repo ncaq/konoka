@@ -108,7 +108,9 @@ describe("konokaEdit", () => {
         const defect = Cause.dieOption(exit.cause);
         expect(Option.isSome(defect)).toBe(true);
         if (Option.isSome(defect)) {
-          expect(String(defect.value)).toContain(`Editor "false" failed (status 1)`);
+          expect(String(defect.value)).toContain(
+            `EditorFailedError: Editor command "false" failed with exit code 1.`,
+          );
         }
       }
     }).pipe(
