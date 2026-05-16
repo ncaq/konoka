@@ -1,7 +1,7 @@
 import { Command } from "@effect/platform";
 import type { CommandExecutor } from "@effect/platform/CommandExecutor";
 import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, Option, Stream } from "effect";
+import { String, Data, Effect, Option, pipe, Stream } from "effect";
 
 /**
  * 子プロセスが非0で終了した場合に投げる構造化エラーです。
@@ -21,12 +21,11 @@ export class CommandFailedError extends Data.TaggedError("CommandFailedError")<{
   }
 }
 
-function concatBytes(acc: Uint8Array, curr: Uint8Array): Uint8Array {
-  const out = new Uint8Array(acc.length + curr.length);
-  out.set(acc);
-  out.set(curr, acc.length);
-  return out;
-}
+/**
+ * `Stream`を`string`にお手軽に変換します。
+ */
+const runString = <E, R>(stream: Stream.Stream<Uint8Array, E, R>): Effect.Effect<string, E, R> =>
+  stream.pipe(Stream.decodeText(), Stream.runFold(String.empty, String.concat));
 
 /**
  * 子プロセスを実行し、標準出力をtrim済みの文字列で返します。
@@ -38,25 +37,34 @@ export function runStdout(
 ): Effect.Effect<string, CommandFailedError | PlatformError, CommandExecutor> {
   return Effect.scoped(
     Effect.gen(function* () {
-      const process = yield* Command.start(Command.make(cmd, ...args));
-      const decoder = new TextDecoder();
-      const [stdoutBytes, stderrBytes, exitCode] = yield* Effect.all(
-        [
-          Stream.runFold(process.stdout, new Uint8Array(), concatBytes),
-          Stream.runFold(process.stderr, new Uint8Array(), concatBytes),
-          process.exitCode,
-        ],
-        { concurrency: "unbounded" },
+      const command = Command.make(cmd, ...args);
+      const [exitCode, stdout, stderr] = yield* pipe(
+        // Start running the command and return a handle to the running process
+        Command.start(command),
+        Effect.flatMap((process) =>
+          Effect.all(
+            [
+              // Waits for the process to exit and returns
+              // the ExitCode of the command that was run
+              process.exitCode,
+              // The standard output stream of the process
+              runString(process.stdout),
+              // The standard error stream of the process
+              runString(process.stderr),
+            ],
+            { concurrency: 3 },
+          ),
+        ),
       );
       if (exitCode !== 0) {
         return yield* new CommandFailedError({
           command: cmd,
           args,
           exitCode,
-          stderr: decoder.decode(stderrBytes).trim(),
+          stderr,
         });
       }
-      return decoder.decode(stdoutBytes).trim();
+      return stdout;
     }),
   );
 }
