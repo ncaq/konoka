@@ -1,7 +1,16 @@
 import { Command } from "@effect/platform";
 import type { CommandExecutor } from "@effect/platform/CommandExecutor";
 import type { PlatformError } from "@effect/platform/Error";
-import { Config, Effect } from "effect";
+import { Config, Data, Effect } from "effect";
+
+export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
+  readonly editor: string;
+  readonly exitCode: number;
+}> {
+  override get message(): string {
+    return `Editor command "${this.editor}" failed with exit code ${this.exitCode}.`;
+  }
+}
 
 /**
  * 環境変数`EDITOR`が未設定または空のときに使うデフォルトのエディタコマンドです。
@@ -63,7 +72,7 @@ export function konokaEdit(
     yield* Command.exitCode(cmd).pipe(
       Effect.filterOrDie(
         (code) => code === 0,
-        (code) => new Error(`Editor "${editor}" failed (status ${code})`),
+        (code) => new EditorFailedError({ editor, exitCode: code }),
       ),
     );
   });
