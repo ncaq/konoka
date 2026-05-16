@@ -4,9 +4,7 @@ import { prepareCommit } from "../commit-prepare";
 
 const program = prepareCommit.pipe(
   Effect.flatMap((path) => Console.log(path)),
-  Effect.catchTag("EmptyCommitError", (err) =>
-    Console.error(err.message).pipe(Effect.zipRight(Effect.interrupt)),
-  ),
+  Effect.catchTag("EmptyCommitError", (err) => Console.error(err.message)),
 );
 
 NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)), {
