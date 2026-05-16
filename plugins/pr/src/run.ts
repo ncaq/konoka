@@ -1,77 +1,87 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const exec = promisify(execFile);
+import { Command } from "@effect/platform";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
+import { String, Data, Effect, Option, pipe, Stream } from "effect";
 
 /**
- * 子プロセス実行絡みのエラーを表す共通の例外型。
+ * 子プロセスが非0で終了した場合に投げる構造化エラーです。
  * `stderr`は子プロセスからの標準エラー出力をそのまま保持しますが、
- * ロジック由来で投げる場合は空文字列で構いません。
+ * 取得できなかった場合は空文字列で構いません。
  */
-export class CommandError extends Error {
-  public readonly stderr: string;
-
-  public constructor(message: string, stderr: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = "CommandError";
-    this.stderr = stderr;
+export class CommandFailedError extends Data.TaggedError("CommandFailedError")<{
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly exitCode: number;
+  readonly stderr: string;
+}> {
+  override get message(): string {
+    const cmdline = [this.command, ...this.args].join(" ");
+    const head = `Command failed: ${cmdline} (exit ${this.exitCode})`;
+    return this.stderr === "" ? head : `${head}\n${this.stderr}`;
   }
 }
 
 /**
- * `CommandError`を投げるべき状況ならそれを投げ、
- * そうでないなら普通に例外を再スローします。
+ * `Stream`を`string`にお手軽に変換します。
  */
-export function throwCommandError(msg: string, err: unknown): never {
-  if (err instanceof CommandError) {
-    throw new CommandError(msg, err.stderr, { cause: err });
-  }
-  if (err instanceof Error && "stderr" in err && typeof err.stderr === "string") {
-    throw new CommandError(msg, err.stderr, { cause: err });
-  }
-  if (err instanceof Error) {
-    throw new Error(`${msg}\n${err.message}`, { cause: err });
-  }
-  throw new Error(`${msg}\n${String(err)}`, { cause: err });
+const runString = <E, R>(stream: Stream.Stream<Uint8Array, E, R>): Effect.Effect<string, E, R> =>
+  stream.pipe(Stream.decodeText(), Stream.runFold(String.empty, String.concat));
+
+/**
+ * 子プロセスを実行し、標準出力をtrim済みの文字列で返します。
+ * 終了コードが0以外の場合は標準エラー出力を含む`CommandFailedError`で失敗します。
+ */
+export function runStdout(
+  cmd: string,
+  args: readonly string[],
+): Effect.Effect<string, CommandFailedError | PlatformError, CommandExecutor> {
+  return Effect.scoped(
+    Effect.gen(function* () {
+      const command = Command.make(cmd, ...args);
+      const [exitCode, stdout, stderr] = yield* pipe(
+        // Start running the command and return a handle to the running process
+        Command.start(command),
+        Effect.flatMap((process) =>
+          Effect.all(
+            [
+              // Waits for the process to exit and returns
+              // the ExitCode of the command that was run
+              process.exitCode,
+              // The standard output stream of the process
+              runString(process.stdout),
+              // The standard error stream of the process
+              runString(process.stderr),
+            ],
+            { concurrency: 3 },
+          ),
+        ),
+      );
+      if (exitCode !== 0) {
+        return yield* new CommandFailedError({
+          command: cmd,
+          args,
+          exitCode,
+          stderr,
+        });
+      }
+      return stdout.trim();
+    }),
+  );
 }
 
 /**
- * 子プロセスを実行して標準出力を返します。
- * 失敗時は`CommandError`を投げます。
- */
-export async function run(cmd: string, args: readonly string[]): Promise<string> {
-  try {
-    const { stdout } = await exec(cmd, args);
-    return stdout.trim();
-  } catch (err: unknown) {
-    throwCommandError(`Command failed: ${cmd} ${args.join(" ")}`, err);
-  }
-}
-
-/**
- * `run`のエラーを握り潰すバリエーション。
+ * `runStdout`のバリアントです。
+ * 非0終了による失敗のみを`Option.none`に畳み、
+ * プロセス起動自体の失敗は依然として伝播します。
  * upstream未設定時の`git rev-parse @{u}`のように、
- * 失敗自体が情報を持つ呼び出しで使います。
+ * 失敗自体が情報として意味を持つ呼び出しで使います。
  */
-export async function tryRun(cmd: string, args: readonly string[]): Promise<string | undefined> {
-  try {
-    const { stdout } = await exec(cmd, args);
-    return stdout.trim();
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * `CommandError`/`Error`のいずれでも適切に文字列化します。
- * 子プロセス由来の場合は`stderr`が付加されます。
- */
-export function displayErrorMessage(err: unknown): string {
-  if (err instanceof CommandError) {
-    return err.stderr !== "" ? `${err.message}\n${err.stderr}` : err.message;
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return String(err);
+export function tryRunStdout(
+  cmd: string,
+  args: readonly string[],
+): Effect.Effect<Option.Option<string>, PlatformError, CommandExecutor> {
+  return runStdout(cmd, args).pipe(
+    Effect.map(Option.some),
+    Effect.catchTag("CommandFailedError", () => Effect.succeed(Option.none<string>())),
+  );
 }

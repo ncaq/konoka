@@ -1,9 +1,17 @@
-import { type PushHeadResult, pushHead } from "./push-head";
-import { type SyncBaseResult, syncBase } from "./sync-base";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect, type ParseResult } from "effect";
+import {
+  BehindUpstreamError,
+  ExistingOpenPullRequestError,
+  type PushHeadResult,
+  RevListParseError,
+  pushHead,
+} from "./push-head";
+import { CommandFailedError } from "./run";
+import { CurrentIsBaseError, RebaseFailedError, type SyncBaseResult, syncBase } from "./sync-base";
 
-/**
- * `syncBase`と`pushHead`の結果を1つにまとめた型。
- */
+/** `syncBase`と`pushHead`の結果を1つにまとめた型。 */
 export type SyncAndPushResult = SyncBaseResult & PushHeadResult;
 
 /**
@@ -13,10 +21,26 @@ export type SyncAndPushResult = SyncBaseResult & PushHeadResult;
  * かつ両方ともエラー時はPR作成スキルを終了するという挙動が共通しているため、
  * 1本のエントリーポイントにまとめます。
  */
-export async function syncAndPush(): Promise<SyncAndPushResult> {
-  const sync = await syncBase();
-  const push = await pushHead();
-  return { ...sync, action: push.action };
+export function syncAndPush(): Effect.Effect<
+  SyncAndPushResult,
+  | CommandFailedError
+  | PlatformError
+  | RevListParseError
+  | ParseResult.ParseError
+  | CurrentIsBaseError
+  | RebaseFailedError
+  | BehindUpstreamError
+  | ExistingOpenPullRequestError,
+  CommandExecutor
+> {
+  return Effect.gen(function* () {
+    const sync = yield* syncBase();
+    const push = yield* pushHead();
+    if (sync.currentBranch !== push.currentBranch) {
+      yield* Effect.die("syncBase and pushHead returned results for different branches");
+    }
+    return { ...sync, action: push.action };
+  });
 }
 
 export function formatSyncAndPush(result: SyncAndPushResult): string {

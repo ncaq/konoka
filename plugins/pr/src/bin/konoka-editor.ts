@@ -1,26 +1,34 @@
-import { spawnSync } from "node:child_process";
 import process from "node:process";
+import { Args, Command } from "@effect/cli";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Effect } from "effect";
+import { konokaEdit } from "../konoka-editor";
 
-const editorEnv = process.env["EDITOR"];
-const [editor = "emacsclient", ...defaultArgs] = editorEnv
-  ? editorEnv.split(" ")
-  : ["emacsclient", "--reuse-frame", "--alternate-editor=emacs"];
+/**
+ * コマンドライン引数として渡された`PULLREQ_EDITMSG`ファイル。
+ */
+const pullreqEditmsgArg = Args.file({ name: "PULLREQ_EDITMSG", exists: "yes" });
 
-const result = spawnSync(editor, [...defaultArgs, ...process.argv.slice(2)], {
-  stdio: "inherit",
+/**
+ * コマンド処理の本体。
+ */
+const command = Command.make("konoka-editor", { pullreqEditmsgArg }, ({ pullreqEditmsgArg }) =>
+  konokaEdit(pullreqEditmsgArg),
+);
+
+/**
+ * メタデータを含んだコマンド全体。
+ */
+const cli = Command.run(command, {
+  name: "konoka-editor",
+  version: "0.0.0", // あくまで内部プログラムでありバージョンはプラグイン側にあるのでダミー。
 });
 
-function assertEditorSuccess(
-  editorName: string,
-  { error, status }: { error?: Error; status: number | null },
-): void {
-  if (error !== undefined || status !== 0) {
-    const detail = error !== undefined ? `: ${error.message}` : "";
-    throw new Error(
-      `Editor "${editorName}" failed (status ${status})${detail}`,
-      error !== undefined ? { cause: error } : undefined,
-    );
-  }
+/**
+ * エントリーポイントとしてコマンドを起動します。
+ */
+function main(): void {
+  cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
 }
 
-assertEditorSuccess(editor, result);
+main();

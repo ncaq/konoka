@@ -1,46 +1,60 @@
-import { readFile, readdir } from "node:fs/promises";
+import { FileSystem } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect, Option } from "effect";
 
 /**
- * Read a file as UTF-8, returning undefined if the file does not exist.
+ * UTF-8としてファイルを読み、存在しない場合は`Option.none`を返します。
  */
-export async function readIfExists(path: string): Promise<string | undefined> {
-  try {
-    return await readFile(path, "utf8");
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && err.code === "ENOENT") {
-      // if file don't exist, ignore error.
-      return undefined;
-    }
-    throw new Error(`Failed to read file: ${path}`, { cause: err });
-  }
+export function readIfExists(
+  path: string,
+): Effect.Effect<Option.Option<string>, PlatformError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    return yield* fs.readFileString(path, "utf8").pipe(
+      Effect.map(Option.some),
+      Effect.catchTag("SystemError", (err) =>
+        err.reason === "NotFound" ? Effect.succeed(Option.none<string>()) : Effect.fail(err),
+      ),
+    );
+  });
 }
 
 /**
- * List directory entries, returning undefined if the directory does not exist.
+ * ディレクトリの内容を読み、存在しない場合は`Option.none`を返します。
  */
-export async function readdirIfExists(path: string): Promise<readonly string[] | undefined> {
-  try {
-    return await readdir(path);
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && err.code === "ENOENT") {
-      // if dir don't exist, ignore error.
-      return undefined;
-    }
-    throw new Error(`Failed to read directory: ${path}`, { cause: err });
-  }
+export function readdirIfExists(
+  path: string,
+): Effect.Effect<Option.Option<readonly string[]>, PlatformError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    return yield* fs.readDirectory(path).pipe(
+      Effect.map((entries): Option.Option<readonly string[]> => Option.some(entries)),
+      Effect.catchTag("SystemError", (err) =>
+        err.reason === "NotFound"
+          ? Effect.succeed(Option.none<readonly string[]>())
+          : Effect.fail(err),
+      ),
+    );
+  });
 }
 
 /**
- * Find an entry in a directory by case-insensitive name match.
+ * ディレクトリエントリを大文字小文字を区別せずに検索します。
  *
- * GitHubはCONTRIBUTING.mdやpull_request_template.mdなどの特殊ファイルを大文字小文字を区別せずに認識します。
+ * GitHubは`CONTRIBUTING.md`や`pull_request_template.md`などの特殊ファイルを大文字小文字を区別せずに認識します。
  * コード上の候補を正規の表記1つに絞り、実行時にファイルシステム側のバリエーションを吸収します。
  */
-export async function findCaseInsensitive(dir: string, name: string): Promise<string | undefined> {
-  const entries = await readdirIfExists(dir);
-  if (entries == null) {
-    return undefined;
-  }
-  const lower = name.toLowerCase();
-  return entries.toSorted().find((entry) => entry.toLowerCase() === lower);
+export function findCaseInsensitive(
+  dir: string,
+  name: string,
+): Effect.Effect<Option.Option<string>, PlatformError, FileSystem.FileSystem> {
+  return readdirIfExists(dir).pipe(
+    Effect.map((entries) =>
+      Option.flatMap(entries, (list) => {
+        const lower = name.toLowerCase();
+        const found = list.toSorted().find((entry) => entry.toLowerCase() === lower);
+        return Option.fromNullable(found);
+      }),
+    ),
+  );
 }

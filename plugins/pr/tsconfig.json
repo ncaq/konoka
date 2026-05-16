@@ -66,7 +66,13 @@
      */
     // 明示的にimportしなくても有効になる`@types/*`の対象を設定できます。
     // ここに列挙されたものだけ暗黙時に有効になります。
-    "types": ["node"]
+    "types": ["node"],
+    // プラグイン。
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
   },
   // コンパイル対象から除外するパスのglobパターンを記述できます。
   "exclude": ["node_modules", "dist", "result", "result-*"]

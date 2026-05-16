@@ -1,47 +1,50 @@
-import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import process from "node:process";
-
-export interface PrepareEditmsgOptions {
-  readonly runtimeDir?: string;
-}
-
-/** なるべくユーザの固有の作業ディレクトリを返します */
-function getPersonalWorkDir(): string {
-  const runtimeDir = process.env["XDG_RUNTIME_DIR"];
-  if (runtimeDir != null && runtimeDir !== "") {
-    return runtimeDir;
-  }
-  return tmpdir();
-}
-
-/** LLMエージェントなどが一時ファイルを置いて良さそうなディレクトリを返します。 */
-function getCodingAgentWorkDir(pluginName: string): string {
-  const personalWorkDir = getPersonalWorkDir();
-  return join(personalWorkDir, "coding-agent-work", pluginName);
-}
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Config, Effect } from "effect";
 
 const pluginName = "pr" as const;
 const fileName = "PULLREQ_EDITMSG" as const;
+
+export interface PrepareEditmsgOptions {
+  /**
+   * テスト用の基底ディレクトリ上書きオプション。
+   * 通常用途では指定しません。
+   * 指定された場合は`coding-agent-work/`サブパスを付けずに基底ディレクトリとして使います。
+   */
+  readonly runtimeDir?: string;
+}
+
+const personalWorkDir: Effect.Effect<string> = Config.nonEmptyString("XDG_RUNTIME_DIR").pipe(
+  Effect.orElseSucceed(() => tmpdir()),
+);
+
+const codingAgentWorkDir: Effect.Effect<string, never, Path.Path> = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const base = yield* personalWorkDir;
+  return path.join(base, "coding-agent-work", pluginName);
+});
 
 /**
  * セッション固有の一時ディレクトリを作成し、`PULLREQ_EDITMSG`ファイルのフルパスを返します。
  *
  * 作業ディレクトリの基底は`$XDG_RUNTIME_DIR/coding-agent-work/pr/`を使い、
  * 未設定環境では`os.tmpdir()`にフォールバックします。
- * 親ディレクトリが無い場合は`mkdir -p`相当で再帰的に作成し、
- * その下に`mkdtemp`でセッション固有のサブディレクトリを掘ります。
+ * 親ディレクトリが無い場合は再帰的に作成し、
+ * その下に`makeTempDirectory`でセッション固有のサブディレクトリを掘ります。
  * `PULLREQ_EDITMSG`本体は呼び出し側でこのパスに書き出してください。
- *
- * `options.runtimeDir`はテスト用のオプションであって、
- * 通常使うことを想定していません。
- * これが指定された時は`coding-agent-work/`サブパスを付けずに基底ディレクトリとして使います。
  */
-export async function prepareEditmsg(options: PrepareEditmsgOptions = {}): Promise<string> {
-  const runtimeDir = options.runtimeDir !== "" ? options.runtimeDir : undefined;
-  const codingAgentWorkDir = runtimeDir ?? getCodingAgentWorkDir(pluginName);
-  await mkdir(codingAgentWorkDir, { recursive: true, mode: 0o700 });
-  const sessionDir = await mkdtemp(join(codingAgentWorkDir, "session-"));
-  return join(sessionDir, fileName);
+export function prepareEditmsg(
+  options: PrepareEditmsgOptions = {},
+): Effect.Effect<string, PlatformError, FileSystem.FileSystem | Path.Path> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const override =
+      options.runtimeDir != null && options.runtimeDir !== "" ? options.runtimeDir : undefined;
+    const baseDir = override ?? (yield* codingAgentWorkDir);
+    yield* fs.makeDirectory(baseDir, { recursive: true, mode: 0o700 });
+    const sessionDir = yield* fs.makeTempDirectory({ directory: baseDir, prefix: "session-" });
+    return path.join(sessionDir, fileName);
+  });
 }

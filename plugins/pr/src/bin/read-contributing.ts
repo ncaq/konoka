@@ -1,11 +1,18 @@
 import process from "node:process";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Effect, Option } from "effect";
 import { formatContributing, readContributing } from "../read-contributing";
 
-async function main(): Promise<void> {
-  const file = await readContributing();
-  if (file != null) {
-    process.stdout.write(formatContributing(file));
-  }
-}
+const program = readContributing().pipe(
+  Effect.flatMap((file) =>
+    Option.match(file, {
+      onNone: () => Effect.void,
+      onSome: (f) =>
+        Effect.sync(() => {
+          process.stdout.write(formatContributing(f));
+        }),
+    }),
+  ),
+);
 
-await main();
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
