@@ -1,15 +1,16 @@
-import { join } from "node:path";
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect, Option } from "effect";
 import { findCaseInsensitive, readIfExists } from "./read-if-exists";
 
 /**
- * Search locations for the contributing guideline file.
- *
- * Ordered by GitHub's display priority. The first match wins.
+ * `CONTRIBUTING`ガイドラインの検索場所。
+ * GitHubの表示優先度の順に並べ、最初に見つかったものを採用します。
  */
 const CONTRIBUTING_LOCATIONS = [".github", ".", "docs"] as const;
 
 /**
- * Canonical file name. Case-insensitive variants are absorbed at runtime.
+ * 正規のファイル名。大文字小文字のバリエーションは実行時に吸収します。
  */
 const CONTRIBUTING_NAME = "CONTRIBUTING.md" as const;
 
@@ -18,37 +19,50 @@ export interface ContributingFile {
   readonly content: string;
 }
 
-async function readAtLocation(
+function readAtLocation(
   root: string,
   location: string,
-): Promise<ContributingFile | undefined> {
-  const dir = join(root, location);
-  const found = await findCaseInsensitive(dir, CONTRIBUTING_NAME);
-  if (found == null) {
-    return undefined;
-  }
-  const path = location === "." ? found : join(location, found);
-  const content = await readIfExists(join(root, path));
-  if (content == null) {
-    return undefined;
-  }
-  return { path, content };
+): Effect.Effect<
+  Option.Option<ContributingFile>,
+  PlatformError,
+  FileSystem.FileSystem | Path.Path
+> {
+  return Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const dir = path.join(root, location);
+    const found = yield* findCaseInsensitive(dir, CONTRIBUTING_NAME);
+    if (Option.isNone(found)) {
+      return Option.none<ContributingFile>();
+    }
+    const relativePath = location === "." ? found.value : path.join(location, found.value);
+    const content = yield* readIfExists(path.join(root, relativePath));
+    return Option.map(content, (c) => ({ path: relativePath, content: c }));
+  });
 }
 
 /**
- * Read the repository's contributing guideline file if it exists.
+ * リポジトリの`CONTRIBUTING`ガイドラインがあれば読み込みます。
  *
- * @param root Repository root to search from. Defaults to the current working directory.
+ * @param root 検索ルート。省略時はカレントディレクトリ。
  */
-export async function readContributing(root = "."): Promise<ContributingFile | undefined> {
-  const candidates = await Promise.all(
-    CONTRIBUTING_LOCATIONS.map((location) => readAtLocation(root, location)),
-  );
-  return candidates.find((candidate) => candidate != null);
+export function readContributing(
+  root = ".",
+): Effect.Effect<
+  Option.Option<ContributingFile>,
+  PlatformError,
+  FileSystem.FileSystem | Path.Path
+> {
+  return Effect.gen(function* () {
+    const candidates = yield* Effect.all(
+      CONTRIBUTING_LOCATIONS.map((location) => readAtLocation(root, location)),
+      { concurrency: "unbounded" },
+    );
+    return Option.fromNullable(candidates.find(Option.isSome)).pipe(Option.flatten);
+  });
 }
 
 /**
- * Format a contributing file as a markdown section.
+ * `CONTRIBUTING`ファイルをmarkdownのセクションとして整形します。
  */
 export function formatContributing(file: ContributingFile): string {
   return `# ${file.path}\n\n${file.content}`;

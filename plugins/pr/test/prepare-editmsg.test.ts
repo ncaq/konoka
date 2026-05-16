@@ -1,7 +1,10 @@
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { NodeContext } from "@effect/platform-node";
+import { describe, it } from "@effect/vitest";
+import { Effect } from "effect";
+import { afterEach, beforeEach, expect } from "vitest";
 import { prepareEditmsg } from "../src/prepare-editmsg";
 
 describe("prepareEditmsg", () => {
@@ -15,28 +18,42 @@ describe("prepareEditmsg", () => {
     await rm(runtimeDir, { recursive: true, force: true });
   });
 
-  test("PULLREQ_EDITMSGファイルのパスを返します", async () => {
-    const path = await prepareEditmsg({ runtimeDir });
-    expect(path.endsWith("/PULLREQ_EDITMSG")).toBe(true);
-  });
+  it.effect("PULLREQ_EDITMSGファイルのパスを返す", () =>
+    prepareEditmsg({ runtimeDir }).pipe(
+      Effect.tap((path) => {
+        expect(path.endsWith("/PULLREQ_EDITMSG")).toBe(true);
+      }),
+      Effect.provide(NodeContext.layer),
+    ),
+  );
 
-  test("セッション固有のサブディレクトリを実体として作成します", async () => {
-    const path = await prepareEditmsg({ runtimeDir });
-    const info = await stat(dirname(path));
-    expect(info.isDirectory()).toBe(true);
-  });
+  it.effect("セッション固有のサブディレクトリを実体として作成する", () =>
+    prepareEditmsg({ runtimeDir }).pipe(
+      Effect.tap((path) =>
+        Effect.promise(async () => {
+          const info = await stat(dirname(path));
+          expect(info.isDirectory()).toBe(true);
+        }),
+      ),
+      Effect.provide(NodeContext.layer),
+    ),
+  );
 
-  test("複数回呼び出しても異なるディレクトリを返します", async () => {
-    const a = await prepareEditmsg({ runtimeDir });
-    const b = await prepareEditmsg({ runtimeDir });
-    expect(dirname(a)).not.toBe(dirname(b));
-  });
+  it.effect("複数回呼び出しても異なるディレクトリを返す", () =>
+    Effect.gen(function* () {
+      const a = yield* prepareEditmsg({ runtimeDir });
+      const b = yield* prepareEditmsg({ runtimeDir });
+      expect(dirname(a)).not.toBe(dirname(b));
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
 
-  test("基底ディレクトリが存在しなくても再帰的に作成します", async () => {
-    const fresh = join(runtimeDir, "fresh");
-    const path = await prepareEditmsg({ runtimeDir: fresh });
-    expect(path.startsWith(fresh)).toBe(true);
-    const info = await stat(dirname(path));
-    expect(info.isDirectory()).toBe(true);
-  });
+  it.effect("基底ディレクトリが存在しなくても再帰的に作成する", () =>
+    Effect.gen(function* () {
+      const fresh = join(runtimeDir, "fresh");
+      const path = yield* prepareEditmsg({ runtimeDir: fresh });
+      expect(path.startsWith(fresh)).toBe(true);
+      const info = yield* Effect.promise(() => stat(dirname(path)));
+      expect(info.isDirectory()).toBe(true);
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
 });
