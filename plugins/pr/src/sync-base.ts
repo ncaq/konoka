@@ -1,4 +1,7 @@
-import { CommandError, run, throwCommandError } from "./run";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
+import { Data, Effect, type ParseResult, Schema } from "effect";
+import { CommandFailedError, runStdout } from "./run";
 
 export interface SyncBaseResult {
   readonly currentBranch: string;
@@ -8,93 +11,137 @@ export interface SyncBaseResult {
   readonly rebased: boolean;
 }
 
-interface RepoInfo {
-  readonly owner: string;
-  readonly repo: string;
-  readonly baseBranch: string;
-}
-
-function parseRepoInfo(json: string): RepoInfo {
-  const value: unknown = JSON.parse(json);
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "owner" in value &&
-    typeof value.owner === "object" &&
-    value.owner !== null &&
-    "login" in value.owner &&
-    typeof value.owner.login === "string" &&
-    "name" in value &&
-    typeof value.name === "string" &&
-    "defaultBranchRef" in value &&
-    typeof value.defaultBranchRef === "object" &&
-    value.defaultBranchRef !== null &&
-    "name" in value.defaultBranchRef &&
-    typeof value.defaultBranchRef.name === "string"
-  ) {
-    return {
-      owner: value.owner.login,
-      repo: value.name,
-      baseBranch: value.defaultBranchRef.name,
-    };
-  }
-  throw new CommandError("Failed to parse gh repo view output.", json);
-}
-
 /**
- * baseブランチを最新化して、
- * 元のブランチに戻ってきます。
+ * `gh repo view --json owner,name,defaultBranchRef`の出力スキーマ。
+ *
+ * JSON文字列を受け取り、必要なフィールドだけを抽出した整形済みの`RepoInfo`へ変換します。
+ * `Schema.transform`でフィールド名の付け替えとネスト解決も一気に行います。
  */
-async function pullBase(baseBranch: string, currentBranch: string): Promise<void> {
-  try {
-    await run("git", ["switch", "--", baseBranch]);
-    await run("git", ["pull", "--ff-only"]);
-  } catch (err: unknown) {
-    throwCommandError(`Failed to update base branch ${baseBranch}.`, err);
-  } finally {
-    // エラーが起きてもできるだけ元のブランチに戻るようにします。
-    // ここでエラーが起きた場合は元のエラーは上書きしてしまいますが、
-    // それが起きる理由がクリティカルな問題が起きている時以外は考えにくいので、
-    // 考慮しません。
-    await run("git", ["switch", "--", currentBranch]);
+const RepoInfoFromJson = Schema.parseJson(
+  Schema.Struct({
+    owner: Schema.Struct({ login: Schema.String }),
+    name: Schema.String,
+    defaultBranchRef: Schema.Struct({ name: Schema.String }),
+  }),
+).pipe(
+  Schema.transform(
+    Schema.Struct({
+      owner: Schema.String,
+      repo: Schema.String,
+      baseBranch: Schema.String,
+    }),
+    {
+      strict: true,
+      decode: (raw) => ({
+        owner: raw.owner.login,
+        repo: raw.name,
+        baseBranch: raw.defaultBranchRef.name,
+      }),
+      encode: (info) => ({
+        owner: { login: info.owner },
+        name: info.repo,
+        defaultBranchRef: { name: info.baseBranch },
+      }),
+    },
+  ),
+);
+
+type RepoInfo = Schema.Schema.Type<typeof RepoInfoFromJson>;
+
+/** カレントブランチがbaseブランチと同じ場合に投げます。 */
+export class CurrentIsBaseError extends Data.TaggedError("CurrentIsBaseError")<{
+  readonly baseBranch: string;
+}> {
+  override get message(): string {
+    return `Current branch is the base branch ${this.baseBranch}.`;
+  }
+}
+
+/** rebaseが失敗してabortで巻き戻したことを表します。 */
+export class RebaseFailedError extends Data.TaggedError("RebaseFailedError")<{
+  readonly currentBranch: string;
+  readonly baseBranch: string;
+  readonly cause: CommandFailedError | PlatformError;
+}> {
+  override get message(): string {
+    return `Failed to rebase ${this.currentBranch} onto ${this.baseBranch}.\n${this.cause.message}`;
   }
 }
 
 /**
- * baseブランチを最新化して、
- * 必要に応じて現在のブランチをbaseの上にrebaseします。
+ * `gh repo view`が返したJSONをデコードして`RepoInfo`を返します。
+ *
+ * 検証とデコードを`Schema`に委ねるため、失敗時のエラー型は`ParseResult.ParseError`になります。
+ */
+export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, ParseResult.ParseError> {
+  return Schema.decodeUnknown(RepoInfoFromJson)(json);
+}
+
+/**
+ * baseブランチを最新化して、元のブランチに戻ります。
+ *
+ * `git pull`に失敗してもできるだけ元のブランチに戻るため、
+ * `Effect.ensuring`で`git switch`をfinally相当として実行します。
+ */
+function pullBase(
+  baseBranch: string,
+  currentBranch: string,
+): Effect.Effect<void, CommandFailedError | PlatformError, CommandExecutor> {
+  return Effect.gen(function* () {
+    yield* runStdout("git", ["switch", "--", baseBranch]);
+    yield* runStdout("git", ["pull", "--ff-only"]);
+  }).pipe(Effect.ensuring(Effect.ignore(runStdout("git", ["switch", "--", currentBranch]))));
+}
+
+/**
+ * baseブランチを最新化して、必要に応じて現在のブランチをbaseの上にrebaseします。
  *
  * pushはこの関数では行いません。
  * upstreamの有無やrebaseの結果を踏まえたforce-with-leaseの判断は、
  * `pushHead`に委ねます。
  */
-export async function syncBase(): Promise<SyncBaseResult> {
-  const repoInfoJson = await run("gh", ["repo", "view", "--json", "owner,name,defaultBranchRef"]);
-  const { owner, repo, baseBranch } = parseRepoInfo(repoInfoJson);
-  const currentBranch = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+export function syncBase(): Effect.Effect<
+  SyncBaseResult,
+  | CommandFailedError
+  | PlatformError
+  | ParseResult.ParseError
+  | CurrentIsBaseError
+  | RebaseFailedError,
+  CommandExecutor
+> {
+  return Effect.gen(function* () {
+    const repoInfoJson = yield* runStdout("gh", [
+      "repo",
+      "view",
+      "--json",
+      "owner,name,defaultBranchRef",
+    ]);
+    const { owner, repo, baseBranch } = yield* parseRepoInfo(repoInfoJson);
+    const currentBranch = yield* runStdout("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 
-  if (currentBranch === baseBranch) {
-    throw new CommandError(`Current branch is the base branch ${baseBranch}.`, "");
-  }
-
-  const initialBaseSha = await run("git", ["rev-parse", "--end-of-options", baseBranch]);
-  await pullBase(baseBranch, currentBranch);
-
-  const newBaseSha = await run("git", ["rev-parse", "--end-of-options", baseBranch]);
-  const rebased = initialBaseSha !== newBaseSha;
-  if (rebased) {
-    try {
-      await run("git", ["rebase", "--", baseBranch]);
-    } catch (err: unknown) {
-      // コンフリクト等でrebaseに失敗した場合、
-      // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
-      // `git rebase --abort`が失敗する可能性もありますが、
-      // その場合の方が問題なので、
-      // そちらの例外の表示を優先します。
-      await run("git", ["rebase", "--abort"]);
-      throwCommandError(`Failed to rebase ${currentBranch} onto ${baseBranch}.`, err);
+    if (currentBranch === baseBranch) {
+      return yield* new CurrentIsBaseError({ baseBranch });
     }
-  }
 
-  return { currentBranch, baseBranch, owner, repo, rebased };
+    const initialBaseSha = yield* runStdout("git", ["rev-parse", "--end-of-options", baseBranch]);
+    yield* pullBase(baseBranch, currentBranch);
+
+    const newBaseSha = yield* runStdout("git", ["rev-parse", "--end-of-options", baseBranch]);
+    const rebased = initialBaseSha !== newBaseSha;
+    if (rebased) {
+      yield* runStdout("git", ["rebase", "--", baseBranch]).pipe(
+        Effect.catchTags({
+          CommandFailedError: (err) =>
+            Effect.gen(function* () {
+              // コンフリクト等でrebaseに失敗した場合、
+              // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
+              yield* runStdout("git", ["rebase", "--abort"]);
+              return yield* new RebaseFailedError({ currentBranch, baseBranch, cause: err });
+            }),
+        }),
+      );
+    }
+
+    return { currentBranch, baseBranch, owner, repo, rebased };
+  });
 }

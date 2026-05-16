@@ -1,20 +1,21 @@
-import { join } from "node:path";
+import { FileSystem, Path } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
+import { Effect, Option } from "effect";
 import { findCaseInsensitive, readIfExists, readdirIfExists } from "./read-if-exists";
 
 /**
- * Search locations for pull request templates.
- *
- * Ordered by GitHub's display priority. All matches are returned.
+ * pull requestテンプレートの検索場所。
+ * GitHubの表示優先度の順に並べ、全マッチを返します。
  */
 const TEMPLATE_LOCATIONS = [".github", "docs", "."] as const;
 
 /**
- * Canonical single-file template name. Case-insensitive variants are absorbed at runtime.
+ * 単一ファイル形式の正規ファイル名。大文字小文字のバリエーションは実行時に吸収します。
  */
 const TEMPLATE_FILE_NAME = "pull_request_template.md" as const;
 
 /**
- * Canonical multi-template directory name. Case-insensitive variants are absorbed at runtime.
+ * 複数テンプレート形式の正規ディレクトリ名。大文字小文字のバリエーションは実行時に吸収します。
  */
 const TEMPLATE_DIR_NAME = "PULL_REQUEST_TEMPLATE" as const;
 
@@ -23,79 +24,93 @@ export interface PullRequestTemplate {
   readonly content: string;
 }
 
-function locationPath(location: string, name: string): string {
-  return location === "." ? name : join(location, name);
-}
-
-async function readSingleAtLocation(
+function readSingleAtLocation(
   root: string,
   location: string,
-): Promise<PullRequestTemplate | undefined> {
-  const dir = join(root, location);
-  const found = await findCaseInsensitive(dir, TEMPLATE_FILE_NAME);
-  if (found == null) {
-    return undefined;
-  }
-  const path = locationPath(location, found);
-  const content = await readIfExists(join(root, path));
-  if (content == null) {
-    return undefined;
-  }
-  return { path, content };
+): Effect.Effect<
+  Option.Option<PullRequestTemplate>,
+  PlatformError,
+  FileSystem.FileSystem | Path.Path
+> {
+  return Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const dir = path.join(root, location);
+    const found = yield* findCaseInsensitive(dir, TEMPLATE_FILE_NAME);
+    if (Option.isNone(found)) {
+      return Option.none<PullRequestTemplate>();
+    }
+    const relativePath = location === "." ? found.value : path.join(location, found.value);
+    const content = yield* readIfExists(path.join(root, relativePath));
+    return Option.map(content, (c) => ({ path: relativePath, content: c }));
+  });
 }
 
-async function readMultiAtLocation(
+function readMultiAtLocation(
   root: string,
   location: string,
-): Promise<readonly PullRequestTemplate[]> {
-  const dir = join(root, location);
-  const found = await findCaseInsensitive(dir, TEMPLATE_DIR_NAME);
-  if (found == null) {
-    return [];
-  }
-  const templateDir = locationPath(location, found);
-  const entries = await readdirIfExists(join(root, templateDir));
-  if (entries == null) {
-    return [];
-  }
-  const candidates = (
-    await Promise.all(
-      entries
-        .filter((entry) => entry.toLowerCase().endsWith(".md"))
-        .map(async (entry) => {
-          const path = join(templateDir, entry);
-          const content = await readIfExists(join(root, path));
-          if (content == null) {
-            return undefined;
-          }
-          return { path, content };
+): Effect.Effect<readonly PullRequestTemplate[], PlatformError, FileSystem.FileSystem | Path.Path> {
+  return Effect.gen(function* () {
+    const path = yield* Path.Path;
+    const dir = path.join(root, location);
+    const found = yield* findCaseInsensitive(dir, TEMPLATE_DIR_NAME);
+    if (Option.isNone(found)) {
+      return [] as readonly PullRequestTemplate[];
+    }
+    const templateDir = location === "." ? found.value : path.join(location, found.value);
+    const entries = yield* readdirIfExists(path.join(root, templateDir));
+    if (Option.isNone(entries)) {
+      return [] as readonly PullRequestTemplate[];
+    }
+    const mdEntries = entries.value.filter((entry) => entry.toLowerCase().endsWith(".md"));
+    const templates = yield* Effect.all(
+      mdEntries.map((entry) =>
+        Effect.gen(function* () {
+          const relativePath = path.join(templateDir, entry);
+          const content = yield* readIfExists(path.join(root, relativePath));
+          return Option.map(
+            content,
+            (c): PullRequestTemplate => ({ path: relativePath, content: c }),
+          );
         }),
-    )
-  ).filter((template) => template != null);
-  return candidates;
+      ),
+      { concurrency: "unbounded" },
+    );
+    return templates.filter(Option.isSome).map((opt) => opt.value);
+  });
 }
 
 /**
- * Read all pull request templates available in the repository.
+ * リポジトリに存在する全てのpull requestテンプレートを読み込みます。
  *
- * Both single-file templates and multi-template directories are inspected.
+ * 単一ファイル形式と複数ファイル形式の両方を走査します。
  *
- * @param root Repository root to search from. Defaults to the current working directory.
+ * @param root 検索ルート。省略時はカレントディレクトリ。
  */
-export async function readPullRequestTemplates(
+export function readPullRequestTemplates(
   root = ".",
-): Promise<readonly PullRequestTemplate[]> {
-  const [singleResults, multiResults] = await Promise.all([
-    Promise.all(TEMPLATE_LOCATIONS.map((location) => readSingleAtLocation(root, location))),
-    Promise.all(TEMPLATE_LOCATIONS.map((location) => readMultiAtLocation(root, location))),
-  ]);
-  return [...singleResults.filter((template) => template != null), ...multiResults.flat()];
+): Effect.Effect<readonly PullRequestTemplate[], PlatformError, FileSystem.FileSystem | Path.Path> {
+  return Effect.gen(function* () {
+    const [singleResults, multiResults] = yield* Effect.all(
+      [
+        Effect.all(
+          TEMPLATE_LOCATIONS.map((location) => readSingleAtLocation(root, location)),
+          { concurrency: "unbounded" },
+        ),
+        Effect.all(
+          TEMPLATE_LOCATIONS.map((location) => readMultiAtLocation(root, location)),
+          { concurrency: "unbounded" },
+        ),
+      ],
+      { concurrency: "unbounded" },
+    );
+    return [...singleResults.filter(Option.isSome).map((opt) => opt.value), ...multiResults.flat()];
+  });
 }
 
 /**
- * Format pull request templates as a single markdown document.
+ * pull requestテンプレート群を1つのmarkdown文書として整形します。
  *
- * Each template is rendered as a section separated by horizontal rules.
+ * 各テンプレートを区切り線で連結したセクションとしてレンダリングします。
  */
 export function formatPullRequestTemplates(templates: readonly PullRequestTemplate[]): string {
   return templates.map(({ path, content }) => `# ${path}\n\n${content}`).join("\n\n---\n\n");

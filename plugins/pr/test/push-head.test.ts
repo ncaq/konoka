@@ -1,41 +1,68 @@
-import { describe, expect, it } from "vitest";
-import { parseAheadBehind, parseOpenPr } from "../src/push-head";
-import { CommandError } from "../src/run";
+import { Cause, Effect, Exit, Option, ParseResult } from "effect";
+import { describe, expect, test } from "vitest";
+import { parseAheadBehind, parseOpenPr, RevListParseError } from "../src/push-head";
 
 describe("parseAheadBehind", () => {
-  it("git rev-list --left-right --countの出力をパースします", () => {
-    expect(parseAheadBehind("0\t3")).toEqual({ behind: 0, ahead: 3 });
-    expect(parseAheadBehind("2\t5")).toEqual({ behind: 2, ahead: 5 });
+  test("git rev-list --left-right --countの出力をパースする", () => {
+    expect(Effect.runSync(parseAheadBehind("0\t3"))).toEqual({ behind: 0, ahead: 3 });
+    expect(Effect.runSync(parseAheadBehind("2\t5"))).toEqual({ behind: 2, ahead: 5 });
   });
 
-  it("空白区切り(スペース)でもパースします", () => {
-    expect(parseAheadBehind("1 2")).toEqual({ behind: 1, ahead: 2 });
+  test("空白区切り(スペース)でもパースする", () => {
+    expect(Effect.runSync(parseAheadBehind("1 2"))).toEqual({ behind: 1, ahead: 2 });
   });
 
-  it("不正な出力では例外を投げます", () => {
-    expect(() => parseAheadBehind("foo")).toThrow(CommandError);
-    expect(() => parseAheadBehind("1\tbar")).toThrow(CommandError);
+  test("不正な出力は`RevListParseError`で失敗する", () => {
+    const exit = Effect.runSyncExit(parseAheadBehind("foo"));
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure) && failure.value instanceof RevListParseError).toBe(true);
+    }
+  });
+
+  test("片方が数値でない場合も`RevListParseError`で失敗する", () => {
+    const exit = Effect.runSyncExit(parseAheadBehind("1\tbar"));
+    expect(Exit.isFailure(exit)).toBe(true);
   });
 });
 
 describe("parseOpenPr", () => {
-  it("空配列の場合はundefinedを返します", () => {
-    expect(parseOpenPr("[]")).toBeUndefined();
+  test("空配列の場合は`Option.none`を返す", () => {
+    expect(Effect.runSync(parseOpenPr("[]"))).toEqual(Option.none());
   });
 
-  it("PR番号を取り出します", () => {
-    expect(parseOpenPr('[{"number":42}]')).toEqual({ number: 42 });
+  test("PR番号を取り出す", () => {
+    expect(Effect.runSync(parseOpenPr('[{"number":42}]'))).toEqual(Option.some({ number: 42 }));
   });
 
-  it("複数件あっても先頭1件を返します", () => {
-    expect(parseOpenPr('[{"number":1},{"number":2}]')).toEqual({ number: 1 });
+  test("複数件あっても先頭1件を返す", () => {
+    expect(Effect.runSync(parseOpenPr('[{"number":1},{"number":2}]'))).toEqual(
+      Option.some({ number: 1 }),
+    );
   });
 
-  it("number以外のフィールドが入っていても無視されます", () => {
-    expect(parseOpenPr('[{"number":7,"title":"x"}]')).toEqual({ number: 7 });
+  test("number以外のフィールドが入っていても無視される", () => {
+    expect(Effect.runSync(parseOpenPr('[{"number":7,"title":"x"}]'))).toEqual(
+      Option.some({ number: 7 }),
+    );
   });
 
-  it("numberが数値でない場合は例外を投げます", () => {
-    expect(() => parseOpenPr('[{"number":"42"}]')).toThrow(CommandError);
+  test("numberが数値でない場合は`Schema`の`ParseError`で失敗する", () => {
+    const exit = Effect.runSyncExit(parseOpenPr('[{"number":"42"}]'));
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure) && ParseResult.isParseError(failure.value)).toBe(true);
+    }
+  });
+
+  test("JSONとしてパースできない文字列も`Schema`の`ParseError`で失敗する", () => {
+    const exit = Effect.runSyncExit(parseOpenPr("not json"));
+    expect(Exit.isFailure(exit)).toBe(true);
+    if (Exit.isFailure(exit)) {
+      const failure = Cause.failureOption(exit.cause);
+      expect(Option.isSome(failure) && ParseResult.isParseError(failure.value)).toBe(true);
+    }
   });
 });
