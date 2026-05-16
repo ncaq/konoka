@@ -1,7 +1,13 @@
+import { NodeContext } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { ConfigProvider, Effect } from "effect";
+import { Cause, ConfigProvider, Effect, Exit, Option } from "effect";
 import { expect, test } from "vitest";
-import { buildEditorInvocation, defaultEditor, editorCommand } from "../src/konoka-editor";
+import {
+  buildEditorInvocation,
+  defaultEditor,
+  editorCommand,
+  konokaEdit,
+} from "../src/konoka-editor";
 
 describe("buildEditorInvocation", () => {
   test("`sh -c`経由のargvを生成する", () => {
@@ -84,4 +90,41 @@ describe("editorCommand", () => {
       Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", ""]]))),
     ),
   );
+});
+
+describe("konokaEdit", () => {
+  it.effect("`EDITOR`が0で終わる場合は成功する", () =>
+    konokaEdit("/tmp/konoka-editor-test-arg").pipe(
+      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "true"]]))),
+      Effect.provide(NodeContext.layer),
+    ),
+  );
+
+  it.effect("`EDITOR`が非0で終わる場合は終了コードを含むdefectで死ぬ", () =>
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(konokaEdit("/tmp/konoka-editor-test-arg"));
+      expect(Exit.isFailure(exit)).toBe(true);
+      if (Exit.isFailure(exit)) {
+        const defect = Cause.dieOption(exit.cause);
+        expect(Option.isSome(defect)).toBe(true);
+        if (Option.isSome(defect)) {
+          expect(String(defect.value)).toContain(`Editor "false" failed (status 1)`);
+        }
+      }
+    }).pipe(
+      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
+      Effect.provide(NodeContext.layer),
+    ),
+  );
+
+  it.effect("引数のファイルパスが`$1`としてエディタに渡る", () => {
+    // 内側に`sh -c`をもう一段噛ませることで、`"$@"`を素直な位置引数として受け取り、
+    // `$1`が`konokaEdit`に渡したファイルパスと一致するかを終了コードで判定します。
+    const arg = "/tmp/konoka-editor-passthrough-test";
+    const editor = `sh -c 'test "$1" = "${arg}"' --`;
+    return konokaEdit(arg).pipe(
+      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", editor]]))),
+      Effect.provide(NodeContext.layer),
+    );
+  });
 });
