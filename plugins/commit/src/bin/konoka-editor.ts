@@ -1,36 +1,34 @@
 import process from "node:process";
-import { Args, Command as CliCommand } from "@effect/cli";
-import { Command } from "@effect/platform";
+import { Args, Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
-import { buildEditorInvocation, editorCommand } from "../konoka-editor";
+import { konokaEdit } from "../konoka-editor";
 
+/**
+ * コマンドライン引数として渡された`COMMIT_EDITMSG`ファイル。
+ */
 const commitEditmsgArg = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
 
-const command = CliCommand.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
-  Effect.gen(function* () {
-    const editor = yield* editorCommand;
-    const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgArg);
-    if (executable == null) {
-      return yield* Effect.dieMessage("Editor invocation is empty");
-    }
-    const cmd = Command.make(executable, ...args).pipe(
-      Command.stdin("inherit"),
-      Command.stdout("inherit"),
-      Command.stderr("inherit"),
-    );
-    yield* Command.exitCode(cmd).pipe(
-      Effect.filterOrDie(
-        (code) => code === 0,
-        (code) => new Error(`Editor "${editor}" failed (status ${code})`),
-      ),
-    );
-  }),
+/**
+ * コマンド処理の本体。
+ */
+const command = Command.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
+  konokaEdit(commitEditmsgArg),
 );
 
-const cli = CliCommand.run(command, {
+/**
+ * メタデータを含んだコマンド全体。
+ */
+const cli = Command.run(command, {
   name: "konoka-editor",
-  version: "0.0.0",
+  version: "0.0.0", // あくまで内部プログラムでありバージョンはプラグイン側にあるのでダミー。
 });
 
-cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+/**
+ * エントリーポイントとしてコマンドを起動します。
+ */
+function main(): void {
+  cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+}
+
+main();

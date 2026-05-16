@@ -1,3 +1,6 @@
+import { Command } from "@effect/platform";
+import type { CommandExecutor } from "@effect/platform/CommandExecutor";
+import type { PlatformError } from "@effect/platform/Error";
 import { Config, Effect } from "effect";
 
 /**
@@ -38,4 +41,30 @@ export function buildEditorInvocation(editor: string, file: string): readonly st
     "konoka-editor",
     file,
   ];
+}
+
+/**
+ * コマンドを推定して起動して編集を行います。
+ */
+export function konokaEdit(
+  commitEditmsgArg: string,
+): Effect.Effect<undefined, PlatformError, CommandExecutor> {
+  return Effect.gen(function* () {
+    const editor = yield* editorCommand;
+    const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgArg);
+    if (executable == null) {
+      return yield* Effect.dieMessage("Editor invocation is empty");
+    }
+    const cmd = Command.make(executable, ...args).pipe(
+      Command.stdin("inherit"),
+      Command.stdout("inherit"),
+      Command.stderr("inherit"),
+    );
+    yield* Command.exitCode(cmd).pipe(
+      Effect.filterOrDie(
+        (code) => code === 0,
+        (code) => new Error(`Editor "${editor}" failed (status ${code})`),
+      ),
+    );
+  });
 }
