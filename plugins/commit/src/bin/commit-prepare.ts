@@ -3,8 +3,8 @@ import { Console, Effect, Exit } from "effect";
 import { prepareCommit } from "../commit-prepare";
 
 const program = prepareCommit.pipe(
+  Effect.tapErrorTag("EmptyCommitError", (err) => Console.error(err.message)),
   Effect.flatMap((path) => Console.log(path)),
-  Effect.catchTag("EmptyCommitError", (err) => Console.error(err.message)),
 );
 
 NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)), {
