@@ -29,7 +29,10 @@ export const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITO
  * ファイルパスは`"$@"`経由の位置引数として渡し、
  * シェル側での再解釈を避けます。
  */
-export function buildEditorInvocation(editor: string, file: string): readonly string[] {
+export function buildEditorInvocation(
+  editor: string,
+  file: string,
+): readonly ["sh", "-c", string, "konoka-editor", string] {
   return [
     "sh",
     "-c",
@@ -48,13 +51,10 @@ export function buildEditorInvocation(editor: string, file: string): readonly st
  */
 export function konokaEdit(
   commitEditmsgArg: string,
-): Effect.Effect<undefined, PlatformError, CommandExecutor> {
+): Effect.Effect<void, PlatformError, CommandExecutor> {
   return Effect.gen(function* () {
     const editor = yield* editorCommand;
     const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgArg);
-    if (executable == null) {
-      return yield* Effect.dieMessage("Editor invocation is empty");
-    }
     const cmd = Command.make(executable, ...args).pipe(
       Command.stdin("inherit"),
       Command.stdout("inherit"),
