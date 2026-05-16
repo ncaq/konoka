@@ -36,6 +36,9 @@ export function syncAndPush(): Effect.Effect<
   return Effect.gen(function* () {
     const sync = yield* syncBase();
     const push = yield* pushHead();
+    if (sync.currentBranch !== push.currentBranch) {
+      Effect.die("syncBase and pushHead returned results for different branches");
+    }
     return { ...sync, action: push.action };
   });
 }
