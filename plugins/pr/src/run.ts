@@ -64,7 +64,7 @@ export function runStdout(
           stderr,
         });
       }
-      return stdout;
+      return stdout.trim();
     }),
   );
 }
