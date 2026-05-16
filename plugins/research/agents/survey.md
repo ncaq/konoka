@@ -1,6 +1,6 @@
 ---
 name: survey
-description: Don't call this agent directly. It's internal agent for the `/research` skill. Use the `/research` skill instead.
+description: Do NOT call this agent directly. It's an internal agent for the `/research` skill. Use the `/research` skill instead.
 tools:
   - Glob
   - Grep
