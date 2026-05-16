@@ -1,11 +1,18 @@
 import process from "node:process";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Effect, Option } from "effect";
 import { readCommitInstructions } from "../read-commit-instructions";
 
-async function main(): Promise<void> {
-  const content = await readCommitInstructions();
-  if (content != null) {
-    process.stdout.write(content);
-  }
-}
+const program = readCommitInstructions.pipe(
+  Effect.flatMap((content) =>
+    Option.match(content, {
+      onNone: () => Effect.void,
+      onSome: (text) =>
+        Effect.sync(() => {
+          process.stdout.write(text);
+        }),
+    }),
+  ),
+);
 
-await main();
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));

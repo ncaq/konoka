@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { describe, expect, test, vi } from "vitest";
 import {
   EmptyCommitError,
@@ -84,18 +85,20 @@ describe("buildEditmsgTemplate", () => {
 
 describe("EmptyCommitError", () => {
   test("Errorを継承している", () => {
-    const error = new EmptyCommitError("test message");
+    const error = new EmptyCommitError({ message: "test message" });
     expect(error).toBeInstanceOf(Error);
     expect(error).toBeInstanceOf(EmptyCommitError);
   });
 
   test("メッセージを保持する", () => {
-    const error = new EmptyCommitError("No changes to commit.");
+    const error = new EmptyCommitError({ message: "No changes to commit." });
     expect(error.message).toBe("No changes to commit.");
   });
 
-  test("nameプロパティが正しい", () => {
-    const error = new EmptyCommitError("test");
-    expect(error.name).toBe("EmptyCommitError");
+  test("Effect.catchTagで捕捉できる", () => {
+    const program = Effect.fail(new EmptyCommitError({ message: "caught" })).pipe(
+      Effect.catchTag("EmptyCommitError", (err) => Effect.succeed(err.message)),
+    );
+    expect(Effect.runSync(program)).toBe("caught");
   });
 });
