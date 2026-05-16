@@ -2,24 +2,19 @@ import process from "node:process";
 import { Args, Command as CliCommand } from "@effect/cli";
 import { Command } from "@effect/platform";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
-import { Config, Effect } from "effect";
-
-const defaultEditor = ["emacsclient", "--reuse-frame", "--alternate-editor=emacs"] as const;
-
-const editorParts: Effect.Effect<readonly string[]> = Config.nonEmptyString("EDITOR").pipe(
-  Effect.map((s) => s.split(" ")),
-  Effect.orElseSucceed(() => defaultEditor),
-);
+import { Effect } from "effect";
+import { buildEditorInvocation, editorCommand } from "../konoka-editor";
 
 const commitEditmsgArg = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
 
 const command = CliCommand.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
   Effect.gen(function* () {
-    const [editor, ...defaultArgs] = yield* editorParts;
-    if (editor == null) {
-      return yield* Effect.dieMessage("Editor command is empty");
+    const editor = yield* editorCommand;
+    const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgArg);
+    if (executable == null) {
+      return yield* Effect.dieMessage("Editor invocation is empty");
     }
-    const cmd = Command.make(editor, ...defaultArgs, commitEditmsgArg).pipe(
+    const cmd = Command.make(executable, ...args).pipe(
       Command.stdin("inherit"),
       Command.stdout("inherit"),
       Command.stderr("inherit"),
