@@ -70,7 +70,9 @@ export function runStdout(
 }
 
 /**
- * `runStdout`の失敗を握り潰す版です。
+ * `runStdout`のバリアントです。
+ * 非0終了による失敗のみを`Option.none`に畳み、
+ * プロセス起動自体の失敗は依然として伝播します。
  * upstream未設定時の`git rev-parse @{u}`のように、
  * 失敗自体が情報として意味を持つ呼び出しで使います。
  */
