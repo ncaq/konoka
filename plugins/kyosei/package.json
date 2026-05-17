@@ -29,7 +29,6 @@
   "devDependencies": {
     "@effect/language-service": "0.85.1",
     "@effect/vitest": "0.29.0",
-    "@eslint/compat": "2.1.0",
     "@eslint/js": "10.0.1",
     "@types/mustache": "4.2.6",
     "@types/node": "20.19.40",

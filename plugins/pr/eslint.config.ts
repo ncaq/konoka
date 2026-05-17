@@ -1,8 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { includeIgnoreFile } from "@eslint/compat";
 import { configs as eslintConfigs } from "@eslint/js";
-import { defineConfig } from "eslint/config";
+import { defineConfig, includeIgnoreFile } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import { flatConfigs as importPluginConfig } from "eslint-plugin-import-x";
@@ -19,7 +18,10 @@ const gitignorePath: string = path.resolve(__dirname, "../", "../", ".gitignore"
 /** ESLintが使用する設定を定義。 */
 const config: ReturnType<typeof defineConfig> = defineConfig(
   // どのプロジェクトでも共通して適用するルール。
-  includeIgnoreFile(gitignorePath), // .gitignoreから無視するべきファイルを継承。
+  // `.gitignore`から無視するべきファイルを継承。
+  // `gitignoreResolution: true`でignoreファイル自身からの相対パスとして解決する、
+  // 本来のgitignore挙動にします。
+  includeIgnoreFile(gitignorePath, { gitignoreResolution: true }),
   eslintConfigPrettier, // prettierと競合しないようにします。
   importPluginConfig.recommended, // importの推奨プリセット。
   importPluginConfig.typescript, // importのTypeScript向け推奨プリセット。
