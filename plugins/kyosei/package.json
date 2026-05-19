@@ -27,7 +27,7 @@
     "semver": "^7.7.4"
   },
   "devDependencies": {
-    "@effect/language-service": "0.85.1",
+    "@effect/language-service": "0.86.1",
     "@effect/vitest": "0.29.0",
     "@eslint/js": "10.0.1",
     "@types/mustache": "4.2.6",
