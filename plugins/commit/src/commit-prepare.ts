@@ -8,7 +8,7 @@ import { writeEditmsgSkeleton } from "./write-editmsg-skeleton";
 import { EmptyCommitError, writePatch } from "./write-patch";
 
 /**
- * Gitリポジトリを整理して必要なパスをJSON形式で返します。
+ * Gitリポジトリを整理して必要なパスをJSON形式で標準出力に出力します。
  * 何もステージできるものが無い場合は失敗します。
  */
 export const prepareCommit: Effect.Effect<
