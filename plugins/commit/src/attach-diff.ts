@@ -30,7 +30,7 @@ export function appendDiffToEditmsg(
 }
 
 /**
- * `COMMIT_EDITMSG`ファイルにからdiff patchデータを削除します。
+ * `COMMIT_EDITMSG`ファイルからdiff patchデータを削除します。
  * `git commit --verbose --cleanup=scissors`で削除する方針は、
  * `commit-msg`フックなどが削除する前に参照するようになっているため、
  * scissorsを考慮しないツールでエラーを引き起こしてしまいます。
