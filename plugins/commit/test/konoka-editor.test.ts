@@ -3,7 +3,7 @@ import type { PlatformError } from "@effect/platform/Error";
 import { NodeContext } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
 import { Cause, ConfigProvider, Effect, Exit, Option, Scope } from "effect";
-import { expect } from "vitest";
+import { assert, expect } from "vitest";
 import { EditorFailedError, konokaEdit } from "../src/konoka-editor";
 
 /**
@@ -43,16 +43,12 @@ describe("konokaEdit", () => {
           Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
         ),
       );
-      expect(Exit.isFailure(exit)).toBe(true);
-      if (Exit.isFailure(exit)) {
-        const failure = Cause.failureOption(exit.cause);
-        expect(Option.isSome(failure)).toBe(true);
-        if (Option.isSome(failure)) {
-          expect(failure.value).toBeInstanceOf(EditorFailedError);
-          expect((failure.value as EditorFailedError).exitCode).toBe(1);
-          expect((failure.value as EditorFailedError).message).toContain("exit code 1");
-        }
-      }
+      assert(Exit.isFailure(exit));
+      const failure = Cause.failureOption(exit.cause);
+      assert(Option.isSome(failure));
+      assert(failure.value instanceof EditorFailedError);
+      expect(failure.value.exitCode).toBe(1);
+      expect(failure.value.message).toContain("exit code 1");
     }).pipe(Effect.provide(NodeContext.layer)),
   );
 
