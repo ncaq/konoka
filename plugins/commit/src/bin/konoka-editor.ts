@@ -5,15 +5,22 @@ import { Effect } from "effect";
 import { konokaEdit } from "../konoka-editor";
 
 /**
- * コマンドライン引数として渡された`COMMIT_EDITMSG`ファイル。
+ * `COMMIT_EDITMSG`ファイル。
  */
-const commitEditmsgArg = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
+const commitEditmsgPath = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
+
+/**
+ * 差分のパッチファイル。
+ */
+const patchPathArg = Args.file({ name: "git-diff-for-commit.patch", exists: "yes" });
 
 /**
  * コマンド処理の本体。
  */
-const command = Command.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
-  konokaEdit(commitEditmsgArg),
+const command = Command.make(
+  "konoka-editor",
+  { commitEditmsgPath, patchPathArg },
+  ({ commitEditmsgPath, patchPathArg }) => konokaEdit(commitEditmsgPath, patchPathArg),
 );
 
 /**

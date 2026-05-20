@@ -1,15 +1,60 @@
-import { Command } from "@effect/platform";
+import { Command, FileSystem } from "@effect/platform";
 import type { CommandExecutor } from "@effect/platform/CommandExecutor";
 import type { PlatformError } from "@effect/platform/Error";
 import { Config, Data, Effect } from "effect";
 
 export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
-  readonly editor: string;
+  readonly editor: Command.Command;
   readonly exitCode: number;
 }> {
   override get message(): string {
-    return `Editor command "${this.editor}" failed with exit code ${this.exitCode}.`;
+    return `Editor command "${String(this.editor)}" failed with exit code ${this.exitCode}.`;
   }
+}
+
+/**
+ * Gitが`--verbose`などで、
+ * コミットメッセージとdiffの仕切りに使う、
+ * scissors line。
+ * 各種エディタやツールはこの行を目印にして挙動を変えます。
+ * scissors line以外の用途ではこのテキストは入っていないことを前提にします。
+ */
+const scissorsLine = "# ------------------------ >8 ------------------------\n" as const;
+
+/**
+ * `COMMIT_EDITMSG`ファイルに`git commit --verbose`のようにdiff patchデータを追加します。
+ * 人間がdiffを見ながらコミットメッセージを書けるようになります。
+ * またGitHub Copilotなどのツールも文脈を読み取って提案が向上します。
+ */
+function appendDiffToEditmsg(
+  commitEditmsgPath: string,
+  patchPath: string,
+): Effect.Effect<void, PlatformError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const commitEditmsg = (yield* fs.readFileString(commitEditmsgPath)).trim();
+    const patch = (yield* fs.readFileString(patchPath)).trim();
+    const content = `${commitEditmsg}\n${scissorsLine}${patch}`;
+    yield* fs.writeFileString(commitEditmsgPath, content);
+  });
+}
+
+/**
+ * `COMMIT_EDITMSG`ファイルにからdiff patchデータを削除します。
+ * `git commit --verbose --cleanup=scissors`で削除する方針は、
+ * `commit-msg`フックなどが削除する前に参照するようになっているため、
+ * scissorsを考慮しないツールでエラーを引き起こしてしまいます。
+ * よってこちらでテキストエディタの編集終了後に明示的に削除します。
+ */
+function removeDiffFromEditmsg(
+  commitEditmsgPath: string,
+): Effect.Effect<void, PlatformError, FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const oldCommitEditmsg = yield* fs.readFileString(commitEditmsgPath);
+    const newCommitEditmsg = oldCommitEditmsg.replace(new RegExp(`${scissorsLine}.*`), "");
+    yield* fs.writeFileString(commitEditmsgPath, newCommitEditmsg);
+  });
 }
 
 /**
@@ -56,24 +101,35 @@ export function buildEditorInvocation(
 }
 
 /**
- * コマンドを推定して起動して編集を行います。
+ * テキストエディタを起動するためのコマンドを構築します。
  */
-export function konokaEdit(
-  commitEditmsgArg: string,
-): Effect.Effect<void, PlatformError, CommandExecutor> {
+function newEditor(commitEditmsgPath: string): Effect.Effect<Command.Command, PlatformError> {
   return Effect.gen(function* () {
     const editor = yield* editorCommand;
-    const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgArg);
+    const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgPath);
     const cmd = Command.make(executable, ...args).pipe(
       Command.stdin("inherit"),
       Command.stdout("inherit"),
       Command.stderr("inherit"),
     );
-    yield* Command.exitCode(cmd).pipe(
-      Effect.filterOrDie(
-        (code) => code === 0,
-        (code) => new EditorFailedError({ editor, exitCode: code }),
-      ),
-    );
+    return cmd;
+  });
+}
+
+/**
+ * コマンドを推定して起動して編集を行います。
+ */
+export function konokaEdit(
+  commitEditmsgPath: string,
+  patchPath: string,
+): Effect.Effect<void, PlatformError | EditorFailedError, CommandExecutor | FileSystem.FileSystem> {
+  return Effect.gen(function* () {
+    const editor = yield* newEditor(commitEditmsgPath);
+    yield* appendDiffToEditmsg(commitEditmsgPath, patchPath);
+    const code = yield* Command.exitCode(editor); // テキストエディタが実際に起動します。
+    yield* removeDiffFromEditmsg(commitEditmsgPath);
+    if (code !== 0) {
+      yield* new EditorFailedError({ editor, exitCode: code });
+    }
   });
 }
