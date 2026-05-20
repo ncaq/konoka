@@ -31,11 +31,8 @@ const cli = Command.run(command, {
   version: "0.0.0", // あくまで内部プログラムでありバージョンはプラグイン側にあるのでダミー。
 });
 
-/**
- * エントリーポイントとしてコマンドを起動します。
- */
 function main(): void {
-  cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+  NodeRuntime.runMain(cli(process.argv).pipe(Effect.provide(NodeContext.layer)));
 }
 
 main();

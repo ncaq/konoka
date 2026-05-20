@@ -6,6 +6,8 @@ const program = prepareCommit.pipe(
   Effect.tapErrorTag("EmptyCommitError", (err) => Console.error(err.message)),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)), {
-  teardown: (exit, onExit) => onExit(Exit.isSuccess(exit) ? 0 : 1),
-});
+function main(): void {
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+}
+
+main();
