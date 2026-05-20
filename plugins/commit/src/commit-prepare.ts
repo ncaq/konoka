@@ -25,5 +25,5 @@ export const prepareCommit: Effect.Effect<
     },
   );
   const report = { editmsgPath, patchPath };
-  terminal.display(`${JSON.stringify(report)}\n`);
+  yield* terminal.display(`${JSON.stringify(report)}\n`);
 });
