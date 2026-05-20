@@ -5,15 +5,22 @@ import { Effect } from "effect";
 import { konokaEdit } from "../konoka-editor";
 
 /**
- * コマンドライン引数として渡された`COMMIT_EDITMSG`ファイル。
+ * `COMMIT_EDITMSG`ファイル。
  */
-const commitEditmsgArg = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
+const commitEditmsgPath = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
+
+/**
+ * 差分のパッチファイル。
+ */
+const patchPath = Args.file({ name: "git-diff-for-commit.patch", exists: "yes" });
 
 /**
  * コマンド処理の本体。
  */
-const command = Command.make("konoka-editor", { commitEditmsgArg }, ({ commitEditmsgArg }) =>
-  konokaEdit(commitEditmsgArg),
+const command = Command.make(
+  "konoka-editor",
+  { commitEditmsgPath, patchPath },
+  ({ commitEditmsgPath, patchPath }) => konokaEdit(commitEditmsgPath, patchPath),
 );
 
 /**
@@ -24,11 +31,8 @@ const cli = Command.run(command, {
   version: "0.0.0", // あくまで内部プログラムでありバージョンはプラグイン側にあるのでダミー。
 });
 
-/**
- * エントリーポイントとしてコマンドを起動します。
- */
 function main(): void {
-  cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+  NodeRuntime.runMain(cli(process.argv).pipe(Effect.provide(NodeContext.layer)));
 }
 
 main();

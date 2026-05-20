@@ -15,4 +15,8 @@ const program = readCommitInstructions.pipe(
   ),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+function main(): void {
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+}
+
+main();

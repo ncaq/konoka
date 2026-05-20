@@ -1,12 +1,13 @@
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
-import { Console, Effect, Exit } from "effect";
+import { Console, Effect } from "effect";
 import { prepareCommit } from "../commit-prepare";
 
 const program = prepareCommit.pipe(
   Effect.tapErrorTag("EmptyCommitError", (err) => Console.error(err.message)),
-  Effect.flatMap((path) => Console.log(path)),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)), {
-  teardown: (exit, onExit) => onExit(Exit.isSuccess(exit) ? 0 : 1),
-});
+function main(): void {
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+}
+
+main();
