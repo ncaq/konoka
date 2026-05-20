@@ -7,12 +7,12 @@ import { findCaseInsensitive, readIfExists } from "./read-if-exists";
  * `CONTRIBUTING`ガイドラインの検索場所。
  * GitHubの表示優先度の順に並べ、最初に見つかったものを採用します。
  */
-const CONTRIBUTING_LOCATIONS = [".github", ".", "docs"] as const;
+const contributingLocations = [".github", ".", "docs"] as const;
 
 /**
  * 正規のファイル名。大文字小文字のバリエーションは実行時に吸収します。
  */
-const CONTRIBUTING_NAME = "CONTRIBUTING.md" as const;
+const contributingName = "CONTRIBUTING.md" as const;
 
 export interface ContributingFile {
   readonly path: string;
@@ -30,7 +30,7 @@ function readAtLocation(
   return Effect.gen(function* () {
     const path = yield* Path.Path;
     const dir = path.join(root, location);
-    const found = yield* findCaseInsensitive(dir, CONTRIBUTING_NAME);
+    const found = yield* findCaseInsensitive(dir, contributingName);
     if (Option.isNone(found)) {
       return Option.none<ContributingFile>();
     }
@@ -54,7 +54,7 @@ export function readContributing(
 > {
   return Effect.gen(function* () {
     const candidates = yield* Effect.all(
-      CONTRIBUTING_LOCATIONS.map((location) => readAtLocation(root, location)),
+      contributingLocations.map((location) => readAtLocation(root, location)),
       { concurrency: "unbounded" },
     );
     return Option.fromNullable(candidates.find(Option.isSome)).pipe(Option.flatten);

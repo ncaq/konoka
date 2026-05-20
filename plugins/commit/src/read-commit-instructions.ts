@@ -2,7 +2,7 @@ import { FileSystem } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
 import { Effect, Option } from "effect";
 
-const COMMIT_INSTRUCTIONS_PATH = ".github/git-commit-instructions.md" as const;
+const commitInstructionsPath = ".github/git-commit-instructions.md" as const;
 
 /**
  * プロジェクト固有のコミットメッセージガイドラインを読み込みます。
@@ -16,7 +16,7 @@ export const readCommitInstructions: Effect.Effect<
   FileSystem.FileSystem
 > = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  return yield* fs.readFileString(COMMIT_INSTRUCTIONS_PATH, "utf8").pipe(
+  return yield* fs.readFileString(commitInstructionsPath, "utf8").pipe(
     Effect.map(Option.some),
     Effect.catchTag("SystemError", (err) =>
       err.reason === "NotFound" ? Effect.succeed(Option.none<string>()) : Effect.fail(err),
