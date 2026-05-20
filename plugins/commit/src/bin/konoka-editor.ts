@@ -12,15 +12,15 @@ const commitEditmsgPath = Args.file({ name: "COMMIT_EDITMSG", exists: "yes" });
 /**
  * 差分のパッチファイル。
  */
-const patchPathArg = Args.file({ name: "git-diff-for-commit.patch", exists: "yes" });
+const patchPath = Args.file({ name: "git-diff-for-commit.patch", exists: "yes" });
 
 /**
  * コマンド処理の本体。
  */
 const command = Command.make(
   "konoka-editor",
-  { commitEditmsgPath, patchPathArg },
-  ({ commitEditmsgPath, patchPathArg }) => konokaEdit(commitEditmsgPath, patchPathArg),
+  { commitEditmsgPath, patchPath },
+  ({ commitEditmsgPath, patchPath }) => konokaEdit(commitEditmsgPath, patchPath),
 );
 
 /**
