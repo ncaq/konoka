@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-editor:*), Edit, Read, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-editor:*), Edit, Read, Write, Skill(commit-style)
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -17,28 +17,20 @@ AIがコミットメッセージを生成し、
 
 !`commit-prepare`
 
-上記の出力は`COMMIT_EDITMSG`ファイルのパスです。
-コマンドが失敗した場合はコミットする変更がないので、
-エラーメッセージを報告してスキルを終了してください。
+上の埋め込みコマンドが失敗した場合はエラーメッセージを報告してスキルを終了してください。
 
-このファイルにはscissors lineの後にステージ済みの差分が書き出されています。
-`Read`ツールでファイルを読み、
-差分の内容を把握してください。
+埋め込みコマンドはJSON形式で結果を出力します。
+
+- `editmsgPath`には`COMMIT_EDITMSG`ファイルのパスが書かれています。
+- `patchPath`にはステージされた差分のパッチファイルのパスが書かれています。
 
 # コミットメッセージの内容の生成
 
-`COMMIT_EDITMSG`ファイルから読み取った差分を分析し、
+`Read`ツールで`patchPath`のパスのファイルを読み、
+差分の内容を把握して分析し、
 適切なコミットメッセージを生成してください。
 
-生成したコミットメッセージを`COMMIT_EDITMSG`ファイルの先頭に挿入してください。
-前処理でテンプレート(scissors line + diff)は既に書き出し済みです。
-`Edit`ツールでファイルの1行目(空行)をコミットメッセージで置換してください。
-
-テンプレート部分を残したまま編集してください。
-テンプレートの差分情報はテキストエディタでの編集時にコード補完の参考になるため、
-削除してはいけません。
-`git commit --verbose --cleanup=scissors`がscissors line以降を自動的に除去するので、
-差分がコミットメッセージに混入することはありません。
+生成したコミットメッセージを`COMMIT_EDITMSG`ファイルに書き込んでください。
 
 # コミットメッセージの確認
 
@@ -82,9 +74,8 @@ konoka-editor <editmsgのパス>
 ## `Other`(修正指示)の場合
 
 ユーザの修正指示に従ってコミットメッセージを修正してください。
-`Edit`ツールでコミットメッセージ部分のみを修正し、
-テンプレート(scissors line + diff)は保持してください。
-修正後にコミットメッセージの確認に戻ってください。
+`Edit`ツールでコミットメッセージ部分のみを修正してください。
+修正後に`コミットメッセージの確認`ステップに戻ってください。
 
 ## 選択がキャンセルされた場合
 
@@ -96,7 +87,7 @@ konoka-editor <editmsgのパス>
 以下のコマンドでコミットを実行してください。
 
 ```bash
-git commit --verbose --cleanup=scissors -F <COMMIT_EDITMSGのパス>
+git commit --verbose -F <COMMIT_EDITMSGのパス>
 ```
 
 # 完了報告
