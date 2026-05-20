@@ -92,7 +92,7 @@ konoka-editor <editmsgPathの値> <patchPathの値>
 値は実際のファイルのパスに置き換えてください。
 
 ```bash
-git commit --verbose -F <editmsgPathの値>
+git commit -F <editmsgPathの値>
 ```
 
 # 完了報告
