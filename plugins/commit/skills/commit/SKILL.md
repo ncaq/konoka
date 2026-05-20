@@ -89,8 +89,10 @@ konoka-editor <editmsgPathの値> <patchPathの値>
 
 以下のコマンドでコミットを実行してください。
 
+値は実際のファイルのパスに置き換えてください。
+
 ```bash
-git commit --verbose -F <COMMIT_EDITMSGのパス>
+git commit --verbose -F <editmsgPathの値>
 ```
 
 # 完了報告
