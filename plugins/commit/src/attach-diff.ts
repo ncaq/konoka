@@ -9,7 +9,7 @@ import { Effect } from "effect";
  * 各種エディタやツールはこの行を目印にして挙動を変えます。
  * scissors line以外の用途ではこのテキストは入っていないことを前提にします。
  */
-const scissorsLine = "# ------------------------ >8 ------------------------\n" as const;
+export const scissorsLine = "# ------------------------ >8 ------------------------\n" as const;
 
 /**
  * `COMMIT_EDITMSG`ファイルに`git commit --verbose`のようにdiff patchデータを追加します。
