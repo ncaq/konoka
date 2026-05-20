@@ -86,7 +86,7 @@ export function writePatch(
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const patchPath = path.join(workdirPath, "git-diff-for-commit.patch");
-    fs.writeFileString(patchPath, diff);
+    yield* fs.writeFileString(patchPath, diff);
     return patchPath;
   });
 }

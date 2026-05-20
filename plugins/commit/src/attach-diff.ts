@@ -42,7 +42,7 @@ export function removeDiffFromEditmsg(
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const oldCommitEditmsg = yield* fs.readFileString(commitEditmsgPath);
-    const newCommitEditmsg = oldCommitEditmsg.replace(new RegExp(`${scissorsLine}.*`), "");
+    const newCommitEditmsg = oldCommitEditmsg.replace(new RegExp(`${scissorsLine}.*`, "s"), "");
     yield* fs.writeFileString(commitEditmsgPath, newCommitEditmsg);
   });
 }
