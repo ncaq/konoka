@@ -144,7 +144,7 @@ interface GraphQLConnectionPageResponse<TNode> {
 
 // --- GraphQLクエリ ---
 
-const COMMENT_FIELDS = `
+const commentFields = `
   id
   author { login }
   body
@@ -153,7 +153,7 @@ const COMMENT_FIELDS = `
   url
 `;
 
-const REVIEW_FIELDS = `
+const reviewFields = `
   id
   author { login }
   state
@@ -162,7 +162,7 @@ const REVIEW_FIELDS = `
   url
 `;
 
-const REVIEW_THREAD_FIELDS = `
+const reviewThreadFields = `
   id
   isResolved
   isOutdated
@@ -174,12 +174,12 @@ const REVIEW_THREAD_FIELDS = `
   comments(first: 100) {
     pageInfo { hasNextPage endCursor }
     nodes {
-      ${COMMENT_FIELDS}
+      ${commentFields}
     }
   }
 `;
 
-const INITIAL_QUERY = `
+const initialQuery = `
   query($owner: String!, $repo: String!, $number: Int!) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) {
@@ -189,15 +189,15 @@ const INITIAL_QUERY = `
         url
         comments(first: 100) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${COMMENT_FIELDS} }
+          nodes { ${commentFields} }
         }
         reviews(first: 100) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${REVIEW_FIELDS} }
+          nodes { ${reviewFields} }
         }
         reviewThreads(first: 100) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${REVIEW_THREAD_FIELDS} }
+          nodes { ${reviewThreadFields} }
         }
       }
     }
@@ -219,13 +219,13 @@ function buildPageQuery(connectionName: string, nodeFields: string): string {
 `;
 }
 
-const THREAD_COMMENTS_PAGE_QUERY = `
+const threadCommentsPageQuery = `
   query($threadId: ID!, $after: String) {
     node(id: $threadId) {
       ... on PullRequestReviewThread {
         comments(first: 100, after: $after) {
           pageInfo { hasNextPage endCursor }
-          nodes { ${COMMENT_FIELDS} }
+          nodes { ${commentFields} }
         }
       }
     }
@@ -254,7 +254,7 @@ function getAllThreadComments(
     let { hasNextPage, endCursor } = thread.comments.pageInfo;
     while (hasNextPage) {
       const page = yield* Effect.tryPromise(() =>
-        octokit.graphql<GraphQLThreadCommentsPageResponse>(THREAD_COMMENTS_PAGE_QUERY, {
+        octokit.graphql<GraphQLThreadCommentsPageResponse>(threadCommentsPageQuery, {
           threadId: thread.id,
           after: endCursor,
         }),
@@ -330,7 +330,7 @@ export function getConversation(
 
     // 初回クエリで3つのconnectionを同時に取得します。
     const initial = yield* Effect.tryPromise(() =>
-      octokit.graphql<GraphQLInitialResponse>(INITIAL_QUERY, variables),
+      octokit.graphql<GraphQLInitialResponse>(initialQuery, variables),
     );
     const pr = initial.repository.pullRequest;
 
@@ -345,7 +345,7 @@ export function getConversation(
           octokit,
           variables,
           "comments",
-          COMMENT_FIELDS,
+          commentFields,
           pr.comments.pageInfo,
           commentNodes,
         ),
@@ -353,7 +353,7 @@ export function getConversation(
           octokit,
           variables,
           "reviews",
-          REVIEW_FIELDS,
+          reviewFields,
           pr.reviews.pageInfo,
           reviewNodes,
         ),
@@ -361,7 +361,7 @@ export function getConversation(
           octokit,
           variables,
           "reviewThreads",
-          REVIEW_THREAD_FIELDS,
+          reviewThreadFields,
           pr.reviewThreads.pageInfo,
           reviewThreadNodes,
         ),

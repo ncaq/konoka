@@ -7,17 +7,17 @@ import { findCaseInsensitive, readIfExists, readdirIfExists } from "./read-if-ex
  * pull requestテンプレートの検索場所。
  * GitHubの表示優先度の順に並べ、全マッチを返します。
  */
-const TEMPLATE_LOCATIONS = [".github", "docs", "."] as const;
+const templateLocations = [".github", "docs", "."] as const;
 
 /**
  * 単一ファイル形式の正規ファイル名。大文字小文字のバリエーションは実行時に吸収します。
  */
-const TEMPLATE_FILE_NAME = "pull_request_template.md" as const;
+const templateFileName = "pull_request_template.md" as const;
 
 /**
  * 複数テンプレート形式の正規ディレクトリ名。大文字小文字のバリエーションは実行時に吸収します。
  */
-const TEMPLATE_DIR_NAME = "PULL_REQUEST_TEMPLATE" as const;
+const templateDirName = "PULL_REQUEST_TEMPLATE" as const;
 
 export interface PullRequestTemplate {
   readonly path: string;
@@ -35,7 +35,7 @@ function readSingleAtLocation(
   return Effect.gen(function* () {
     const path = yield* Path.Path;
     const dir = path.join(root, location);
-    const found = yield* findCaseInsensitive(dir, TEMPLATE_FILE_NAME);
+    const found = yield* findCaseInsensitive(dir, templateFileName);
     if (Option.isNone(found)) {
       return Option.none<PullRequestTemplate>();
     }
@@ -52,7 +52,7 @@ function readMultiAtLocation(
   return Effect.gen(function* () {
     const path = yield* Path.Path;
     const dir = path.join(root, location);
-    const found = yield* findCaseInsensitive(dir, TEMPLATE_DIR_NAME);
+    const found = yield* findCaseInsensitive(dir, templateDirName);
     if (Option.isNone(found)) {
       return [] as readonly PullRequestTemplate[];
     }
@@ -93,11 +93,11 @@ export function readPullRequestTemplates(
     const [singleResults, multiResults] = yield* Effect.all(
       [
         Effect.all(
-          TEMPLATE_LOCATIONS.map((location) => readSingleAtLocation(root, location)),
+          templateLocations.map((location) => readSingleAtLocation(root, location)),
           { concurrency: "unbounded" },
         ),
         Effect.all(
-          TEMPLATE_LOCATIONS.map((location) => readMultiAtLocation(root, location)),
+          templateLocations.map((location) => readMultiAtLocation(root, location)),
           { concurrency: "unbounded" },
         ),
       ],
