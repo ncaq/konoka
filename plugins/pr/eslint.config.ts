@@ -13,7 +13,7 @@ const __filename: string = fileURLToPath(import.meta.url);
 /** ES Modulesだと使用できない変数のエミュレート。 */
 const __dirname: string = path.dirname(__filename);
 /** そのプロジェクトの.gitignoreのパス。 */
-const gitignorePath: string = path.resolve(__dirname, "../", "../", ".gitignore");
+const gitignorePath: string = path.resolve(__dirname, ".gitignore");
 
 /** ESLintが使用する設定を定義。 */
 const config: ReturnType<typeof defineConfig> = defineConfig(
@@ -28,7 +28,7 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
   {
     rules: {
       // 名前別だけではなくカテゴリ別にもソートします。
-      "import-x/order": ["warn", { alphabetize: { order: "asc", orderImportKind: "asc" } }],
+      "import-x/order": ["error", { alphabetize: { order: "asc", orderImportKind: "asc" } }],
     },
     settings: {
       // TypeScriptのimportを柔軟に解決できるようにします。
@@ -63,7 +63,7 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
     files: ["**/*.{ts,tsx,cts,mts}"],
     languageOptions: {
       parserOptions: {
-        project: ["tsconfig.json"],
+        projectService: true,
         tsconfigRootDir: __dirname,
       },
     },
@@ -73,8 +73,6 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
         "error",
         {
           allowExpressions: true, // インラインな関数式にはいちいち要求しません。
-          allowConciseArrowFunctionExpressionsStartingWithVoid: true, // voidを返すことが明白な場合は要求しません。
-          allowIIFEs: true, // 即時実行関数の型を持ってもあまり意味がないので要求しません。
         },
       ],
     },
@@ -88,21 +86,18 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
     files: ["**/*.{js,jsx,cjs,mjs}"],
     languageOptions: {
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ["*.js", "*.jsx", "*.cjs", "*.mjs"],
-        },
-        project: ["tsconfig.json"],
+        projectService: true,
         tsconfigRootDir: __dirname,
       },
     },
-    ...tseslint.configs.disableTypeChecked, // JavaScriptではESLint側での型チェックが必要なルールは無効化。
   },
   {
     // Node.js向けのルール。
     plugins: { n: node },
     extends: ["n/recommended-module"],
     rules: {
-      // 複雑な設定下でのimportを解決できないため無効化します。eslint-plugin-import-xがあるため問題になりません。
+      // 複雑な設定下でのimportを解決できないため無効化します。
+      // eslint-plugin-import-xに任せます。
       "n/no-missing-import": "off",
       // Node.jsビルトインのモジュールをimportする時にprefixを強制して依存をわかりやすくします。
       "n/prefer-node-protocol": "error",
@@ -123,7 +118,6 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
     },
   },
 );
-
 // ESLintの設定をエクスポート。
-// 型定義とdefault exportが両立できないため分けています。
+// 型アノテーションとdefault exportが両立できないため分けています。
 export default config;
