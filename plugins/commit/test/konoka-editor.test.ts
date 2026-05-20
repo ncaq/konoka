@@ -52,6 +52,21 @@ describe("konokaEdit", () => {
     }).pipe(Effect.provide(NodeContext.layer)),
   );
 
+  it.scoped("エディタが失敗してもdiffは取り除かれる", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const { editmsgPath, patchPath } = yield* setupFiles;
+      yield* Effect.exit(
+        konokaEdit(editmsgPath, patchPath).pipe(
+          Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
+        ),
+      );
+      // releaseで`removeDiffFromEditmsg`が実行され、付与したdiffが残らないことを確認します。
+      const result = yield* fs.readFileString(editmsgPath);
+      expect(result).not.toContain("diff --git");
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
+
   it.scoped("引数のCOMMIT_EDITMSGパスが`$1`としてエディタに渡る", () =>
     Effect.gen(function* () {
       const { editmsgPath, patchPath } = yield* setupFiles;

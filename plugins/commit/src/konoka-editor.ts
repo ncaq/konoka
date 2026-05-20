@@ -16,6 +16,10 @@ export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
 
 /**
  * コマンドを推定して起動して編集を行います。
+ *
+ * diffの付与をacquire、取り除きをreleaseとして`Effect.acquireUseRelease`に対応付けます。
+ * これにより、エディタの起動が失敗したり中断されたりして途中でエラーになっても、
+ * 一度付与したdiffは確実に取り除かれ、ファイルにdiffが残りません。
  */
 export function konokaEdit(
   commitEditmsgPath: string,
@@ -23,11 +27,17 @@ export function konokaEdit(
 ): Effect.Effect<void, PlatformError | EditorFailedError, CommandExecutor | FileSystem.FileSystem> {
   return Effect.gen(function* () {
     const editor = yield* getEditor(commitEditmsgPath);
-    yield* appendDiffToEditmsg(commitEditmsgPath, patchPath);
-    const code = yield* Command.exitCode(editor); // テキストエディタが実際に起動します。
-    yield* removeDiffFromEditmsg(commitEditmsgPath);
-    if (code !== 0) {
-      yield* new EditorFailedError({ editor, exitCode: code });
-    }
+    yield* Effect.acquireUseRelease(
+      appendDiffToEditmsg(commitEditmsgPath, patchPath),
+      () =>
+        Effect.gen(function* () {
+          const code = yield* Command.exitCode(editor); // テキストエディタが実際に起動します。
+          if (code !== 0) {
+            return yield* new EditorFailedError({ editor, exitCode: code });
+          }
+        }),
+      // diffの取り除きは必ず実行したいので、失敗した場合はdefectとして表面化させます。
+      () => Effect.orDie(removeDiffFromEditmsg(commitEditmsgPath)),
+    );
   });
 }
