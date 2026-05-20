@@ -5,7 +5,7 @@ import { Config, Effect } from "effect";
 /**
  * 環境変数`EDITOR`が未設定または空のときに使うデフォルトのエディタコマンドです。
  */
-const defaultEditor = "emacsclient --reuse-frame --alternate-editor=emacs" as const;
+export const defaultEditor = "emacsclient --reuse-frame --alternate-editor=emacs" as const;
 
 /**
  * 環境変数`EDITOR`の値を取得し、
@@ -14,7 +14,7 @@ const defaultEditor = "emacsclient --reuse-frame --alternate-editor=emacs" as co
  * `EDITOR`はユーザが設定するものなので信頼できる文字列として扱います。
  * シェルが解釈するコマンド文字列としてそのまま`sh -c`に渡される前提です。
  */
-const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITOR").pipe(
+export const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITOR").pipe(
   Effect.orElseSucceed(() => defaultEditor),
 );
 
@@ -28,7 +28,7 @@ const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITOR").pip
  * ファイルパスは`"$@"`経由の位置引数として渡し、
  * シェル側での再解釈を避けます。
  */
-function buildEditorInvocation(
+export function buildEditorInvocation(
   editor: string,
   file: string,
 ): readonly ["sh", "-c", string, "konoka-editor", string] {
