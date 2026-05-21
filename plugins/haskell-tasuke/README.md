@@ -38,6 +38,7 @@ Haskell開発を支援するスキルを提供します。
 | `language-extensions`    | Haskellの言語拡張・言語バージョンの知識スキル                  |
 | `partial-function`       | `fromJust`や`head`など部分関数を禁止する知識スキル             |
 | `unsafe`                 | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する知識スキル  |
+| `warning`                | GHCやhlintの警告を安易に無効化しないための知識スキル           |
 
 `bump-cabal-index-state`は`/bump-cabal-index-state`のように明示的に呼び出して使用します。
 
