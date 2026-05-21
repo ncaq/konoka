@@ -18,61 +18,6 @@ Haskellの言語バージョンは使える場合は`GHC2024`を使用します�
 `GHC2024`で有効になっていなくても、
 比較的安全で有用な言語拡張は有効にします。
 
-## GHC2024に含まれている拡張
-
-- `BangPatterns`
-- `BinaryLiterals`
-- `ConstrainedClassMethods`
-- `ConstraintKinds`
-- `DataKinds`
-- `DeriveDataTypeable`
-- `DeriveFoldable`
-- `DeriveFunctor`
-- `DeriveGeneric`
-- `DeriveLift`
-- `DeriveTraversable`
-- `DerivingStrategies`
-- `DisambiguateRecordFields`
-- `DoAndIfThenElse`
-- `EmptyCase`
-- `EmptyDataDecls`
-- `EmptyDataDeriving`
-- `ExistentialQuantification`
-- `ExplicitForAll`
-- `ExplicitNamespaces`
-- `FlexibleContexts`
-- `FlexibleInstances`
-- `ForeignFunctionInterface`
-- `GADTSyntax`
-- `GADTs`
-- `GeneralisedNewtypeDeriving`
-- `HexFloatLiterals`
-- `ImportQualifiedPost`
-- `InstanceSigs`
-- `KindSignatures`
-- `LambdaCase`
-- `MonoLocalBinds`
-- `MultiParamTypeClasses`
-- `NamedFieldPuns`
-- `NamedWildCards`
-- `NumericUnderscores`
-- `PatternGuards`
-- `PolyKinds`
-- `PostfixOperators`
-- `RankNTypes`
-- `RelaxedPolyRec`
-- `RoleAnnotations`
-- `ScopedTypeVariables`
-- `StandaloneDeriving`
-- `StandaloneKindSignatures`
-- `StarIsType`
-- `TraditionalRecordSyntax`
-- `TupleSections`
-- `TypeAbstractions`
-- `TypeApplications`
-- `TypeOperators`
-- `TypeSynonymInstances`
-
 ## GHC2021に含まれている拡張
 
 - `BangPatterns`
@@ -123,6 +68,18 @@ Haskellの言語バージョンは使える場合は`GHC2024`を使用します�
 - `TypeApplications`
 - `TypeOperators`
 - `TypeSynonymInstances`
+
+## GHC2024に含まれている拡張
+
+上の`GHC2021`に加えて、
+以下の拡張が`GHC2024`に含まれています。
+
+- `DataKinds`
+- `DerivingStrategies`
+- `DisambiguateRecordFields`
+- `ExplicitNamespaces`
+- `GADTs`
+- `LambdaCase`
 
 ## cabalファイルの設定例
 
