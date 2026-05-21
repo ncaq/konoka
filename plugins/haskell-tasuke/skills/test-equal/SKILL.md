@@ -20,7 +20,7 @@ isLeft x `shouldBe` True
 実際どのような値が入っていたのかの情報が伝わらないため、
 テスト失敗時に情報がなくなってしまいます。
 
-`Either`の値が`Eq`のインスタンスである場合は以下のように単純に比較できます。
+`Either`の値が`Show`と`Eq`のインスタンスである場合は以下のように単純に比較できます。
 
 ```haskell
 x `shouldBe` Left "expected error"
