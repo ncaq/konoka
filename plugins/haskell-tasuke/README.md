@@ -36,6 +36,7 @@ Haskell開発の知識をカバーします。
 | --------------------- | --------------------------------------------------- |
 | `exception`           | 例外処理とエラー伝播の方針                          |
 | `export`              | モジュールのexportの使用方針                        |
+| `function-result`     | 関数の最後の値を`void`などで捨てない方針            |
 | `io-monad`            | `IO`を直接使わず`MonadIO`/`MonadUnliftIO`を使う方針 |
 | `language-extensions` | Haskellの言語拡張・言語バージョン                   |
 | `mutable`             | `IORef`などを避けスレッド間通信はSTMを使う方針      |
