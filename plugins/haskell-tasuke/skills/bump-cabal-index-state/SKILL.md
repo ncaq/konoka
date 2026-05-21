@@ -50,7 +50,7 @@ The index-state is set to 2026-01-11T09:48:01Z.
 Nixを使用している場合は以下のコマンドを実行してください。
 
 ```bash
-nix-fast-build --option eval-cache false --no-link --skip-cached --no-nom
+nix flake check
 ```
 
 Nixを使用していない場合は以下のコマンドを実行してください。
