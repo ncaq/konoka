@@ -80,6 +80,7 @@ Haskellの言語バージョンは使える場合は`GHC2024`を使用します�
 - `ExplicitNamespaces`
 - `GADTs`
 - `LambdaCase`
+- `RoleAnnotations`
 
 ## cabalファイルの設定例
 
