@@ -48,6 +48,7 @@ Haskell開発の知識をカバーします。
 | `string`              | `String`を避け`Text`や`ByteString`を使い分ける方針  |
 | `template-haskell`    | Template Haskellの`mkName`と`newName`の使い分け     |
 | `test-equal`          | `Either`などのテストは値を直接比較する方針          |
+| `test-module-name`    | テストモジュールを`Spec`接尾辞で同じ名前空間に置く  |
 | `thread-delay`        | `threadDelay`の乱用を避け同期変数やretryを使う方針  |
 | `unsafe`              | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する |
 | `warning`             | GHCやhlintの警告を安易に無効化しないため            |
