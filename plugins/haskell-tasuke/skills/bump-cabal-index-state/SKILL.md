@@ -90,14 +90,18 @@ haskell.nixは最新の`index-state`への対応に遅れがあります。
 本文は以下のテンプレートに従ってください。
 
 ```markdown
-`cabal.project` の `index-state` を `YYYY-MM-DDTHH:mm:ssZ` に更新しました。
+`cabal.project`の`index-state`を`YYYY-MM-DDTHH:mm:ssZ`に更新しました。
 ```
 
-このテンプレートに従って置き換えて本文を作成してください。
+このテンプレートを置き換えて本文を作成してください。
 
-- `cabal.project`は実際に更新したファイル名に置き換えてください。大抵は`cabal.project`そのままです
-- `YYYY-MM-DDTHH:mm:ssZ`は実際の新しい`index-state`に置き換えてください
-- ドメイン指定がある場合は`index-state`の前にスペースで囲んで`hackage.haskell.org`のように更新したドメインを追加してください
+`cabal.project`は実際に更新したファイル名に置き換えてください。
+大抵は`cabal.project`そのままです。
+
+`YYYY-MM-DDTHH:mm:ssZ`は実際の新しい`index-state`に置き換えてください。
+
+ドメイン指定がある場合は`index-state`の前にスペースで囲んで、
+`hackage.haskell.org`のように更新したドメインを追加してください。
 
 ## GitHubにプルリクエストを作成する画面を開く
 
