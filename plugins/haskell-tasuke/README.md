@@ -40,6 +40,7 @@ Haskell開発の知識をカバーします。
 | `function-result`     | 関数の最後の値を`void`などで捨てない方針            |
 | `io-monad`            | `IO`を直接使わず`MonadIO`/`MonadUnliftIO`を使う方針 |
 | `language-extensions` | Haskellの言語拡張・言語バージョン                   |
+| `lens`                | lensライブラリの使い方とフィールドアクセスの方針    |
 | `mutable`             | `IORef`などを避けスレッド間通信はSTMを使う方針      |
 | `partial-function`    | `fromJust`や`head`など部分関数を禁止する            |
 | `string`              | `String`を避け`Text`や`ByteString`を使い分ける方針  |
