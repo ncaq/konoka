@@ -117,7 +117,7 @@ git push --verbose --set-upstream origin
 その後以下のGitHub CLIコマンドでプルリクエストを作成してください。
 
 ```bash
-gh pr create --assignee @me --fill --label "dependencies" --title "build(deps): cabalのindex-stateを更新"
+gh pr create --assignee @me --fill --label "Type: Dependencies" --title "build(deps): cabalのindex-stateを更新"
 ```
 
 # 完了報告
