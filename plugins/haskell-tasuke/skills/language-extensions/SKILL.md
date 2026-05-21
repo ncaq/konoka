@@ -1,0 +1,723 @@
+# 言語拡張の選択方針
+
+Haskellの言語拡張と、
+言語拡張のセットである言語バージョンの選択方針について説明します。
+
+## 基本の方針
+
+Haskellの言語バージョンは使える場合は`GHC2024`を使用します。
+
+使えない場合は`GHC2021`を使用します。
+
+`GHC2024`で有効になっていなくても、
+比較的安全で有用な言語拡張は有効にします。
+
+## GHC2024に含まれている拡張
+
+- `BangPatterns`
+- `BinaryLiterals`
+- `ConstrainedClassMethods`
+- `ConstraintKinds`
+- `DataKinds`
+- `DeriveDataTypeable`
+- `DeriveFoldable`
+- `DeriveFunctor`
+- `DeriveGeneric`
+- `DeriveLift`
+- `DeriveTraversable`
+- `DerivingStrategies`
+- `DisambiguateRecordFields`
+- `DoAndIfThenElse`
+- `EmptyCase`
+- `EmptyDataDecls`
+- `EmptyDataDeriving`
+- `ExistentialQuantification`
+- `ExplicitForAll`
+- `ExplicitNamespaces`
+- `FlexibleContexts`
+- `FlexibleInstances`
+- `ForeignFunctionInterface`
+- `GADTSyntax`
+- `GADTs`
+- `GeneralisedNewtypeDeriving`
+- `HexFloatLiterals`
+- `ImportQualifiedPost`
+- `InstanceSigs`
+- `KindSignatures`
+- `LambdaCase`
+- `MonoLocalBinds`
+- `MultiParamTypeClasses`
+- `NamedFieldPuns`
+- `NamedWildCards`
+- `NumericUnderscores`
+- `PatternGuards`
+- `PolyKinds`
+- `PostfixOperators`
+- `RankNTypes`
+- `RelaxedPolyRec`
+- `RoleAnnotations`
+- `ScopedTypeVariables`
+- `StandaloneDeriving`
+- `StandaloneKindSignatures`
+- `StarIsType`
+- `TraditionalRecordSyntax`
+- `TupleSections`
+- `TypeAbstractions`
+- `TypeApplications`
+- `TypeOperators`
+- `TypeSynonymInstances`
+
+## GHC2021に含まれている拡張
+
+- `BangPatterns`
+- `BinaryLiterals`
+- `ConstrainedClassMethods`
+- `ConstraintKinds`
+- `DeriveDataTypeable`
+- `DeriveFoldable`
+- `DeriveFunctor`
+- `DeriveGeneric`
+- `DeriveLift`
+- `DeriveTraversable`
+- `EmptyCase`
+- `EmptyDataDeriving`
+- `ExistentialQuantification`
+- `ExplicitForAll`
+- `FlexibleContexts`
+- `FlexibleInstances`
+- `GADTSyntax`
+- `GeneralisedNewtypeDeriving`
+- `HexFloatLiterals`
+- `ImportQualifiedPost`
+- `InstanceSigs`
+- `KindSignatures`
+- `MultiParamTypeClasses`
+- `NamedFieldPuns`
+- `NamedWildCards`
+- `NumericUnderscores`
+- `PolyKinds`
+- `PostfixOperators`
+- `RankNTypes`
+- `ScopedTypeVariables`
+- `StandaloneDeriving`
+- `StandaloneKindSignatures`
+- `TupleSections`
+- `TypeApplications`
+- `TypeOperators`
+- `TypeSynonymInstances`
+
+## cabalファイルの設定例
+
+典型的なcabalファイルでの言語バージョンと言語拡張の設定は以下のようになります。
+
+```cabal
+default-language: GHC2024
+default-extensions:
+  ApplicativeDo
+  BlockArguments
+  CPP
+  DefaultSignatures
+  DerivingVia
+  DuplicateRecordFields
+  FunctionalDependencies
+  LexicalNegation
+  LinearTypes
+  MonadComprehensions
+  MultiWayIf
+  NegativeLiterals
+  NoFieldSelectors
+  NoImplicitPrelude
+  OverloadedLabels
+  OverloadedRecordDot
+  OverloadedStrings
+  ParallelListComp
+  PatternSynonyms
+  QualifiedDo
+  QuantifiedConstraints
+  QuasiQuotes
+  RecordWildCards
+  RecursiveDo
+  StrictData
+  TemplateHaskell
+  TypeData
+  TypeFamilies
+  TypeFamilyDependencies
+  ViewPatterns
+```
+
+## 有用で安全な言語拡張
+
+`GHC2024`に加えて、
+以下の拡張をデフォルトで有効にします。
+
+### ApplicativeDo
+
+`do`記法を`Applicative`に脱糖します。
+独立した操作の並列実行が可能になり、
+パフォーマンスが向上する場合があります。
+
+副作用の実行順序が変わる可能性があるため、
+順序に依存するコードでは注意が必要です。
+
+ただし順序に依存する処理は`Monad`を使うべきであり、
+`Applicative`で順序依存するコードは元々設計上の問題があります。
+よってそのようなことが起きるとしたらコードの方を修正するべきだと判断しています。
+
+### BlockArguments
+
+`when cond do`のようにブロックを直接引数に渡せます。
+括弧を減らせる純粋な構文糖衣で既存コードに影響しません。
+
+### CPP
+
+Cプリプロセッサを有効にします。
+GHCのバージョン分岐や、
+ライブラリのバージョン分岐などで頻繁に必要になります。
+
+行頭の`#`がディレクティブとして解釈されますが通常は問題になりません。
+わかりやすくエラーになるので、
+その時だけモジュール単位で無効化すれば十分です。
+
+### DefaultSignatures
+
+型クラスのメソッドのデフォルト定義に追加で型制約をつけられるようになります。
+
+デフォルト実装を提供する場合に必須級の拡張です。
+
+### DerivingVia
+
+別の型経由でインスタンスを導出できます。
+
+明示的に使用するため安全で`newtype`パターンで特に有用です。
+
+### DuplicateRecordFields
+
+異なる型で同名フィールドを許可します。
+
+`NoFieldSelectors`と組み合わせて使用することでフィールド名の衝突を避けられます。
+
+### FunctionalDependencies
+
+型クラスパラメータ間の関数従属性を指定できます。
+
+型推論を助け`TypeFamilies`の代替として使えます。
+
+多少複雑な型クラスを書いていると頻繁に要求されます。
+
+### LexicalNegation
+
+`-`の字句解析を改善し、
+`f -1`が`f (-1)`として解釈されます。
+
+既存の減算になる構文を壊しますが、
+より自然な解釈になります。
+
+減算演算子を使いたい場合、
+左右にスペースを入れたほうが良いのでこちらの構文を採用します。
+
+型を考えると現実的に黙って壊れるケースはほぼないでしょう。
+
+### LinearTypes
+
+線形型(`a %1 -> b`)の構文が使えます。
+
+新しい構文が追加されるだけで既存コードには影響しません。
+
+ライブラリが線形型を使っている場合に型シグネチャを読めるようになります。
+
+### MonadComprehensions
+
+リスト内包表記をモナドに一般化します。
+
+純粋な構文拡張で既存のリスト内包表記も動作します。
+
+### MultiWayIf
+
+`if | cond1 -> ... | cond2 -> ...`形式のガード風ifが書けます。
+
+純粋な構文糖衣で害はありません。
+
+### NegativeLiterals
+
+`-1`を`negate 1`ではなくリテラルとして扱います。
+
+オーバーフロー防止に便利で、
+既存コードへの影響は軽微です。
+
+### NoFieldSelectors
+
+フィールドセレクタ関数を生成しません。
+`DuplicateRecordFields`や、
+`OverloadedRecordDot`と組み合わせて、
+名前空間の汚染を防ぎます。
+
+これは非常に破壊的な言語拡張ですが、
+プレーンなHaskellの、
+同じモジュールで同名フィールドを定義したら、
+名前がコンフリクトしてコンパイルエラーになるという問題を解決してくれる、
+極めて重要な拡張機能のため、
+デフォルト有効にするべきです。
+
+フィールドにはパターンマッチか`OverloadedRecordDot`かlensでアクセスしましょう。
+
+### NoImplicitPrelude
+
+標準Preludeを自動インポートしません。
+
+基本的には何かしらのカスタムPreludeライブラリを使用するので普通は入れます。
+
+極めて単純なプログラムの場合入れずにそのまま標準Preludeを使っていることもあります。
+
+### OverloadedLabels
+
+`#label`記法が使えます。
+
+optics系ライブラリで有用で純粋な構文追加です。
+
+### OverloadedRecordDot
+
+`person.name`記法でフィールドにアクセスできます。
+
+`NoFieldSelectors`と組み合わせて現代的なレコード操作を可能にします。
+
+### OverloadedStrings
+
+文字列リテラルから`Text`や`ByteString`を直接作れます。
+
+`String`を避けて`Text`を使う方針だと便利です。
+
+既存コードへの影響は、
+たまに型推論が決定的にならないので型注釈が必要になる程度の影響です。
+
+`ByteString`を作る場合ASCII範囲外の文字列は壊れるのでそれは注意が必要です。
+
+### ParallelListComp
+
+並列リスト内包表記`[x + y | x <- xs | y <- ys]`が書けます。
+
+純粋な構文拡張で害はありません。
+
+### PatternSynonyms
+
+パターンを抽象化できます。
+
+明示的に使用するため安全です。
+
+### QualifiedDo
+
+`Module.do`で独自のdo記法を使えます。
+
+明示的に使用するため既存コードに影響しません。
+
+### QuantifiedConstraints
+
+`forall a. C a => ...`のような量化された制約が書けます。
+
+高度な型レベルプログラミングで有用で既存コードに影響しません。
+
+### QuasiQuotes
+
+準クォート`[quasi|...|]`が使えます。
+
+Template Haskellと組み合わせて使用します。
+
+明示的に使用する機能のため安全です。
+
+### RecordWildCards
+
+`Foo{..}`でフィールドを一括展開できます。
+外部ライブラリとの連携で便利な場面があります。
+
+`NoFieldSelectors`環境では使える場面は限られますが、
+別に有効にしておいてもあまり害はありません。
+
+### RecursiveDo
+
+`mdo`や`rec`で再帰的束縛ができます。
+
+明示的に使用する機能のためコードを壊す危険性はほぼありません。
+
+無限再帰は拡張なしでも起こり得るため、
+デフォルト有効でも危険ではありません。
+
+### StrictData
+
+データ型のフィールドをデフォルトで正格評価にします。
+
+ほとんどのデータ構造のフィールドでは正格評価の方がパフォーマンス的に良いことが多いです。
+
+遅延評価を前提としたフィールド(無限リストなど)は注意が必要ですが、
+既存のデータ構造の定義は変えないので、
+既存のものはそのまま使えます。
+
+全体を正格化する`Strict`より影響範囲が限定的で安全です。
+
+これは一応は破壊的な言語拡張ですが、
+`Strict`と比べて`StrictData`で壊れることはほとんどないため、
+デフォルトで有効にします。
+
+逆に`StrictData`環境でlazyなフィールド定義する場合は、
+`~`で遅延に戻すことができます。
+
+```haskell
+{-# LANGUAGE StrictData #-}
+
+data Foo = Foo
+  { hoge :: Int      -- StrictDataにより自動的にstrict
+  , huga :: ~[Int]   -- ~でlazyに戻す
+  }
+```
+
+### TemplateHaskell
+
+メタプログラミングが使えます。
+
+現代的なHaskell開発では頻繁に必要になります。
+
+明示的に使用する機能のためあまり害はありません。
+
+### TypeData
+
+型レベル専用のデータ型を定義できます。
+
+プロモーションの`'`プレフィックスが不要になりコードが読みやすくなります。
+
+純粋な追加機能で害はありません。
+
+### TypeFamilies
+
+型族(型レベル関数)が使えます。
+
+型レベルプログラミングの基盤で、
+多くのライブラリで必要です。
+
+`MonoLocalBinds`が暗黙的に有効になりますが、
+GHC2024で既に有効です。
+
+### TypeFamilyDependencies
+
+型族の単射性アノテーションを指定できます。
+
+`TypeFamilies`を使うなら型推論を助けるために便利です。
+
+### ViewPatterns
+
+`f (view -> pattern) = ...`形式でパターンマッチ時に関数を適用できます。
+
+純粋な構文糖衣で害はありません。
+
+## 必要なときだけ有効にする言語拡張
+
+以下の言語拡張は検討の結果、
+デフォルトでは有効にしないことにしました。
+
+必要なときだけモジュール単位で有効にしてください。
+
+### Arrows
+
+Arrow記法(`proc`構文)が使えます。
+
+FRPなどで有用ですが、
+`proc`がキーワードになると`proc`という名前の関数が使えなくなります。
+`typed-process`ライブラリなどの`proc`関数と名前が衝突するため有効にしていません。
+
+使う場合はhlintのパーサのルールをカスタムが必要になることがあります。
+
+### DeriveAnyClass
+
+空のインスタンスを導出できます。
+
+`DeriveGeneric`と`GeneralizedNewtypeDeriving`が両方有効だと、
+どちらの戦略で導出するか曖昧になり意図しない動作になることがあります。
+
+GHC2024で`DerivingStrategies`が有効になっているので、
+必要な場合は`deriving anyclass`と明示的に書いてください。
+
+### OverloadedLists
+
+リストリテラルから`Vector`等を作れます。
+
+`IsList`制約が伝播して型推論が複雑になることがあり、
+似たような機能の`OverloadedStrings`より、
+かなり面倒になることが多いため有効にしていません。
+
+### OverloadedRecordUpdate
+
+`OverloadedRecordDot`と組み合わせて、
+ネストされたレコード更新に`.`記法が使えます(例: `c{owner.name = "Walter"}`)。
+
+現時点では`RebindableSyntax`が必須であり、
+`RebindableSyntax`は標準の`do`記法や、
+`if ... then ... else ...`の意味を変えてしまう危険な拡張です。
+
+また`getField`と`setField`を自分で定義する必要があり実験的な段階です。
+
+将来GHCに`setField`がビルトインされれば実用的になりますが、
+現時点では使用しないことにします。
+
+ネストされたレコードの更新にはネストしたレコード更新構文かlensを使ってください。
+
+### Strict
+
+モジュール全体をデフォルトで正格評価にします。
+
+フィールドのみ正格化の`StrictData`より影響範囲が広く、
+遅延評価を前提としたコード(無限リストなど)が壊れます。
+
+また遅延評価を前提とする`where`句が使われなくても無駄に評価されます。
+
+正格評価が必要な場合は`BangPatterns`で明示的に指定するか、
+モジュール単位で言語拡張を有効にしてください。
+
+### UnicodeSyntax
+
+`∀`や`→`などのUnicode記号が使えます。
+
+フォーマッタのfourmoluとの相性が著しく悪く、
+意図しない変換が発生することがあるため有効にしていません。
+
+## 非推奨の言語拡張
+
+以下の言語拡張は動作が不安定になりがちですが、
+ライブラリを使用する時など必要になる場面があるため、
+どうしても必要なときだけ使用を許可します。
+
+必要なときだけモジュール単位で有効にしてください。
+
+### ImplicitParams
+
+暗黙パラメータを使用できます。
+
+`?cmp`のような形式で動的スコーピングと静的型付けを組み合わせた機能を提供します。
+
+```haskell
+sort :: (?cmp :: a -> a -> Bool) => [a] -> [a]
+
+main = let ?cmp = (<=) in sort [3,1,2]
+```
+
+#### 問題点
+
+コヒーレンス(一貫性)の欠如が最大の問題です。
+型署名の有無でプログラムの動作が変わるという、
+Haskellの基本的な期待を破る現象が起きます。
+
+```haskell
+-- 型署名なし: 結果は(123, 123)
+result = let ?myparam = 456 in ?myparam
+terror = let ?myparam = 123 in (result, result)
+
+-- 型署名あり: 結果は(123, 456)
+result :: (?myparam :: Int) => Int
+result = let ?myparam = 456 in ?myparam
+horror = let ?myparam = 123 in (result, result)
+```
+
+また暗黙的な振る舞いがデバッグを困難にし、
+型推論との相性も悪いです。
+
+#### 代替手段
+
+- `ReaderT`モナド
+- `Has`型クラスとlensの組み合わせ
+- 明示的な引数渡し
+
+#### 使わざるを得ない場面
+
+GHCの`HasCallStack`は内部実装として`ImplicitParams`を使用しています。
+`HasCallStack`を使うライブラリとの連携で必要になる場合があります。
+
+### UndecidableInstances
+
+GHCがインスタンス宣言に課すPaterson ConditionやCoverage Conditionを緩和します。
+これらの条件は型チェッカーが有限時間で終了することを保証するためのものです。
+
+#### 問題点
+
+型チェッカーの無限ループを引き起こす可能性があります。
+以下のような循環的なインスタンスが許可されてしまいます。
+
+```haskell
+class Bar a => Foo a
+instance Bar a => Foo a
+instance Foo a => Bar a
+```
+
+また重複インスタンスの隠蔽に悪用される危険があります。
+
+#### 安全性メカニズム
+
+GHCはデフォルトで型チェッカーの深さ制限を設けており、
+無限ループは検出されてエラーになります。
+
+#### 使わざるを得ない場面
+
+mtlやlensなど多くの主要ライブラリで使用されています。
+モナド変換子に対する型クラスインスタンス(例: `MonadState s m => MonadState s (ReaderT r m)`)は、
+Coverage Conditionを満たさないため`UndecidableInstances`が必要です。
+
+#### 安全に使うためのガイドライン
+
+- 重複インスタンスを書いていないか確認する
+- 循環定義を避ける
+- 型ファミリが無限に展開される可能性がないか検討する
+- GHCが拡張の有効化を提案した場合その理由を理解する
+
+## 危険な言語拡張
+
+以下の言語拡張は危険なので使用することを禁止します。
+
+### AllowAmbiguousTypes
+
+型シグネチャの曖昧性チェックを無効化します。
+
+#### 問題点
+
+モジュール全体で曖昧性チェックを無効化するため、
+意図しない定義も通過させてしまいます。
+
+GHCは「AllowAmbiguousTypesを有効にする」とよく提案しますが、
+これは問題をコードの使用場所に先送りするだけで診断がより困難になります。
+
+初心者を騙して、
+実際の間違いからはるかに離れた呼び出し場所にエラーメッセージを先送りさせる悪名高い拡張です。
+
+```haskell
+class Collects c e where
+  empty :: c  -- eが曖昧
+```
+
+型安全性自体は損なわれませんが、
+エラーが定義場所ではなく使用場所で報告されるようになります。
+
+### DeferTypeErrors
+
+型エラーを実行時まで遅延させます。
+
+#### 問題点
+
+コンパイル時の型チェックというHaskellの最大の安全保証を無効化します。
+型エラーが実行時例外として現れ予期しないクラッシュの原因になります。
+問題が実際に発生する場所から遠く離れた場所で失敗しデバッグが困難になります。
+
+開発中に部分的に書かれたコードをテストする際に使用されることがありますが、
+本番コードでは絶対に使用しないでください。
+
+### ExtendedDefaultRules
+
+より多くの型クラスに対してデフォルトルールを適用します。
+GHCiではデフォルトで有効になっています。
+
+#### 問題点
+
+不適切な型デフォルトが発生します。
+
+例えば`show . read`が`String -> String`型と判断されますが、
+意味のある動作をせず例外だけを発生させる式が作られます。
+
+通常のコードではデフォルトを増やすのではなく減らしたいため不適切です。
+
+GHCiでの対話的な使用では便利ですが、
+ソースコードには記述しないでください。
+
+### ImpredicativeTypes
+
+型の任意の場所で全称量化子を許可します。
+
+例として`Maybe (forall a. [a] -> [a])`など。
+
+#### 問題点
+
+長年「半壊れた状態」で公式にはサポートされていませんでした。
+今コンパイルできるコードが将来も型チェックできる保証がありません。
+
+Haskellの型推論と非常に相性が悪く完全な型シグネチャの指定が必要になることが多いです。
+
+GHC 9.x以降はQuick Look推論アルゴリズムにより改善されましたが、
+型クラス制約とは完全には機能しません。
+
+### IncoherentInstances
+
+複数のマッチするインスタンスがあり、
+どれも最も特殊でない場合、
+GHCが任意に1つを選択することを許可します。
+
+#### 問題点
+
+インスタンス選択が非決定的になります。
+インスタンス選択がコンパイル順序に依存する可能性があります。
+関連データや型を含む型クラスでのオーバーラップは不健全です。
+
+GHC 7.10以降は非推奨であり、
+代わりに`INCOHERENT`プラグマを使用します。
+ただし`INCOHERENT`プラグマも危険なので使用しないでください。
+
+### LiberalTypeSynonyms
+
+型シノニムを展開した後にのみ型の妥当性チェックを行います。
+
+#### 問題点
+
+`DataKinds`と`PolyKinds`との組み合わせでCore Lintエラー(内部エラー)が発生することがあります。
+型シノニムの展開により予期しない型エラーが発生する可能性があります。
+
+型シノニム内で`forall`を使用したり、
+部分適用したりするとGHCが提案してきますが、
+有効にしないでください。
+
+### OverlappingInstances
+
+型クラスインスタンスのオーバーラップを許可します。
+
+#### 問題点
+
+型クラスのコヒーレンス(一貫性)を破壊します。
+インスタンスを追加すると静かに後方互換性が壊れます。
+`UndecidableInstances`との組み合わせが特に危険です。
+
+GHC 7.10以降は非推奨であり、
+代わりに`OVERLAPPABLE`/`OVERLAPPING`プラグマを使用します。
+ただしこれらのプラグマも危険なので使用しないでください。
+
+### RebindableSyntax
+
+`do`記法、
+`if ... then ... else ...`、
+数値リテラルなどの標準構文の意味を再定義できます。
+
+#### 問題点
+
+実験的な機能です。
+
+`LinearTypes`との非互換性があり線形文脈でif式が使えなくなります。
+
+`ifThenElse`は正しくオーバーロードできません。
+実際の`ifThenElse`には通常の関数にはない特殊な振る舞いがあります。
+
+`deriving`との相性が悪く、
+導出されたコードには適用されないため型エラーが発生する可能性があります。
+
+`Template Haskell`との互換性の問題があります。
+
+カスタムPreludeやDSL実装で使用されることがありますが、
+代わりに`QualifiedDo`拡張がdo記法のみの再束縛としてより限定的で安全です。
+
+### UndecidableSuperClasses
+
+型クラスのスーパークラス制約に対する保守的なチェックを緩和し、
+再帰的なスーパークラスを許可します。
+
+#### 問題点
+
+循環的な定義を許可してしまい、
+型チェッカーが停止しない可能性があります。
+
+GHCバージョン間で回帰が報告されており、
+あるバージョンで通ったコードが別のバージョンで拒否されることがあります。
+
+スタックオーバーフローやメモリ不足の原因になることがあります。
+
+`AllowAmbiguousTypes`との相互作用で問題が発生することがあります。
+
+型族や型変数を含むスーパークラス制約を定義しようとするとGHCが提案してきますが、
+有効にしないでください。
