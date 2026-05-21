@@ -89,7 +89,7 @@ haskell.nixは最新の`index-state`への対応に遅れがあります。
 
 本文は以下のテンプレートに従ってください。
 
-```md
+```markdown
 `cabal.project` の `index-state` を `YYYY-MM-DDTHH:mm:ssZ` に更新しました。
 ```
 
