@@ -1,5 +1,5 @@
 ---
-name: avoid-unsafe
+name: unsafe
 description: Forbid unsafe Haskell functions such as unsafePerformIO, unsafeCoerce, and other unsafe-prefixed functions. Use when writing or reviewing Haskell code that uses any unsafe-prefixed function.
 user-invocable: false
 ---
