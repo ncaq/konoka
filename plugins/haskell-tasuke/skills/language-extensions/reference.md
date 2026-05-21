@@ -361,22 +361,27 @@ main = let ?cmp = (<=) in sort [3,1,2]
 
 #### 問題点
 
-コヒーレンス(一貫性)の欠如が最大の問題です。
-型署名の有無でプログラムの動作が変わるという、
+参照先がわかりにくいのが問題です。
+
 Haskellの基本的な期待を破る現象が起きます。
 
 ```haskell
--- 型署名なし: 結果は(123, 123)
-result = let ?myparam = 456 in ?myparam
-terror = let ?myparam = 123 in (result, result)
+{-# LANGUAGE ImplicitParams #-}
 
--- 型署名あり: 結果は(123, 456)
-result :: (?myparam :: Int) => Int
-result = let ?myparam = 456 in ?myparam
-horror = let ?myparam = 123 in (result, result)
+horror :: (?myparam :: Int) => (Int)
+horror = let ?myparam = 456 in ?myparam
+
+terror :: (?myparam :: Int) => (Int)
+terror = let result = ?myparam in result
+
+main :: IO ()
+main = do
+  let ?myparam = 123
+  print horror -- -> 456
+  print terror -- -> 123
 ```
 
-また暗黙的な振る舞いがデバッグを困難にし、
+暗黙的な振る舞いがデバッグを困難にし、
 型推論との相性も悪いです。
 
 #### 代替手段
