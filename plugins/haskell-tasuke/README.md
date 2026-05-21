@@ -51,7 +51,7 @@ Haskell開発の知識をカバーします。
 | `test-module-name`    | テストモジュールを`Spec`接尾辞で同じ名前空間に置く  |
 | `thread-delay`        | `threadDelay`の乱用を避け同期変数やretryを使う方針  |
 | `unsafe`              | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する |
-| `warning`             | GHCやhlintの警告を安易に無効化しないため            |
+| `warning`             | GHCやhlintの警告を安易に無効化しない方針            |
 
 知識スキルはClaudeが関連するコンテキストを検出すると自動的に参照します。
 
