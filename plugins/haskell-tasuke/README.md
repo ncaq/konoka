@@ -39,6 +39,7 @@ Haskell開発の知識をカバーします。
 | `io-monad`            | `IO`を直接使わず`MonadIO`/`MonadUnliftIO`を使う方針 |
 | `language-extensions` | Haskellの言語拡張・言語バージョン                   |
 | `partial-function`    | `fromJust`や`head`など部分関数を禁止する            |
+| `string`              | `String`を避け`Text`や`ByteString`を使い分ける方針  |
 | `unsafe`              | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する |
 | `warning`             | GHCやhlintの警告を安易に無効化しないため            |
 
