@@ -35,6 +35,7 @@ Haskell開発を支援するスキルを提供します。
 | スキル                   | 内容                                                           |
 | ------------------------ | -------------------------------------------------------------- |
 | `bump-cabal-index-state` | Cabalプロジェクトの`index-state`を最新に更新し、PR作成まで行う |
+| `exception`              | 例外処理とエラー伝播の方針の知識スキル                         |
 | `export`                 | モジュールのexportの使用方針の知識スキル                       |
 | `language-extensions`    | Haskellの言語拡張・言語バージョンの知識スキル                  |
 | `partial-function`       | `fromJust`や`head`など部分関数を禁止する知識スキル             |
