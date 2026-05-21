@@ -114,10 +114,10 @@ GitHubを利用している場合は以下のGitコマンドでリモートリ�
 git push --verbose --set-upstream origin
 ```
 
-その後以下のGitHub CLIコマンドでプルリクエストを作成する画面をユーザのwebブラウザで開きます。
+その後以下のGitHub CLIコマンドでプルリクエストを作成してください。
 
 ```bash
-gh pr create --assignee @me --fill --web --label "dependencies" --title "build(deps): cabalのindex-stateを更新"
+gh pr create --assignee @me --fill --label "dependencies" --title "build(deps): cabalのindex-stateを更新"
 ```
 
 # 完了報告
@@ -128,3 +128,4 @@ gh pr create --assignee @me --fill --web --label "dependencies" --title "build(d
 - 更新前の`index-state`
 - 更新後の`index-state`
 - haskell.nixを使用している場合、haskell.nixが認識している最新`index-state`がcabalの最新`index-state`に比べてどれぐらい遅れているか
+- プルリクエストを作成した場合はプルリクエストのURL
