@@ -19,6 +19,10 @@
       "source": "./plugins/commit"
     },
     {
+      "name": "haskell-tasuke",
+      "source": "./plugins/haskell-tasuke"
+    },
+    {
       "name": "kyosei",
       "source": "./plugins/kyosei"
     },
