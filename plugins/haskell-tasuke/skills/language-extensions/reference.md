@@ -290,7 +290,7 @@ FRPなどで有用ですが、
 
 空のインスタンスを導出できます。
 
-`DeriveGeneric`と`GeneralisedNewtypeDeriving`が両方有効だと、
+`DeriveAnyClass`と`GeneralisedNewtypeDeriving`が両方有効だと、
 どちらの戦略で導出するか曖昧になり意図しない動作になることがあります。
 
 GHC2024で`DerivingStrategies`が有効になっているので、
