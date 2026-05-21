@@ -36,6 +36,7 @@ Haskell開発の知識をカバーします。
 | --------------------- | --------------------------------------------------- |
 | `exception`           | 例外処理とエラー伝播の方針                          |
 | `export`              | モジュールのexportの使用方針                        |
+| `io-monad`            | `IO`を直接使わず`MonadIO`/`MonadUnliftIO`を使う方針 |
 | `language-extensions` | Haskellの言語拡張・言語バージョン                   |
 | `partial-function`    | `fromJust`や`head`など部分関数を禁止する            |
 | `unsafe`              | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する |
