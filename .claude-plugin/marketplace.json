@@ -11,12 +11,12 @@
   },
   "plugins": [
     {
-      "name": "bump-cabal-index-state",
-      "source": "./plugins/bump-cabal-index-state"
-    },
-    {
       "name": "commit",
       "source": "./plugins/commit"
+    },
+    {
+      "name": "haskell-tasuke",
+      "source": "./plugins/haskell-tasuke"
     },
     {
       "name": "kyosei",

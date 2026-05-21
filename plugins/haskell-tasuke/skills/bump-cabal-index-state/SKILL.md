@@ -1,7 +1,7 @@
 ---
 name: bump-cabal-index-state
-description: Update Cabal project index-state to the latest timestamp. Use when the user wants to bump or update the cabal index-state.
-allowed-tools: Bash(cabal build:*), Bash(cabal update:*), Bash(gh pr create:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git status:*), Bash(git switch:*), Bash(nix-fast-build:*), Edit, Glob, Grep, Read, Write
+description: Update Cabal project index-state to the latest timestamp. Use when it needs to bump the cabal index-state.
+allowed-tools: Bash(cabal build:*), Bash(cabal update:*), Bash(gh pr create:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git status:*), Bash(git switch:*), Bash(nix flake check:*), Edit, Glob, Grep, Read, Write
 ---
 
 cabalプロジェクトの`index-state`を最新に更新します。
@@ -50,7 +50,7 @@ The index-state is set to 2026-01-11T09:48:01Z.
 Nixを使用している場合は以下のコマンドを実行してください。
 
 ```bash
-nix-fast-build --option eval-cache false --no-link --skip-cached --no-nom
+nix flake check
 ```
 
 Nixを使用していない場合は以下のコマンドを実行してください。
@@ -89,17 +89,21 @@ haskell.nixは最新の`index-state`への対応に遅れがあります。
 
 本文は以下のテンプレートに従ってください。
 
-```md
-`cabal.project` の `index-state` を `YYYY-MM-DDTHH:mm:ssZ` に更新しました。
+```markdown
+`cabal.project`の`index-state`を`YYYY-MM-DDTHH:mm:ssZ`に更新しました。
 ```
 
-このテンプレートに従って置き換えて本文を作成してください。
+このテンプレートを置き換えて本文を作成してください。
 
-- `cabal.project`は実際に更新したファイル名に置き換えてください。大抵は`cabal.project`そのままです
-- `YYYY-MM-DDTHH:mm:ssZ`は実際の新しい`index-state`に置き換えてください
-- ドメイン指定がある場合は`index-state`の前にスペースで囲んで`hackage.haskell.org`のように更新したドメインを追加してください
+`cabal.project`は実際に更新したファイル名に置き換えてください。
+大抵は`cabal.project`そのままです。
 
-## GitHubにプルリクエストを作成する画面を開く
+`YYYY-MM-DDTHH:mm:ssZ`は実際の新しい`index-state`に置き換えてください。
+
+ドメイン指定がある場合は`index-state`の前にスペースで囲んで、
+`hackage.haskell.org`のように更新したドメインを追加してください。
+
+## GitHubにプルリクエストを作成する
 
 まずGitHubを利用しているか確認してください。
 GitHubを利用していない場合はこの手順をスキップしてください。
@@ -110,10 +114,10 @@ GitHubを利用している場合は以下のGitコマンドでリモートリ�
 git push --verbose --set-upstream origin
 ```
 
-その後以下のGitHub CLIコマンドでプルリクエストを作成する画面をユーザのwebブラウザで開きます。
+その後以下のGitHub CLIコマンドでプルリクエストを作成してください。
 
 ```bash
-gh pr create --assignee @me --fill --web --label "dependencies" --title "build(deps): cabalのindex-stateを更新"
+gh pr create --assignee @me --fill --label "Type: Dependencies" --title "build(deps): cabalのindex-stateを更新"
 ```
 
 # 完了報告
@@ -124,3 +128,4 @@ gh pr create --assignee @me --fill --web --label "dependencies" --title "build(d
 - 更新前の`index-state`
 - 更新後の`index-state`
 - haskell.nixを使用している場合、haskell.nixが認識している最新`index-state`がcabalの最新`index-state`に比べてどれぐらい遅れているか
+- プルリクエストを作成した場合はプルリクエストのURL
