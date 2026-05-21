@@ -35,8 +35,11 @@ Haskell開発を支援するスキルを提供します。
 | スキル                   | 内容                                                           |
 | ------------------------ | -------------------------------------------------------------- |
 | `bump-cabal-index-state` | Cabalプロジェクトの`index-state`を最新に更新し、PR作成まで行う |
+| `language-extensions`    | Haskellの言語拡張・言語バージョンの知識スキル                  |
 
 `bump-cabal-index-state`は`/bump-cabal-index-state`のように明示的に呼び出して使用します。
+
+知識スキルはClaudeが関連するコンテキストを検出すると自動的に参照します。
 
 ## ライセンス
 
