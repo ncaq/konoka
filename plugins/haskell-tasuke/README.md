@@ -41,6 +41,7 @@ Haskell開発の知識をカバーします。
 | `mutable`             | `IORef`などを避けスレッド間通信はSTMを使う方針      |
 | `partial-function`    | `fromJust`や`head`など部分関数を禁止する            |
 | `string`              | `String`を避け`Text`や`ByteString`を使い分ける方針  |
+| `thread-delay`        | `threadDelay`の乱用を避け同期変数やretryを使う方針  |
 | `unsafe`              | `unsafePerformIO`など`unsafe`接頭辞の関数を禁止する |
 | `warning`             | GHCやhlintの警告を安易に無効化しないため            |
 
