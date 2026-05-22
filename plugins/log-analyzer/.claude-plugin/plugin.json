@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "log-analyzer",
   "version": "1.0.0",
   "description": "Extract key information from verbose command output while keeping main conversation context lean.",

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "rm-to-trash",
   "version": "1.1.0",
   "description": "Rewrites `rm` (including trash-cli-compatible flags) to `trash` in Bash commands via PreToolUse hook.",

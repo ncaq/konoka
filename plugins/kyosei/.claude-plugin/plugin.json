@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "kyosei",
   "version": "3.4.3",
   "description": "Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security.",

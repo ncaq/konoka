@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "commit",
   "version": "2.7.4",
   "description": "Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.",
