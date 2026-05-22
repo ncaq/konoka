@@ -79,9 +79,9 @@ Claude Codeで以下を実行します。
 
 ### 依存先のプラグインが提供
 
-| ソース                                                | 内容                             |
-| ----------------------------------------------------- | -------------------------------- |
-| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
+| ソース                      | 内容                          |
+| --------------------------- | ----------------------------- |
+| [NixOS](https://nixos.org/) | nixpkgs、home-manager、flakes |
 
 NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインが提供します。
 researchはnix-tasukeに依存しているため、
