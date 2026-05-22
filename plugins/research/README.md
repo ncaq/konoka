@@ -7,12 +7,9 @@
 
 などを、
 
-- 公式ドキュメント
-- GitHub
-- MDN
-- Microsoft Learn
-- NixOS
 - Web検索
+- ファイル検索
+- MCPサーバー
 
 といった複数の情報ソースを横断して行うClaude Codeプラグインです。
 
@@ -57,60 +54,6 @@ Claude Codeで以下を実行します。
 
 ## 情報ソース
 
-### MCPサーバー(要設定)
-
-ユーザー環境に設定されている場合、以下のMCPサーバーの利用を試みます。
-設定されていない場合は他のソース(Web検索等)で代替されます。
-
-| ソース                                                | 内容                             |
-| ----------------------------------------------------- | -------------------------------- |
-| [Backlog](https://backlog.com/)                       | 課題、Wiki、PR                   |
-| [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       |
-| [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
-| [GitHub](https://github.com/)                         | コード検索、Issue/PR確認         |
-| [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
-| [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
-| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
-
-NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインに同梱されています。
-nix-tasukeを導入している場合はnixosの`.mcp.json`設定は不要です。
-
-Backlogは公開HTTPエンドポイントが提供されていないため、
-MCPサーバーを自分でビルド・ホストする必要があります。
-
-`.mcp.json`の設定例(Backlog以外):
-
-```json
-{
-  "mcpServers": {
-    "cloudflare": {
-      "type": "http",
-      "url": "https://docs.mcp.cloudflare.com/mcp"
-    },
-    "deepwiki": {
-      "type": "http",
-      "url": "https://mcp.deepwiki.com/mcp"
-    },
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/"
-    },
-    "mdn": {
-      "type": "http",
-      "url": "https://mcp.mdn.mozilla.net/"
-    },
-    "microsoft-learn": {
-      "type": "http",
-      "url": "https://learn.microsoft.com/api/mcp"
-    },
-    "nixos": {
-      "type": "http",
-      "url": "https://mcp-nixos.ncaq.net/mcp"
-    }
-  }
-}
-```
-
 ### 常時利用可能
 
 | ソース           | 内容             |
@@ -118,6 +61,57 @@ MCPサーバーを自分でビルド・ホストする必要があります。
 | Web検索          | 一般的なWeb検索  |
 | WebFetch         | 任意のURL取得    |
 | ローカルファイル | Glob、Grep、Read |
+
+### このプラグインが提供
+
+以下のMCPサーバーはこのプラグインが提供するため、
+追加設定なしで利用できます。
+
+| ソース                                                | 内容                             |
+| ----------------------------------------------------- | -------------------------------- |
+| [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       |
+| [Context7](https://context7.com/)                     | ライブラリの最新ドキュメント     |
+| [DeepWiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
+| [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
+| [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
+
+上記をソースにするMCPサーバはこのプラグインの`.mcp.json`に同梱されています。
+
+### 依存先のプラグインが提供
+
+| ソース                      | 内容                          |
+| --------------------------- | ----------------------------- |
+| [NixOS](https://nixos.org/) | nixpkgs、home-manager、flakes |
+
+NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインが提供します。
+researchはnix-tasukeに依存しているため、
+researchを導入すると自動的に有効化されます。
+
+### ユーザー環境に依存(要設定)
+
+以下は同梱できないため、ユーザー環境に設定されている場合のみ利用を試みます。
+設定されていない場合は他のソース(Web検索等)で代替されます。
+
+| ソース                          | 内容                     |
+| ------------------------------- | ------------------------ |
+| [Backlog](https://backlog.com/) | 課題、Wiki、PR           |
+| [GitHub](https://github.com/)   | コード検索、Issue/PR確認 |
+
+Backlogは公開HTTPエンドポイントが提供されていないため、
+MCPサーバーを自分でビルド・ホストする必要があります。
+
+`.mcp.json`の設定例(GitHub):
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
+    }
+  }
+}
+```
 
 ## ライセンス
 
