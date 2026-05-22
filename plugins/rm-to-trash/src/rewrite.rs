@@ -290,6 +290,11 @@ mod tests {
     }
 
     #[test]
+    fn skips_combined_short_flag_with_incompatible_char() {
+        assert!(rewrite("rm -rI foo").is_none());
+    }
+
+    #[test]
     fn skips_compound_when_one_has_incompatible_flag() {
         assert!(rewrite("rm -rf a && rm -I b").is_none());
     }
