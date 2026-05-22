@@ -55,7 +55,7 @@ model: sonnet
   - [flakes](https://wiki.nixos.org/wiki/Flakes/ja)(MCP)
 - リポジトリ
   - [GitHub(コード検索、Issue/PR確認)](https://github.com/)(MCP)
-  - [deepwiki](https://deepwiki.com/)(MCP)
+  - [DeepWiki](https://deepwiki.com/)(MCP)
 - プロジェクト管理
   - [Backlog(課題、Wiki、PR)](https://backlog.com/)(MCP)
 

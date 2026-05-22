@@ -71,7 +71,7 @@ Claude Codeで以下を実行します。
 | ----------------------------------------------------- | -------------------------------- |
 | [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       |
 | [Context7](https://context7.com/)                     | ライブラリの最新ドキュメント     |
-| [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
+| [DeepWiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
 | [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
 
