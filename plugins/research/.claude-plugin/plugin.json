@@ -1,8 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "research",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Research for information by fast agent.",
+  "dependencies": ["nix-tasuke"],
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",

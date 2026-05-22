@@ -8,6 +8,7 @@
 などを、
 
 - 公式ドキュメント
+- Context7
 - GitHub
 - MDN
 - Microsoft Learn
@@ -57,55 +58,53 @@ Claude Codeで以下を実行します。
 
 ## 情報ソース
 
-### MCPサーバー(要設定)
+### 同梱(設定不要)
 
-ユーザー環境に設定されている場合、以下のMCPサーバーの利用を試みます。
-設定されていない場合は他のソース(Web検索等)で代替されます。
+以下のMCPサーバーはこのプラグインが提供するため、
+追加設定なしで利用できます。
 
 | ソース                                                | 内容                             |
 | ----------------------------------------------------- | -------------------------------- |
-| [Backlog](https://backlog.com/)                       | 課題、Wiki、PR                   |
 | [Cloudflare Docs](https://developers.cloudflare.com/) | Cloudflareドキュメント検索       |
+| [Context7](https://context7.com/)                     | ライブラリの最新ドキュメント     |
 | [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
-| [GitHub](https://github.com/)                         | コード検索、Issue/PR確認         |
 | [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
 | [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
 
-NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインに同梱されています。
-nix-tasukeを導入している場合はnixosの`.mcp.json`設定は不要です。
+- Cloudflare Docs
+- Context7
+- deepwiki
+- MDN
+- Microsoft Learn
+
+はこのプラグインの`.mcp.json`に同梱されています。
+
+NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインが提供します。
+researchはnix-tasukeに依存しているため、
+researchを導入すると自動的に有効化されます。
+
+### MCPサーバー(要設定)
+
+以下は同梱できないため、ユーザー環境に設定されている場合のみ利用を試みます。
+設定されていない場合は他のソース(Web検索等)で代替されます。
+
+| ソース                          | 内容                     |
+| ------------------------------- | ------------------------ |
+| [Backlog](https://backlog.com/) | 課題、Wiki、PR           |
+| [GitHub](https://github.com/)   | コード検索、Issue/PR確認 |
 
 Backlogは公開HTTPエンドポイントが提供されていないため、
 MCPサーバーを自分でビルド・ホストする必要があります。
 
-`.mcp.json`の設定例(Backlog以外):
+`.mcp.json`の設定例(GitHub):
 
 ```json
 {
   "mcpServers": {
-    "cloudflare": {
-      "type": "http",
-      "url": "https://docs.mcp.cloudflare.com/mcp"
-    },
-    "deepwiki": {
-      "type": "http",
-      "url": "https://mcp.deepwiki.com/mcp"
-    },
     "github": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/"
-    },
-    "mdn": {
-      "type": "http",
-      "url": "https://mcp.mdn.mozilla.net/"
-    },
-    "microsoft-learn": {
-      "type": "http",
-      "url": "https://learn.microsoft.com/api/mcp"
-    },
-    "nixos": {
-      "type": "http",
-      "url": "https://mcp-nixos.ncaq.net/mcp"
     }
   }
 }

@@ -18,8 +18,11 @@ tools:
   - mcp__backlog__get_pull_requests
   - mcp__backlog__get_wiki
   - mcp__backlog__get_wiki_pages
-  - mcp__cloudflare
-  - mcp__deepwiki
+  - mcp__plugin_research_cloudflare
+  - mcp__plugin_research_context7
+  - mcp__plugin_research_deepwiki
+  - mcp__plugin_research_mdn
+  - mcp__plugin_research_microsoft-learn
   - mcp__github__get_file_contents
   - mcp__github__issue_read
   - mcp__github__list_issues
@@ -29,8 +32,6 @@ tools:
   - mcp__github__search_issues
   - mcp__github__search_pull_requests
   - mcp__github__search_repositories
-  - mcp__mdn
-  - mcp__microsoft-learn
   - mcp__plugin_nix-tasuke_nixos
 model: sonnet
 ---
@@ -44,6 +45,7 @@ model: sonnet
   - 任意のURL取得(WebFetch)
 - ドキュメント
   - [Cloudflare Docs](https://developers.cloudflare.com/)(MCP)
+  - [Context7(ライブラリの最新ドキュメント)](https://context7.com/)(MCP)
   - [Hackage](https://hackage.haskell.org/)(WebFetch)
   - [MDN](https://developer.mozilla.org/)(MCP)
   - [Microsoft Learn](https://learn.microsoft.com/)(MCP)
