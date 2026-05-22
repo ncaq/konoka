@@ -75,13 +75,7 @@ Claude Codeで以下を実行します。
 | [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
 
-- Cloudflare Docs
-- Context7
-- deepwiki
-- MDN
-- Microsoft Learn
-
-はこのプラグインの`.mcp.json`に同梱されています。
+上記をソースにするMCPサーバはこのプラグインの`.mcp.json`に同梱されています。
 
 ### 依存先のプラグインが提供
 
