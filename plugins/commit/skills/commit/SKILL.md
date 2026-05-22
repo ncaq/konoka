@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-editor:*), Edit, Read, Write, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Edit, Read, Write, Skill(commit-style)
 ---
 
 Gitリポジトリの変更をコミットします。
@@ -62,7 +62,7 @@ AIがコミットメッセージを生成し、
 タイムアウトは最大の600秒(10分)に設定してください。
 
 ```bash
-konoka-editor <editmsgPathの値> <patchPathの値>
+konoka-commit-editor <editmsgPathの値> <patchPathの値>
 ```
 
 エディタが正常終了したら、
