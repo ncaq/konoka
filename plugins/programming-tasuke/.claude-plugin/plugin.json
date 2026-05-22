@@ -1,8 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "programming-tasuke",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "General-purpose programming guidance for AI coding assistants.",
+  "dependencies": ["commit"],
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",
