@@ -60,9 +60,53 @@ fn is_git_before(before: &[Tok]) -> bool {
         .any(|t| matches!(t, Tok::Word("git")))
 }
 
-/// `after`(`rm`より後のトークン列)が空白を挟んでフラグ的単語(先頭が`-`)で始まるか。
-fn is_flag_after(after: &[Tok]) -> bool {
-    matches!(after, [Tok::Whitespace(_), Tok::Word(w), ..] if w.starts_with('-'))
+/// trash-cliがrm互換のために受理する短縮フラグの文字。
+///
+/// `trash --help`で確認できる`-r`/`-R`/`-f`/`-d`/`-i`/`-v`に対応する。
+/// 結合形(`-rf`等)は全文字がこの集合に含まれれば許可する。
+const COMPAT_SHORT: [char; 6] = ['r', 'R', 'f', 'd', 'i', 'v'];
+
+/// trash-cliがrm互換のために受理する長形式フラグ。
+///
+/// rmの`--dir`はtrashが受理しないため含めない。
+const COMPAT_LONG: [&str; 5] = [
+    "--recursive",
+    "--force",
+    "--interactive",
+    "--verbose",
+    "--directory",
+];
+
+/// `after`(`rm`より後のトークン列)に、trash-cliが受理しないフラグが含まれるか。
+///
+/// trash-cliはrm互換のため一部のフラグを受理するので、
+/// 互換フラグだけなら書き換えても挙動が保たれる。
+/// `-I`や`--no-preserve-root`のような非互換フラグが一つでもあれば書き換えを拒否する。
+///
+/// 走査は次の`Punctuation`(コマンド境界)まで。以降は別コマンドなので対象外。
+/// `--`(オプション終端)に達した時点で先行トークンは全て検査済みなので、
+/// 以降はファイル名のみと判断して非互換なしを確定する。
+fn has_incompatible_flag_after(after: &[Tok]) -> bool {
+    for tok in after {
+        match tok {
+            Tok::Punctuation(_) => break,
+            Tok::Word(w) => {
+                if *w == "--" {
+                    return false;
+                } else if w.starts_with("--") {
+                    if !COMPAT_LONG.contains(w) {
+                        return true;
+                    }
+                } else if let Some(short) = w.strip_prefix('-')
+                    && (short.is_empty() || !short.chars().all(|c| COMPAT_SHORT.contains(&c)))
+                {
+                    return true;
+                }
+            }
+            Tok::Whitespace(_) => {}
+        }
+    }
+    false
 }
 
 /// 与えられたコマンド文字列を`trash`へ書き換える。
@@ -77,7 +121,7 @@ pub fn rewrite(command: &str) -> Option<String> {
 
     let rejected = tokens.iter().enumerate().any(|(i, t)| {
         matches!(t, Tok::Word("rm"))
-            && (is_git_before(&tokens[..i]) || is_flag_after(&tokens[i + 1..]))
+            && (is_git_before(&tokens[..i]) || has_incompatible_flag_after(&tokens[i + 1..]))
     });
     if rejected {
         return None;
@@ -146,18 +190,121 @@ mod tests {
     }
 
     #[test]
-    fn skips_rm_with_short_flag() {
-        assert!(rewrite("rm -rf /tmp/foo").is_none());
+    fn rewrites_rm_with_compatible_short_flag() {
+        assert_eq!(
+            rewrite("rm -rf /tmp/foo").as_deref(),
+            Some("trash -rf /tmp/foo"),
+        );
     }
 
     #[test]
-    fn skips_rm_with_long_flag() {
-        assert!(rewrite("rm --recursive foo").is_none());
+    fn rewrites_rm_with_compatible_long_flag() {
+        assert_eq!(
+            rewrite("rm --recursive foo").as_deref(),
+            Some("trash --recursive foo"),
+        );
     }
 
     #[test]
-    fn skips_partial_flag() {
-        assert!(rewrite("rm a && rm -rf b").is_none());
+    fn rewrites_compound_with_compatible_flag() {
+        assert_eq!(
+            rewrite("rm a && rm -rf b").as_deref(),
+            Some("trash a && trash -rf b"),
+        );
+    }
+
+    #[test]
+    fn rewrites_force_flag() {
+        assert_eq!(rewrite("rm -f foo").as_deref(), Some("trash -f foo"));
+    }
+
+    #[test]
+    fn rewrites_interactive_flag() {
+        assert_eq!(rewrite("rm -i foo").as_deref(), Some("trash -i foo"));
+    }
+
+    #[test]
+    fn rewrites_directory_flag() {
+        assert_eq!(rewrite("rm -d empty").as_deref(), Some("trash -d empty"));
+    }
+
+    #[test]
+    fn rewrites_verbose_flag() {
+        assert_eq!(rewrite("rm -v foo").as_deref(), Some("trash -v foo"));
+    }
+
+    #[test]
+    fn rewrites_combined_short_flags() {
+        assert_eq!(rewrite("rm -rfv foo").as_deref(), Some("trash -rfv foo"));
+    }
+
+    #[test]
+    fn rewrites_long_force_flag() {
+        assert_eq!(
+            rewrite("rm --force foo").as_deref(),
+            Some("trash --force foo"),
+        );
+    }
+
+    #[test]
+    fn rewrites_with_end_of_options() {
+        assert_eq!(
+            rewrite("rm -rf -- -foo").as_deref(),
+            Some("trash -rf -- -foo"),
+        );
+    }
+
+    #[test]
+    fn rewrites_flag_after_operand() {
+        assert_eq!(rewrite("rm foo -rf").as_deref(), Some("trash foo -rf"));
+    }
+
+    #[test]
+    fn skips_rm_with_incompatible_short_flag() {
+        assert!(rewrite("rm -I foo").is_none());
+    }
+
+    #[test]
+    fn skips_rm_with_one_file_system() {
+        assert!(rewrite("rm -rf --one-file-system /").is_none());
+    }
+
+    #[test]
+    fn skips_rm_with_no_preserve_root() {
+        assert!(rewrite("rm --no-preserve-root -rf /").is_none());
+    }
+
+    #[test]
+    fn skips_rm_with_interactive_when() {
+        assert!(rewrite("rm --interactive=always foo").is_none());
+    }
+
+    #[test]
+    fn skips_rm_with_dir_long_flag() {
+        assert!(rewrite("rm --dir empty").is_none());
+    }
+
+    #[test]
+    fn skips_mixed_compatible_and_incompatible_flags() {
+        assert!(rewrite("rm -r -I foo").is_none());
+    }
+
+    #[test]
+    fn skips_compound_when_one_has_incompatible_flag() {
+        assert!(rewrite("rm -rf a && rm -I b").is_none());
+    }
+
+    #[test]
+    fn does_not_misdetect_flag_of_other_command() {
+        assert_eq!(
+            rewrite("rm a | grep -I x").as_deref(),
+            Some("trash a | grep -I x"),
+        );
+    }
+
+    #[test]
+    fn skips_git_rm_with_compatible_flag() {
+        assert!(rewrite("git rm -rf foo").is_none());
     }
 
     #[test]
