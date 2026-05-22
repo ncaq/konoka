@@ -7,13 +7,9 @@
 
 などを、
 
-- 公式ドキュメント
-- Context7
-- GitHub
-- MDN
-- Microsoft Learn
-- NixOS
 - Web検索
+- ファイル検索
+- MCPサーバー
 
 といった複数の情報ソースを横断して行うClaude Codeプラグインです。
 
