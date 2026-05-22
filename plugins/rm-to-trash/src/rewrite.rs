@@ -260,6 +260,11 @@ mod tests {
     }
 
     #[test]
+    fn skips_incompatible_flag_before_end_of_options() {
+        assert!(rewrite("rm -I -- foo").is_none());
+    }
+
+    #[test]
     fn skips_rm_with_incompatible_short_flag() {
         assert!(rewrite("rm -I foo").is_none());
     }
