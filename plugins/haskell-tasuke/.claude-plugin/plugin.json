@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "haskell-tasuke",
   "version": "1.0.0",
   "description": "Haskell prompt for AI coding assistants.",
