@@ -280,6 +280,11 @@ mod tests {
     }
 
     #[test]
+    fn skips_compatible_long_flag_with_value() {
+        assert!(rewrite("rm --recursive=foo bar").is_none());
+    }
+
+    #[test]
     fn skips_rm_with_dir_long_flag() {
         assert!(rewrite("rm --dir empty").is_none());
     }
