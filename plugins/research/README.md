@@ -70,7 +70,6 @@ Claude Codeで以下を実行します。
 | [deepwiki](https://deepwiki.com/)                     | GitHubリポジトリのAIドキュメント |
 | [MDN](https://developer.mozilla.org/)                 | Web技術リファレンス              |
 | [Microsoft Learn](https://learn.microsoft.com/)       | Microsoftドキュメント            |
-| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
 
 - Cloudflare Docs
 - Context7
@@ -79,6 +78,12 @@ Claude Codeで以下を実行します。
 - Microsoft Learn
 
 はこのプラグインの`.mcp.json`に同梱されています。
+
+### 依存先で解決
+
+| ソース                                                | 内容                             |
+| ----------------------------------------------------- | -------------------------------- |
+| [NixOS](https://nixos.org/)                           | nixpkgs、home-manager、flakes    |
 
 NixOSのMCPサーバーは[nix-tasuke@konoka](../nix-tasuke/)プラグインが提供します。
 researchはnix-tasukeに依存しているため、
