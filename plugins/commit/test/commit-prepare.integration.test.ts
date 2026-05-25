@@ -57,8 +57,10 @@ describe("prepareCommit", () => {
       assert(typeof editmsgPath === "string" && typeof patchPath === "string");
       expect(editmsgPath).toContain("COMMIT_EDITMSG");
       expect(patchPath).toContain("git-diff-for-commit.patch");
-      // 出力されたパスのファイルが実際に生成されていることも確認します。
-      expect(yield* fs.exists(editmsgPath)).toBe(true);
+      // editmsgPathはパスを返すだけでファイルは生成しないことを確認します。
+      // 空ファイルを作るとAIが`Write`ツールで書き込む前に読み込みを強いられて無駄になるためです。
+      expect(yield* fs.exists(editmsgPath)).toBe(false);
+      // patchPathのファイルは実際に生成されていることを確認します。
       expect(yield* fs.exists(patchPath)).toBe(true);
     }).pipe(Effect.provide(NodeContext.layer)),
   );

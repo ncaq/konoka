@@ -4,7 +4,7 @@ import type { CommandExecutor } from "@effect/platform/CommandExecutor";
 import type { PlatformError } from "@effect/platform/Error";
 import { Effect } from "effect";
 import { createWorkdirPath } from "./create-workdir";
-import { writeEditmsgSkeleton } from "./write-editmsg-skeleton";
+import { getEditmsgPath } from "./get-editmsg-path";
 import { EmptyCommitError, writePatch } from "./write-patch";
 
 /**
@@ -19,7 +19,7 @@ export const prepareCommit: Effect.Effect<
   const terminal = yield* Terminal.Terminal;
   const workdirPath = yield* createWorkdirPath;
   const [editmsgPath, patchPath] = yield* Effect.all(
-    [writeEditmsgSkeleton(workdirPath), writePatch(workdirPath)],
+    [getEditmsgPath(workdirPath), writePatch(workdirPath)],
     {
       concurrency: 2,
     },
