@@ -117,13 +117,6 @@ const config: ReturnType<typeof defineConfig> = defineConfig(
       "n/prefer-global/process": ["error", "never"],
     },
   },
-  {
-    // テストファイルではNode.js 20で実験的なFetch API(Response等)の使用を許可します。
-    files: ["test/**/*.ts"],
-    rules: {
-      "n/no-unsupported-features/node-builtins": ["error", { allowExperimental: true }],
-    },
-  },
 );
 // ESLintの設定をエクスポート。
 // 型アノテーションとdefault exportが両立できないため分けています。

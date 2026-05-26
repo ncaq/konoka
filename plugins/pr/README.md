@@ -31,7 +31,7 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- Node.js >= 22.19.0
+- `Node.js >= 22.22.2`
 - npm。Node.jsに同梱されているはずです。
 - [GitHub CLI(`gh`)](https://cli.github.com/) (`gh repo view`、`gh label list`で使用)
 - 認証済みのGitHub MCPサーバ (PR作成、アサイン、ラベル設定で利用)

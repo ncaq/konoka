@@ -76,8 +76,9 @@ claude-code-actionのエージェントに含まれている、
 
 ## 前提条件
 
-- Node.js >= 20.20.0
-  GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンに合わせています。
+- `Node.js >= 22.22.2`。
+  GitHub Actionsの`ubuntu-24.04`に標準同梱されているバージョンと、
+  nixpkgsのstableのバージョンの下限を取っています。
 - npm。
   Node.jsに同梱されているはずです。
 
