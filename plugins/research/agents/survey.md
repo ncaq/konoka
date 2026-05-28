@@ -27,12 +27,37 @@ tools:
   - mcp__github__search_issues
   - mcp__github__search_pull_requests
   - mcp__github__search_repositories
-  - mcp__plugin_nix-tasuke_nixos
-  - mcp__plugin_research_cloudflare
-  - mcp__plugin_research_context7
-  - mcp__plugin_research_deepwiki
-  - mcp__plugin_research_mdn
-  - mcp__plugin_research_microsoft-learn
+  - mcp__plugin_nix-tasuke_nixos__darwin_info
+  - mcp__plugin_nix-tasuke_nixos__darwin_list_options
+  - mcp__plugin_nix-tasuke_nixos__darwin_options_by_prefix
+  - mcp__plugin_nix-tasuke_nixos__darwin_search
+  - mcp__plugin_nix-tasuke_nixos__darwin_stats
+  - mcp__plugin_nix-tasuke_nixos__home_manager_info
+  - mcp__plugin_nix-tasuke_nixos__home_manager_list_options
+  - mcp__plugin_nix-tasuke_nixos__home_manager_options_by_prefix
+  - mcp__plugin_nix-tasuke_nixos__home_manager_search
+  - mcp__plugin_nix-tasuke_nixos__home_manager_stats
+  - mcp__plugin_nix-tasuke_nixos__nixhub_find_version
+  - mcp__plugin_nix-tasuke_nixos__nixhub_package_versions
+  - mcp__plugin_nix-tasuke_nixos__nixos_channels
+  - mcp__plugin_nix-tasuke_nixos__nixos_flakes_search
+  - mcp__plugin_nix-tasuke_nixos__nixos_flakes_stats
+  - mcp__plugin_nix-tasuke_nixos__nixos_info
+  - mcp__plugin_nix-tasuke_nixos__nixos_search
+  - mcp__plugin_nix-tasuke_nixos__nixos_stats
+  - mcp__plugin_research_cloudflare__migrate_pages_to_workers_guide
+  - mcp__plugin_research_cloudflare__search_cloudflare_documentation
+  - mcp__plugin_research_context7__query-docs
+  - mcp__plugin_research_context7__resolve-library-id
+  - mcp__plugin_research_deepwiki__ask_question
+  - mcp__plugin_research_deepwiki__read_wiki_contents
+  - mcp__plugin_research_deepwiki__read_wiki_structure
+  - mcp__plugin_research_mdn__get-compat
+  - mcp__plugin_research_mdn__get-doc
+  - mcp__plugin_research_mdn__search
+  - mcp__plugin_research_microsoft-learn__microsoft_code_sample_search
+  - mcp__plugin_research_microsoft-learn__microsoft_docs_fetch
+  - mcp__plugin_research_microsoft-learn__microsoft_docs_search
 model: sonnet
 ---
 
