@@ -2,7 +2,7 @@
 name: research
 description: Investigate any topic by querying multiple external sources (web, official docs, GitHub, MCP servers). Use whenever a question requires information not already in the working context, including library behavior, API specifications, error diagnostics, version comparisons, or general factual lookup.
 argument-hint: "query"
-allowed-tools: Agent(research:survey)
+allowed-tools: Agent(claude-code-guide), Agent(research:survey)
 ---
 
 # クエリの分解
@@ -10,7 +10,7 @@ allowed-tools: Agent(research:survey)
 `$ARGUMENTS`を分析し、
 独立して調査可能なサブクエリに分解してください。
 
-分解の方針:
+## 分解の方針
 
 - 比較調査(AとBの比較)は対象ごとに分ける
 - 複数の技術トピックが含まれる場合はトピックごとに分ける
@@ -20,9 +20,38 @@ allowed-tools: Agent(research:survey)
   - コミュニティの評判
 - 分解できない単一の質問はそのまま1つのサブクエリとする
 
+# エージェント選択の指針
+
+## `survey`エージェント
+
+常に利用してください。
+
+他のエージェントを利用する場合も、
+`survey`エージェントも併用して調査してください。
+
+## `claude-code-guide`エージェント
+
+以下のトピックに該当する場合は利用してください。
+
+- Claude Code
+  - CLIツール
+  - フック
+  - スラッシュコマンド
+  - MCPサーバ
+  - 設定
+  - IDE連携
+  - キーボードショートカット
+- Claude Agent SDK
+  - カスタムエージェントの構築
+- Claude API
+  - ツール利用
+  - Anthropic API
+  - Anthropic SDK
+
 # 並列調査
 
-分解した各サブクエリに対して`survey`エージェントを並列で起動してください。
+分解した各サブクエリに対して、
+適切なエージェントを並列で起動してください。
 全てのエージェントを同時に起動することが重要です。
 
 各エージェントには、
