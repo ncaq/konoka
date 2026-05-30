@@ -39,9 +39,12 @@ Claude Codeで以下を実行します。
 技術調査や情報収集が必要な場面でClaude Codeが自動的にresearchスキルを起動します。
 
 クエリは自動的に独立したサブクエリに分解され、
-`survey`エージェントが並列起動して調査を行います。
+適切なエージェントが並列起動して調査を行います。
 
-`survey`エージェントはコスト節約のためと速度のために`sonnet`で動作します。
+- `survey`エージェントが常に調査を実行します。
+  コスト節約と速度のため`sonnet`で動作します。
+- Claude Code、Claude Agent SDK、Claude APIに関するサブクエリは、
+  Claude Code組み込みの`claude-code-guide`エージェントも使います。
 
 例えばVitestとJestの比較であれば、
 それぞれが別のサブクエリとして並列に調査されます。
@@ -56,11 +59,15 @@ Claude Codeで以下を実行します。
 
 ### 常時利用可能
 
-| ソース           | 内容             |
-| ---------------- | ---------------- |
-| Web検索          | 一般的なWeb検索  |
-| WebFetch         | 任意のURL取得    |
-| ローカルファイル | Glob、Grep、Read |
+| ソース            | 内容                                            |
+| ----------------- | ----------------------------------------------- |
+| Web検索           | 一般的なWeb検索                                 |
+| WebFetch          | 任意のURL取得                                   |
+| ローカルファイル  | Glob、Grep、Read                                |
+| claude-code-guide | Claude Code、Claude Agent SDK、Claude APIの情報 |
+
+`claude-code-guide`はClaude Code組み込みのエージェントです。
+プラグインのインストールは不要です。
 
 ### このプラグインが提供
 
