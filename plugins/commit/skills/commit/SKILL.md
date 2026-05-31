@@ -2,6 +2,7 @@
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
 allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Edit, Read, Write, Skill(commit-style)
+effort: medium
 ---
 
 Gitリポジトリの変更をコミットします。
