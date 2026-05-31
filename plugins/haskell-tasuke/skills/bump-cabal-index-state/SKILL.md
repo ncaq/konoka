@@ -2,6 +2,7 @@
 name: bump-cabal-index-state
 description: Update Cabal project index-state to the latest timestamp. Use when it needs to bump the cabal index-state.
 allowed-tools: Bash(cabal build:*), Bash(cabal update:*), Bash(gh pr create:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git status:*), Bash(git switch:*), Bash(nix flake check:*), Edit, Glob, Grep, Read, Write
+effort: medium
 ---
 
 cabalプロジェクトの`index-state`を最新に更新します。

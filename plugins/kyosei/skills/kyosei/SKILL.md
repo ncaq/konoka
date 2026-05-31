@@ -3,6 +3,7 @@ name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
 allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
+effort: medium
 ---
 
 # get-review-infoでの情報の取得

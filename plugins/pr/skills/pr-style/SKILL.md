@@ -3,6 +3,7 @@ name: pr-style
 description: Pull request style guidelines covering title, body, assignee, and label selection. Use when writing or proposing GitHub pull requests, including direct `gh pr create` invocations outside the /pr skill.
 allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
 user-invocable: false
+effort: medium
 ---
 
 GitHubのpull requestを作成するときのスタイルガイドラインです。
