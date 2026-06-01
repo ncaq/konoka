@@ -40,7 +40,7 @@
                 # konokaは今はclaude-code向けのプラグインを作っているリポジトリなので、
                 # claude-code系への依存関係が発生しても今更問題になる話ではありません。
                 # 仕方なくプロプライエタリなソフトウェアを受け入れています。
-                "claude-code-bin"
+                "claude-code"
               ];
           };
           inherit (pkgs) nodejs;
@@ -86,7 +86,7 @@
                         {
                           nativeBuildInputs = [
                             nodejs
-                            pkgs.claude-code-bin
+                            pkgs.claude-code
                             pkgs.git
                           ];
                         }

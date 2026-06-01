@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "nix-tasuke",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nix best practices, command patterns, and more guidance for AI coding assistants.",
   "author": {
     "name": "ncaq",
