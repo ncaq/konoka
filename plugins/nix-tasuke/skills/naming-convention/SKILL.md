@@ -16,12 +16,12 @@ kebab-caseを使用します。
 
 ## 変数名・属性名
 
-| 種類                          | スタイル           | 例                                     |
-| ----------------------------- | ------------------ | -------------------------------------- |
-| 単純な変数・関数・設定値      | lowerCamelCase     | `hostName`, `removePrefix`             |
-| パッケージ・derivation        | kebab-case         | `github-mcp-server`, `claude-code-bin` |
-| Flake input等の外部ソース参照 | 参照先の名前に従う | `nixpkgs-unstable`, `treefmt-nix`      |
-| システム識別子                | Nixの規定形式      | `x86_64-linux`, `aarch64-linux`        |
+| 種類                          | スタイル           | 例                                 |
+| ----------------------------- | ------------------ | ---------------------------------- |
+| 単純な変数・関数・設定値      | lowerCamelCase     | `hostName`, `removePrefix`         |
+| パッケージ・derivation        | kebab-case         | `github-mcp-server`, `claude-code` |
+| Flake input等の外部ソース参照 | 参照先の名前に従う | `nixpkgs-unstable`, `treefmt-nix`  |
+| システム識別子                | Nixの規定形式      | `x86_64-linux`, `aarch64-linux`    |
 
 単純な識別子はlowerCamelCaseを使用します。
 
