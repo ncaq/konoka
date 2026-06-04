@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "web-tasuke",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Web development best practices, patterns, and guidance for AI coding assistants.",
   "author": {
     "name": "ncaq",
