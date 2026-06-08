@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 script_dir="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-exec node "${script_dir}/../dist/bin/konoka-editor.js" "$@"
+target="${script_dir}/../dist/bin/konoka-editor.js"
+[ -f "${target}" ] || "${script_dir}/build-pr"
+exec node "${target}" "$@"
