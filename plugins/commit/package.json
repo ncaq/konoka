@@ -16,7 +16,7 @@
   "dependencies": {
     "@effect/cli": "0.75.2",
     "@effect/platform": "0.96.1",
-    "@effect/platform-node": "0.106.0",
+    "@effect/platform-node": "0.107.0",
     "effect": "3.21.2"
   },
   "devDependencies": {
