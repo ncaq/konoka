@@ -80,7 +80,7 @@ import Himari.Prelude
   - `UnliftIO.Async`
   - `UnliftIO.Directory`
   - `UnliftIO.Exception`
-- ログ: `Himari.Logger`の`logInfo`など
+- ログ: ロガーライブラリのre-exportで提供される`logInfo`など
 - Aeson: `Data.Aeson`系と`Deriving.Aeson`
 
 個別のモジュールのそのままimportしたら名前がコンフリクトする関数が必要になった場合は
