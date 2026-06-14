@@ -65,7 +65,7 @@ import Himari.Prelude
 
 - [ReaderT IO](https://academy.fpblock.com/blog/2017/06/readert-design-pattern/)パターンの、
   支援モナドと例えば以下の関数:
-  - `Himari env = ReaderT env IO`
+  - `newtype Himari env a = Himari { unHimari :: ReaderT env IO a }`
   - `runHimari :: env -> Himari env a -> IO a`
 - 文字列・コンテナ型、例えば以下:
   - `ByteString`
