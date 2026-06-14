@@ -83,7 +83,8 @@ import Himari.Prelude
 - ログ: ロガーライブラリのre-exportで提供される`logInfo`など
 - Aeson: `Data.Aeson`系と`Deriving.Aeson`
 
-個別のモジュールのそのままimportしたら名前がコンフリクトする関数が必要になった場合は
+そのままimportしたら名前がコンフリクトしやすい、
+個別のモジュールに属する関数が必要になった場合は、
 qualified importが必要になります。
 その時のエイリアス規約の一部(himariのhlintルール由来)は以下の通りです。
 
