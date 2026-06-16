@@ -97,7 +97,7 @@ tools:
   - mcp__plugin_research_microsoft-learn__microsoft_docs_fetch
   - mcp__plugin_research_microsoft-learn__microsoft_docs_search
 model: sonnet
-effort: medium
+effort: low
 ---
 
 あらゆる情報ソースを横断検索して回答します。
