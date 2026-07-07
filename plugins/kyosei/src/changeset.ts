@@ -6,7 +6,9 @@
  */
 
 import { Command, type CommandExecutor } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect } from "effect";
+import type { UnknownException } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type";
 
@@ -36,7 +38,7 @@ export interface Changeset {
 function getPrChangeset(
   octokit: Octokit,
   context: GitHubOutputContext,
-): Effect.Effect<Changeset, Error> {
+): Effect.Effect<Changeset, UnexpectedDiffResponseType | UnknownException> {
   return Effect.gen(function* () {
     const [diffResponse, allCommits] = yield* Effect.all(
       [
@@ -96,7 +98,11 @@ Date: ${authorDate}
  */
 function getLocalChangeset(
   context: LocalOutputContext,
-): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<
+  Changeset,
+  UnexpectedDiffResponseType | PlatformError | UnknownException,
+  CommandExecutor.CommandExecutor
+> {
   return Effect.gen(function* () {
     const base =
       context.remoteName != null
@@ -120,7 +126,11 @@ function getLocalChangeset(
 export function getChangeset(
   octokit: Octokit,
   context: ReviewContext,
-): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<
+  Changeset,
+  UnexpectedDiffResponseType | PlatformError | UnknownException,
+  CommandExecutor.CommandExecutor
+> {
   if (context.output === "github") {
     return getPrChangeset(octokit, context);
   }
