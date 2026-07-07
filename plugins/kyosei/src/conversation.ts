@@ -4,9 +4,18 @@
  * 追加ページがあればページネーションで全件取得します。
  */
 
-import { Effect } from "effect";
+import { Data, Effect } from "effect";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
+
+/** GraphQLレスポンスに期待したconnectionが含まれていない場合の失敗。 */
+class GraphQlConnectionMissing extends Data.TaggedError("GraphQlConnectionMissing")<{
+  readonly connectionName: string;
+}> {
+  override get message(): string {
+    return `GraphQL response missing connection: ${this.connectionName}`;
+  }
+}
 
 // --- 出力型定義 ---
 
@@ -413,9 +422,7 @@ function paginateConnection<TNode>(
       );
       const connection = page.repository.pullRequest[connectionName];
       if (connection == null) {
-        return yield* Effect.fail(
-          new Error(`GraphQL response missing connection: ${connectionName}`),
-        );
+        return yield* new GraphQlConnectionMissing({ connectionName });
       }
       accumulator.push(...connection.nodes);
       hasNextPage = connection.pageInfo.hasNextPage;

@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { getRemoteName, getRemoteRepo, NoGitRemotes } from "../src/remote";
-import { fakeCommandExecutor, type CommandHandler } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor, type CommandHandler } from "./fake-command";
 
 const sequenceHandler = (responses: Effect.Effect<string, Error>[]): CommandHandler => {
   let index = 0;
@@ -29,7 +29,7 @@ describe("getRemoteName", () => {
       Effect.provide(
         fakeCommandExecutor(
           sequenceHandler([
-            Effect.fail(new Error("fatal: no upstream configured")),
+            Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("upstream\norigin\n"),
           ]),
         ),
@@ -44,7 +44,7 @@ describe("getRemoteName", () => {
       Effect.provide(
         fakeCommandExecutor(
           sequenceHandler([
-            Effect.fail(new Error("fatal: no upstream configured")),
+            Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("\n"),
           ]),
         ),

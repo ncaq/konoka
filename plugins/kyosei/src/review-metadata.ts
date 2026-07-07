@@ -112,16 +112,20 @@ export function buildFooterView(
   return Effect.gen(function* () {
     const claudeCodeVersion = yield* detectClaudeCodeVersion();
     const runUrl = lookupRunUrlString();
-    return Schema.decodeUnknownSync(MetadataSchema)({
-      commit: submission.headCommitId,
-      pr: submission.prNumber,
-      kyoseiVersion: pluginManifest.version,
-      kyoseiActionVersion: process.env["KYOSEI_ACTION_VERSION"],
-      claudeCodeVersion: Option.getOrUndefined(claudeCodeVersion),
-      model: submission.metadata?.model,
-      execution: lookupExecution(),
-      ...(Option.isSome(runUrl) ? { runUrl: runUrl.value } : {}),
-    });
+    // 不正値は`MetadataSchema`が`"unknown"`に正規化するため、
+    // デコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
+    return yield* Effect.orDie(
+      Schema.decodeUnknown(MetadataSchema)({
+        commit: submission.headCommitId,
+        pr: submission.prNumber,
+        kyoseiVersion: pluginManifest.version,
+        kyoseiActionVersion: process.env["KYOSEI_ACTION_VERSION"],
+        claudeCodeVersion: Option.getOrUndefined(claudeCodeVersion),
+        model: submission.metadata?.model,
+        execution: lookupExecution(),
+        ...(Option.isSome(runUrl) ? { runUrl: runUrl.value } : {}),
+      }),
+    );
   });
 }
 

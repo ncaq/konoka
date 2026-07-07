@@ -4,6 +4,7 @@
 
 import process from "node:process";
 import { Command, type CommandExecutor } from "@effect/platform";
+import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect, Option } from "effect";
 import { Octokit } from "octokit";
 
@@ -15,6 +16,31 @@ class EnvVarInvalidUrl extends Data.TaggedError("EnvVarInvalidUrl")<{
   readonly name: string;
   readonly cause: unknown;
 }> {}
+
+/** GitHub CLIからのトークン読み取りに失敗した場合の失敗。 */
+class GhTokenReadError extends Data.TaggedError("GhTokenReadError")<{
+  readonly cause: PlatformError;
+}> {
+  override get message(): string {
+    return `failed to read GitHub token from gh: ${this.cause.message}`;
+  }
+}
+
+/** GitHub CLIのトークン出力が事実上の空である場合の失敗。 */
+class GhTokenEmpty extends Data.TaggedError("GhTokenEmpty") {
+  override get message(): string {
+    return "gh auth token output is empty or whitespace only";
+  }
+}
+
+/** Octokitクライアントの生成に失敗した場合の失敗。 */
+export class OctokitClientCreationError extends Data.TaggedError("OctokitClientCreationError")<{
+  readonly cause: Error;
+}> {
+  override get message(): string {
+    return `failed to create Octokit client: ${this.cause.message}`;
+  }
+}
 
 /**
  * GitHubに認証するための情報。
@@ -71,7 +97,7 @@ function getUrlEnvironmentVariable(
   return Effect.gen(function* () {
     const value = getNormalizedEnvironmentVariable(name);
     if (Option.isNone(value)) {
-      return yield* Effect.fail(new EnvVarNotSet({ name }));
+      return yield* new EnvVarNotSet({ name });
     }
     return yield* Effect.try({
       try: () => new URL(value.value),
@@ -156,7 +182,7 @@ function getGitHubAuthOptionsFromEnvironment(): Option.Option<GitHubAuthOptions>
  */
 function createGitHubAuthOptionsFromGh(): Effect.Effect<
   GitHubAuthOptions,
-  Error,
+  EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
   CommandExecutor.CommandExecutor
 > {
   return Effect.gen(function* () {
@@ -166,13 +192,11 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<
         ? ["auth", "token"]
         : ["auth", "token", "--hostname", githubHostname];
     const stdout = yield* Command.string(Command.make("gh", ...argumentList)).pipe(
-      Effect.mapError(
-        (err) => new Error(`failed to read GitHub token from gh: ${err.message}`, { cause: err }),
-      ),
+      Effect.mapError((cause) => new GhTokenReadError({ cause })),
     );
     const token = normalizeEnvironmentVariable(stdout);
     if (Option.isNone(token)) {
-      return yield* Effect.fail(new Error("gh auth token output is empty or whitespace only"));
+      return yield* new GhTokenEmpty();
     }
     return {
       source: argumentList.join(" "),
@@ -187,7 +211,7 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<
  */
 function createGitHubAuthOptions(): Effect.Effect<
   GitHubAuthOptions,
-  Error,
+  EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
   CommandExecutor.CommandExecutor
 > {
   return Option.match(getGitHubAuthOptionsFromEnvironment(), {
@@ -239,7 +263,7 @@ function handleSecondaryRateLimit(
  */
 export function createOctokitClient(): Effect.Effect<
   Octokit,
-  Error,
+  OctokitClientCreationError,
   CommandExecutor.CommandExecutor
 > {
   return Effect.gen(function* () {
@@ -266,9 +290,5 @@ export function createOctokitClient(): Effect.Effect<
       },
       retry: { enabled: true },
     });
-  }).pipe(
-    Effect.mapError(
-      (err) => new Error(`failed to create Octokit client: ${err.message}`, { cause: err }),
-    ),
-  );
+  }).pipe(Effect.mapError((cause) => new OctokitClientCreationError({ cause })));
 }

@@ -4,12 +4,12 @@ import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
 import { detectReviewContext } from "../src/context";
-import { fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
 const failingCommandLayer = fakeCommandExecutor(() =>
-  Effect.fail(new Error("simulated git failure")),
+  Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
 );
 
 describe("detectReviewContext", () => {

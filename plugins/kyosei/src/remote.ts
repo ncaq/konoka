@@ -58,7 +58,7 @@ export function getRemoteName(): Effect.Effect<
     const remoteListOutput = yield* Command.string(Command.make("git", "remote"));
     const firstRemote = remoteListOutput.trim().split("\n")[0];
     if (firstRemote == null || firstRemote === "") {
-      return yield* Effect.fail(new NoGitRemotes());
+      return yield* new NoGitRemotes();
     }
     return firstRemote;
   });
@@ -81,7 +81,7 @@ export function getRemoteRepo(): Effect.Effect<
     const url = remoteUrlOutput.trim();
     const parsed = gitUrlParse(url);
     if (parsed.owner === "" || parsed.name === "") {
-      return yield* Effect.fail(new RemoteUrlParseError({ url }));
+      return yield* new RemoteUrlParseError({ url });
     }
     return { remoteName, owner: parsed.owner, repo: parsed.name };
   });

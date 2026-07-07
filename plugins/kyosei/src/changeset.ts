@@ -6,9 +6,16 @@
  */
 
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Effect } from "effect";
+import { Data, Effect } from "effect";
 import type { Octokit } from "octokit";
 import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type";
+
+/** mediaType diff指定に対して文字列以外のレスポンスが返ってきた場合の失敗。 */
+class UnexpectedDiffResponseType extends Data.TaggedError("UnexpectedDiffResponseType") {
+  override get message(): string {
+    return "unexpected response type for diff";
+  }
+}
 
 /**
  * レビュー対象の変更セット。
@@ -67,7 +74,7 @@ Date: ${authorDate}
       .join("\n");
     // mediaType diffを指定するとレスポンスが文字列になります。
     if (typeof diffResponse.data !== "string") {
-      return yield* Effect.fail(new Error("unexpected response type for diff"));
+      return yield* new UnexpectedDiffResponseType();
     }
     // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
     // GitHub APIの`pulls.listCommits`は時系列昇順(古い順)で返すため、

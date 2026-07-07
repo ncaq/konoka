@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { decodeReviewSubmission } from "../src/review-decoder";
 import { buildReviewBody } from "../src/review-metadata";
 import { parseFooterMetadata } from "../src/review-metadata-parser";
-import { fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 const claudeFakeLayer = fakeCommandExecutor(() =>
-  Effect.fail(new Error("claude not installed in test environment")),
+  Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
 const baseInput = {

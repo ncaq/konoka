@@ -6,7 +6,12 @@
 
 import { Command, CommandExecutor } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
-import { Effect, Layer } from "effect";
+import { Data, Effect, Layer } from "effect";
+
+/** テストでコマンド実行の失敗を模倣するためのタグ付きエラー。 */
+export class FakeCommandError extends Data.TaggedError("FakeCommandError")<{
+  readonly message: string;
+}> {}
 
 /**
  * コマンド名と引数列に対する`stdout`をEffectで返すハンドラ。

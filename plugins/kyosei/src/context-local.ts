@@ -4,10 +4,19 @@
  */
 
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Effect, Option } from "effect";
+import { Data, Effect, Option } from "effect";
 import type { Octokit } from "octokit";
 import type { LocalOutputContext } from "./context-type";
 import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
+
+/** `git symbolic-ref`の出力が想定形式でない場合の失敗。 */
+class UnexpectedSymbolicRefFormat extends Data.TaggedError("UnexpectedSymbolicRefFormat")<{
+  readonly ref: string;
+}> {
+  override get message(): string {
+    return `unexpected symbolic-ref format: ${this.ref}`;
+  }
+}
 
 /**
  * gitのsymbolic-refからリモートのデフォルトブランチ名を取得します。
@@ -24,7 +33,7 @@ function getDefaultBranchFromGit(
     const prefix = `refs/remotes/${remoteName}/`;
     const ref = symbolicRef.trim();
     if (!ref.startsWith(prefix)) {
-      return yield* Effect.fail(new Error(`unexpected symbolic-ref format: ${ref}`));
+      return yield* new UnexpectedSymbolicRefFormat({ ref });
     }
     return ref.slice(prefix.length);
   });
