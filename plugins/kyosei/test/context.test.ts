@@ -4,16 +4,17 @@ import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
 import { detectReviewContext } from "../src/context";
-import { fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
 const failingCommandLayer = fakeCommandExecutor(() =>
-  Effect.fail(new Error("simulated git failure")),
+  Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
 );
 
 describe("detectReviewContext", () => {
-  // PR URLでない引数はローカル解決にフォールスルーするので、フェイクgitが失敗することでrejectされます。
+  // PR URLでない引数はローカル解決にフォールスルーするので、
+  // フェイクgitが失敗することでrejectされます。
   it.layer(failingCommandLayer)((it) => {
     const expectFailure = (
       argument: string | undefined,
@@ -22,7 +23,7 @@ describe("detectReviewContext", () => {
         // 成功してしまった場合はテストの前提が崩れているので`die`させて落とします。
         Effect.flip,
         Effect.orDie,
-        Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(Error))),
+        Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(FakeCommandError))),
         Effect.asVoid,
       );
 

@@ -4,10 +4,10 @@ import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
 import { decodeReviewSubmission } from "../src/review-decoder";
 import { previewReview, submitReview } from "../src/review-poster";
-import { fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 const claudeFakeLayer = fakeCommandExecutor(() =>
-  Effect.fail(new Error("claude not installed in test environment")),
+  Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
 /** テスト用の最小限の有効な入力。 */

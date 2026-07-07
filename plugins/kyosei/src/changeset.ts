@@ -6,9 +6,18 @@
  */
 
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Effect } from "effect";
+import type { PlatformError } from "@effect/platform/Error";
+import { Data, Effect } from "effect";
+import type { UnknownException } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type";
+
+/** mediaType diff指定に対して文字列以外のレスポンスが返ってきた場合の失敗。 */
+class UnexpectedDiffResponseType extends Data.TaggedError("UnexpectedDiffResponseType") {
+  override get message(): string {
+    return "unexpected response type for diff";
+  }
+}
 
 /**
  * レビュー対象の変更セット。
@@ -29,7 +38,7 @@ export interface Changeset {
 function getPrChangeset(
   octokit: Octokit,
   context: GitHubOutputContext,
-): Effect.Effect<Changeset, Error> {
+): Effect.Effect<Changeset, UnexpectedDiffResponseType | UnknownException> {
   return Effect.gen(function* () {
     const [diffResponse, allCommits] = yield* Effect.all(
       [
@@ -67,7 +76,7 @@ Date: ${authorDate}
       .join("\n");
     // mediaType diffを指定するとレスポンスが文字列になります。
     if (typeof diffResponse.data !== "string") {
-      return yield* Effect.fail(new Error("unexpected response type for diff"));
+      return yield* new UnexpectedDiffResponseType();
     }
     // コミット一覧の最後のエントリからPRのheadコミットSHAを取得します。
     // GitHub APIの`pulls.listCommits`は時系列昇順(古い順)で返すため、
@@ -89,7 +98,11 @@ Date: ${authorDate}
  */
 function getLocalChangeset(
   context: LocalOutputContext,
-): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<
+  Changeset,
+  UnexpectedDiffResponseType | PlatformError | UnknownException,
+  CommandExecutor.CommandExecutor
+> {
   return Effect.gen(function* () {
     const base =
       context.remoteName != null
@@ -113,7 +126,11 @@ function getLocalChangeset(
 export function getChangeset(
   octokit: Octokit,
   context: ReviewContext,
-): Effect.Effect<Changeset, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<
+  Changeset,
+  UnexpectedDiffResponseType | PlatformError | UnknownException,
+  CommandExecutor.CommandExecutor
+> {
   if (context.output === "github") {
     return getPrChangeset(octokit, context);
   }

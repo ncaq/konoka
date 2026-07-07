@@ -2,10 +2,19 @@
  * 前回レビュー対象コミットから現headまでの「増分changeset」を判定するモジュール。
  */
 
-import { Effect, Either, Schema } from "effect";
+import { Data, Effect, Either, Schema } from "effect";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 import { ShaSchema } from "./review-schema";
+
+/** GitHub APIからの増分changeset情報の取得に失敗した場合の失敗。 */
+class IncrementalChangesetLookupError extends Data.TaggedError("IncrementalChangesetLookupError")<{
+  readonly cause: unknown;
+}> {
+  override get message(): string {
+    return this.cause instanceof Error ? this.cause.message : String(this.cause);
+  }
+}
 
 const NonNegativeIntSchema = Schema.Number.pipe(Schema.int(), Schema.nonNegative());
 
@@ -48,7 +57,7 @@ function getCommitTreeSha(
   octokit: Octokit,
   target: PrIdentifier,
   sha: string,
-): Effect.Effect<string, Error> {
+): Effect.Effect<string, IncrementalChangesetLookupError> {
   return Effect.tryPromise({
     try: async () => {
       const response = await octokit.rest.git.getCommit({
@@ -58,7 +67,7 @@ function getCommitTreeSha(
       });
       return response.data.tree.sha;
     },
-    catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    catch: (cause) => new IncrementalChangesetLookupError({ cause }),
   });
 }
 
@@ -67,7 +76,7 @@ function compareCommits(
   target: PrIdentifier,
   baseSha: string,
   headSha: string,
-): Effect.Effect<CompareResult, Error> {
+): Effect.Effect<CompareResult, IncrementalChangesetLookupError> {
   return Effect.tryPromise({
     try: async () => {
       const response = await octokit.rest.repos.compareCommits({
@@ -86,7 +95,7 @@ function compareCommits(
           })) ?? [],
       };
     },
-    catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    catch: (cause) => new IncrementalChangesetLookupError({ cause }),
   });
 }
 
@@ -135,7 +144,26 @@ export function getIncrementalChangeset(
     const changedLineCount = sumLineChanges(compare.files);
 
     if (baseTreeSha === headTreeSha) {
-      return Schema.decodeUnknownSync(IncrementalChangesetSchema)({
+      // 内部で組み立てた値なのでデコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
+      return yield* Effect.orDie(
+        Schema.decodeUnknown(IncrementalChangesetSchema)({
+          baseSha,
+          headSha,
+          baseTreeSha,
+          headTreeSha,
+          aheadBy: compare.aheadBy,
+          behindBy: compare.behindBy,
+          changedFileCount,
+          changedLineCount,
+          status: "tree-identical",
+        }),
+      );
+    }
+
+    const status: "diff-empty" | "diff-present" =
+      changedLineCount === 0 ? "diff-empty" : "diff-present";
+    return yield* Effect.orDie(
+      Schema.decodeUnknown(IncrementalChangesetSchema)({
         baseSha,
         headSha,
         baseTreeSha,
@@ -144,22 +172,8 @@ export function getIncrementalChangeset(
         behindBy: compare.behindBy,
         changedFileCount,
         changedLineCount,
-        status: "tree-identical",
-      });
-    }
-
-    const status: "diff-empty" | "diff-present" =
-      changedLineCount === 0 ? "diff-empty" : "diff-present";
-    return Schema.decodeUnknownSync(IncrementalChangesetSchema)({
-      baseSha,
-      headSha,
-      baseTreeSha,
-      headTreeSha,
-      aheadBy: compare.aheadBy,
-      behindBy: compare.behindBy,
-      changedFileCount,
-      changedLineCount,
-      status,
-    });
+        status,
+      }),
+    );
   });
 }

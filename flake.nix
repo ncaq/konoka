@@ -66,6 +66,16 @@
                   };
                   nodeModules = pkgs.importNpmLock.buildNodeModules {
                     inherit nodejs npmRoot;
+                    derivationArgs = {
+                      # `importNpmLock`は`npm install --ignore-scripts`で依存を展開するため、
+                      # rootパッケージのprepareスクリプトが実行されない。
+                      # `effect-language-service patch`がtscにパッチを当てて、
+                      # effect診断をtscの診断の一部として有効化するパッケージがあるため、
+                      # `node_modules`がまだ書き込み可能なこの段階でprepareを実行する。
+                      preInstall = ''
+                        npm run --if-present prepare
+                      '';
+                    };
                   };
                   tsRoot = lib.fileset.toSource {
                     root = ./.;

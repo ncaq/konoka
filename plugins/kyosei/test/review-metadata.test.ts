@@ -3,11 +3,11 @@ import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { decodeReviewSubmission } from "../src/review-decoder";
 import { buildFooterView, buildReviewBody } from "../src/review-metadata";
-import { fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 // `claude --version`の呼び出しを失敗させ、`Option.none`にフォールバックさせます。
 const claudeFakeLayer = fakeCommandExecutor(() =>
-  Effect.fail(new Error("claude not installed in test environment")),
+  Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
 const baseInput = {
