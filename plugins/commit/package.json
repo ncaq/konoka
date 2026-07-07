@@ -6,10 +6,8 @@
     "build": "vite build",
     "fix": "run-p fix:*",
     "fix:eslint": "eslint --fix .",
-    "fix:prettier": "prettier --write .",
     "lint": "run-p lint:*",
     "lint:eslint": "eslint .",
-    "lint:prettier": "prettier --check .",
     "lint:tsc": "tsc --noEmit",
     "test": "vitest run --reporter=verbose"
   },
@@ -31,7 +29,6 @@
     "eslint-plugin-n": "18.2.1",
     "jiti": "2.7.0",
     "npm-run-all2": "9.0.2",
-    "prettier": "3.8.4",
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.1",
     "vite": "7.3.6",

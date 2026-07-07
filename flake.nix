@@ -50,7 +50,6 @@
             let
               scriptList = [
                 "lint:eslint"
-                "lint:prettier"
                 "lint:tsc"
                 "test"
               ];
