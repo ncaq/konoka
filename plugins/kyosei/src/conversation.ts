@@ -5,6 +5,7 @@
  */
 
 import { Data, Effect } from "effect";
+import type { UnknownException } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 
@@ -408,7 +409,7 @@ function paginateConnection<TNode>(
   nodeFields: string,
   pageInfo: PageInfo,
   accumulator: TNode[],
-): Effect.Effect<void, Error> {
+): Effect.Effect<void, GraphQlConnectionMissing | UnknownException> {
   return Effect.gen(function* () {
     const query = buildPageQuery(connectionName, nodeFields);
     let cursor = pageInfo.endCursor;
