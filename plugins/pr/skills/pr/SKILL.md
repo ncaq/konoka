@@ -2,6 +2,7 @@
 name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
 allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
+model: opus
 effort: medium
 ---
 
