@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@effect/cli": "0.75.2",
-    "@effect/platform": "0.96.2",
+    "@effect/platform": "0.97.0",
     "@effect/platform-node": "0.107.0",
     "effect": "3.21.4"
   },
