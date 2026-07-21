@@ -164,6 +164,17 @@ PR作成に進んでください。
 - `title`: 生成したタイトル
 - `body`: 生成した本文
 - `draft`: ユーザが明示的に指示した場合のみ`true`、それ以外は省略
+- `maintainer_can_modify`: `true`
+
+`maintainer_can_modify`はGitHubの
+"Allow edits and access to secrets by maintainers"
+に対応します。
+forkからのPRでもmaintainerがブランチを直接修正できるように、
+常に有効化します。
+
+organizationが所有するforkからのPRなど、
+`maintainer_can_modify`が原因で作成が失敗した場合は、
+`maintainer_can_modify`を省略して作成し直してください。
 
 GitHubのPR作成APIはassigneesとlabelsの同時設定に対応していないため、
 これらは作成後に別ステップで設定します。
