@@ -45,6 +45,22 @@
           };
           inherit (pkgs) nodejs;
 
+          # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
+          # ビルド設定ファイルの有無で種別を判定するため、
+          # プラグインを追加してもここに手動で一覧を追記する必要はなく、
+          # パッケージ化やチェックからの漏れも起きない。
+          pluginDirOf = pluginName: ./plugins + "/${pluginName}";
+          pluginNames = lib.attrNames (
+            lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
+          );
+          npmPluginNames = lib.filter (
+            pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
+          ) pluginNames;
+          rustPluginNames = lib.filter (
+            pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
+          ) pluginNames;
+          staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
+
           # プラグインディレクトリのpackage.json/package-lock.jsonからnode_modulesを構築する。
           mkNodeModules =
             pluginDir:
@@ -120,11 +136,7 @@
                 lib.listToAttrs (map mkCheck scriptList);
             in
             lib.foldl' lib.mergeAttrs { } (
-              map mkPluginChecks [
-                ./plugins/commit
-                ./plugins/kyosei
-                ./plugins/pr
-              ]
+              map (pluginName: mkPluginChecks (pluginDirOf pluginName)) npmPluginNames
             );
 
           # プラグインディレクトリのリストから全Rustチェックのattrsetを生成する。
@@ -203,9 +215,7 @@
                 lib.listToAttrs (map mkCheck scriptList);
             in
             lib.foldl' lib.mergeAttrs { } (
-              map mkPluginChecks [
-                ./plugins/rm-to-trash
-              ]
+              map (pluginName: mkPluginChecks (pluginDirOf pluginName)) rustPluginNames
             );
 
           # プラグインのビルド済みパッケージ群。
@@ -213,7 +223,6 @@
           # ヘルパースクリプトのビルド生成物まで含めた完全なプラグインを提供する。
           pluginPackages =
             let
-              pluginDirOf = pluginName: ./plugins + "/${pluginName}";
               pluginVersionOf =
                 pluginName: (lib.importJSON (pluginDirOf pluginName + /.claude-plugin/plugin.json)).version;
               # ランタイムビルドの生成物と依存の展開先を除いたプラグインソース。
@@ -321,30 +330,21 @@
                   '';
                 };
             in
-            lib.genAttrs [
-              "haskell-tasuke"
-              "log-analyzer"
-              "nix-tasuke"
-              "programming-tasuke"
-              "proofreading-ja"
-              "research"
-              "web-tasuke"
-            ] mkStaticPlugin
-            // lib.genAttrs [
-              "commit"
-              "kyosei"
-              "pr"
-            ] mkNpmPlugin
-            // lib.genAttrs [
-              "rm-to-trash"
-            ] mkRustPlugin;
+            lib.genAttrs staticPluginNames mkStaticPlugin
+            // lib.genAttrs npmPluginNames mkNpmPlugin
+            // lib.genAttrs rustPluginNames mkRustPlugin;
 
           # マーケットプレイス全体をビルド済みプラグインで構成したパッケージ。
           # `/plugin marketplace add <storeパス>`でそのまま利用できる。
           konoka-marketplace =
             let
               marketplace = lib.importJSON ./.claude-plugin/marketplace.json;
+              marketplacePluginNames = lib.sort lib.lessThan (map (plugin: plugin.name) marketplace.plugins);
             in
+            # plugins/のディレクトリ一覧とmarketplace.jsonの登録内容の齟齬を評価時に検出する。
+            assert lib.assertMsg (
+              marketplacePluginNames == pluginNames
+            ) "marketplace.jsonのプラグイン一覧がplugins/のディレクトリ一覧と一致しません";
             pkgs.runCommand "konoka-${marketplace.metadata.version}" { } ''
               mkdir -p $out/.claude-plugin $out/plugins
               cp ${./.claude-plugin/marketplace.json} $out/.claude-plugin/marketplace.json
