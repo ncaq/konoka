@@ -45,6 +45,46 @@
           };
           inherit (pkgs) nodejs;
 
+          # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
+          # ビルド設定ファイルの有無で種別を判定するため、
+          # プラグインを追加してもここに手動で一覧を追記する必要はなく、
+          # パッケージ化やチェックからの漏れも起きない。
+          pluginDirOf = pluginName: ./plugins + "/${pluginName}";
+          pluginNames = lib.attrNames (
+            lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
+          );
+          npmPluginNames = lib.filter (
+            pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
+          ) pluginNames;
+          rustPluginNames = lib.filter (
+            pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
+          ) pluginNames;
+          staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
+
+          # プラグインディレクトリのpackage.json/package-lock.jsonからnode_modulesを構築する。
+          mkNodeModules =
+            pluginDir:
+            pkgs.importNpmLock.buildNodeModules {
+              inherit nodejs;
+              npmRoot = lib.fileset.toSource {
+                root = pluginDir;
+                fileset = lib.fileset.unions [
+                  (pluginDir + "/package.json")
+                  (pluginDir + "/package-lock.json")
+                ];
+              };
+              derivationArgs = {
+                # `importNpmLock`は`npm install --ignore-scripts`で依存を展開するため、
+                # rootパッケージのprepareスクリプトが実行されない。
+                # `effect-language-service patch`がtscにパッチを当てて、
+                # effect診断をtscの診断の一部として有効化するパッケージがあるため、
+                # `node_modules`がまだ書き込み可能なこの段階でprepareを実行する。
+                preInstall = ''
+                  npm run --if-present prepare
+                '';
+              };
+            };
+
           # プラグインディレクトリのリストから全npmチェックのattrsetを生成する。
           pluginNpmChecks =
             let
@@ -57,26 +97,7 @@
                 pluginDir:
                 let
                   pluginName = builtins.baseNameOf pluginDir;
-                  npmRoot = lib.fileset.toSource {
-                    root = pluginDir;
-                    fileset = lib.fileset.unions [
-                      (pluginDir + "/package.json")
-                      (pluginDir + "/package-lock.json")
-                    ];
-                  };
-                  nodeModules = pkgs.importNpmLock.buildNodeModules {
-                    inherit nodejs npmRoot;
-                    derivationArgs = {
-                      # `importNpmLock`は`npm install --ignore-scripts`で依存を展開するため、
-                      # rootパッケージのprepareスクリプトが実行されない。
-                      # `effect-language-service patch`がtscにパッチを当てて、
-                      # effect診断をtscの診断の一部として有効化するパッケージがあるため、
-                      # `node_modules`がまだ書き込み可能なこの段階でprepareを実行する。
-                      preInstall = ''
-                        npm run --if-present prepare
-                      '';
-                    };
-                  };
+                  nodeModules = mkNodeModules pluginDir;
                   tsRoot = lib.fileset.toSource {
                     root = ./.;
                     fileset = lib.fileset.unions [
@@ -115,11 +136,7 @@
                 lib.listToAttrs (map mkCheck scriptList);
             in
             lib.foldl' lib.mergeAttrs { } (
-              map mkPluginChecks [
-                ./plugins/commit
-                ./plugins/kyosei
-                ./plugins/pr
-              ]
+              map (pluginName: mkPluginChecks (pluginDirOf pluginName)) npmPluginNames
             );
 
           # プラグインディレクトリのリストから全Rustチェックのattrsetを生成する。
@@ -198,10 +215,147 @@
                 lib.listToAttrs (map mkCheck scriptList);
             in
             lib.foldl' lib.mergeAttrs { } (
-              map mkPluginChecks [
-                ./plugins/rm-to-trash
-              ]
+              map (pluginName: mkPluginChecks (pluginDirOf pluginName)) rustPluginNames
             );
+
+          # プラグインのビルド済みパッケージ群。
+          # nix store上のプラグインは読み込み専用でランタイムビルドが出来ないため、
+          # ヘルパースクリプトのビルド生成物まで含めた完全なプラグインを提供する。
+          pluginPackages =
+            let
+              pluginVersionOf =
+                pluginName: (lib.importJSON (pluginDirOf pluginName + /.claude-plugin/plugin.json)).version;
+              # ランタイムビルドの生成物と依存の展開先を除いたプラグインソース。
+              pluginSourceOf =
+                pluginName:
+                let
+                  pluginDir = pluginDirOf pluginName;
+                in
+                lib.fileset.toSource {
+                  root = pluginDir;
+                  fileset = lib.fileset.difference pluginDir (
+                    lib.fileset.unions (
+                      map (name: lib.fileset.maybeMissing (pluginDir + "/${name}")) [
+                        ".build.lock"
+                        "dist"
+                        "node_modules"
+                        "target"
+                      ]
+                    )
+                  );
+                };
+              # ビルド不要のプラグインをそのままパッケージ化する。
+              mkStaticPlugin =
+                pluginName:
+                pkgs.stdenv.mkDerivation {
+                  pname = "konoka-plugin-${pluginName}";
+                  version = pluginVersionOf pluginName;
+                  src = pluginSourceOf pluginName;
+                  installPhase = ''
+                    runHook preInstall
+                    cp -r . $out
+                    runHook postInstall
+                  '';
+                };
+              # TypeScript製ヘルパーをビルドしてdistを同梱する。
+              mkNpmPlugin =
+                pluginName:
+                let
+                  nodeModules = mkNodeModules (pluginDirOf pluginName);
+                in
+                pkgs.stdenv.mkDerivation {
+                  pname = "konoka-plugin-${pluginName}";
+                  version = pluginVersionOf pluginName;
+                  src = pluginSourceOf pluginName;
+                  nativeBuildInputs = [
+                    nodejs
+                    pkgs.makeWrapper
+                  ];
+                  buildPhase = ''
+                    runHook preBuild
+                    ln -s ${nodeModules}/node_modules node_modules
+                    npm run build
+                    runHook postBuild
+                  '';
+                  installPhase = ''
+                    runHook preInstall
+                    rm node_modules
+                    cp -r . $out
+                    runHook postInstall
+                  '';
+                  # binのスクリプトはnodeをPATHから探すため、
+                  # スクリプト本体は無改変のままラップしてランタイム依存としてnodeを付与する。
+                  postInstall = ''
+                    if [ -d "$out/bin" ]; then
+                      for script in "$out"/bin/*; do
+                        wrapProgram "$script" --prefix PATH : ${lib.makeBinPath [ nodejs ]}
+                      done
+                    fi
+                  '';
+                };
+              # Rust製フックバイナリをビルドしてtarget/releaseに同梱する。
+              mkRustPlugin =
+                pluginName:
+                pkgs.stdenv.mkDerivation {
+                  pname = "konoka-plugin-${pluginName}";
+                  version = pluginVersionOf pluginName;
+                  src = pluginSourceOf pluginName;
+                  cargoDeps = pkgs.rustPlatform.importCargoLock {
+                    lockFile = pluginDirOf pluginName + "/Cargo.lock";
+                  };
+                  nativeBuildInputs = with pkgs; [
+                    cargo
+                    rustPlatform.cargoSetupHook
+                    rustc
+                  ];
+                  # `.cargo/config.toml`の`target-cpu=native`はビルドしたマシンでのみ実行する前提の最適化だが、
+                  # このパッケージはバイナリキャッシュ経由で別CPUのマシンにも配布され得るため、
+                  # 最高優先度の`RUSTFLAGS`で汎用的なCPU水準に上書きする。
+                  # x86_64はClaude Codeが動作する程度のCPUを前提としてx86-64-v3に抑える。
+                  env.RUSTFLAGS =
+                    if pkgs.stdenv.hostPlatform.isx86_64 then "-C target-cpu=x86-64-v3" else "-C target-cpu=generic";
+                  buildPhase = ''
+                    runHook preBuild
+                    cargo build --release --frozen
+                    runHook postBuild
+                  '';
+                  # hooks.jsonが参照するパスに合わせてバイナリだけをtarget/releaseへ残す。
+                  # 巨大なtarget/を丸ごとstoreへ書き込んでから消すのは無駄なため、
+                  # バイナリを配置した後にビルド生成物と`cargoSetupHook`の設定を取り除いてから、
+                  # 残りのプラグイン一式を複製する。
+                  installPhase = ''
+                    runHook preInstall
+                    install -Dm755 target/release/${pluginName} $out/target/release/${pluginName}
+                    rm -rf .cargo target
+                    cp -r . $out
+                    runHook postInstall
+                  '';
+                };
+            in
+            lib.genAttrs staticPluginNames mkStaticPlugin
+            // lib.genAttrs npmPluginNames mkNpmPlugin
+            // lib.genAttrs rustPluginNames mkRustPlugin;
+
+          # マーケットプレイス全体をビルド済みプラグインで構成したパッケージ。
+          # `/plugin marketplace add <storeパス>`でそのまま利用できる。
+          konoka-marketplace =
+            let
+              marketplace = lib.importJSON ./.claude-plugin/marketplace.json;
+              marketplacePluginNames = lib.sort lib.lessThan (map (plugin: plugin.name) marketplace.plugins);
+            in
+            # plugins/のディレクトリ一覧とmarketplace.jsonの登録内容の齟齬を評価時に検出する。
+            assert lib.assertMsg (
+              marketplacePluginNames == pluginNames
+            ) "marketplace.jsonのプラグイン一覧がplugins/のディレクトリ一覧と一致しません";
+            pkgs.runCommand "konoka-${marketplace.metadata.version}" { } ''
+              mkdir -p $out/.claude-plugin $out/plugins
+              cp ${./.claude-plugin/marketplace.json} $out/.claude-plugin/marketplace.json
+              ${lib.concatStrings (
+                lib.mapAttrsToList (pluginName: plugin: ''
+                  ln -s ${plugin} $out/plugins/${pluginName}
+                '') pluginPackages
+              )}
+            '';
 
           agnix = pkgs.callPackage ./pkgs/agnix/package.nix { };
 
@@ -255,14 +409,21 @@
                 '';
           }
           // pluginNpmChecks
-          // pluginRustChecks;
+          // pluginRustChecks
+          # プラグインパッケージのビルドもチェック対象に含める。
+          // lib.mapAttrs' (pluginName: lib.nameValuePair "package-${pluginName}") (
+            pluginPackages // { konoka = konoka-marketplace; }
+          );
 
           packages = {
             # flake.lockの管理バージョンをre-exportすることで安定した利用を促進。
             inherit (pkgs)
               nix-fast-build
               ;
-          };
+            default = konoka-marketplace;
+          }
+          // pluginPackages;
+
           devShells.default = pkgs.mkShell {
             buildInputs = with pkgs; [
               # treefmtで指定したプログラムの単体版。
