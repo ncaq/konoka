@@ -299,6 +299,12 @@
                     rustPlatform.cargoSetupHook
                     rustc
                   ];
+                  # `.cargo/config.toml`の`target-cpu=native`はビルドしたマシンでのみ実行する前提の最適化だが、
+                  # このパッケージはバイナリキャッシュ経由で別CPUのマシンにも配布され得るため、
+                  # 最高優先度の`RUSTFLAGS`で汎用的なCPU水準に上書きする。
+                  # x86_64はClaude Codeが動作する程度のCPUを前提としてx86-64-v3に抑える。
+                  env.RUSTFLAGS =
+                    if pkgs.stdenv.hostPlatform.isx86_64 then "-C target-cpu=x86-64-v3" else "-C target-cpu=generic";
                   buildPhase = ''
                     runHook preBuild
                     cargo build --release --frozen
