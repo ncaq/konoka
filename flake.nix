@@ -319,13 +319,15 @@
                     cargo build --release --frozen
                     runHook postBuild
                   '';
-                  # hooks.jsonが参照するパスに合わせてバイナリだけをtarget/releaseへ残し、
-                  # その他のビルド生成物と`cargoSetupHook`の設定は除外する。
+                  # hooks.jsonが参照するパスに合わせてバイナリだけをtarget/releaseへ残す。
+                  # 巨大なtarget/を丸ごとstoreへ書き込んでから消すのは無駄なため、
+                  # バイナリを配置した後にビルド生成物と`cargoSetupHook`の設定を取り除いてから、
+                  # 残りのプラグイン一式を複製する。
                   installPhase = ''
                     runHook preInstall
-                    cp -r . $out
-                    rm -rf $out/.cargo $out/target
                     install -Dm755 target/release/${pluginName} $out/target/release/${pluginName}
+                    rm -rf .cargo target
+                    cp -r . $out
                     runHook postInstall
                   '';
                 };
