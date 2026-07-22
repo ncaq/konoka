@@ -36,7 +36,7 @@ nix storeは読み込み専用のためランタイムビルドが出来ませ�
 flakeのパッケージはビルド生成物(`dist/`や`target/release/`)を同梱しているため、
 そのまま利用できます。
 
-`packages.<system>.konoka`(`default`)はマーケットプレイス全体のパッケージです。
+`packages.<system>.default`はマーケットプレイス全体のパッケージです。
 
 各プラグイン単体も`packages.<system>.<プラグイン名>`として提供しています。
 
