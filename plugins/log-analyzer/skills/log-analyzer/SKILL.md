@@ -1,15 +1,17 @@
 ---
 name: log-analyzer
 description: Extract key information from verbose command output. Use when you want to keep main conversation context lean.
-tools:
-  - Bash
-  - Glob
-  - Grep
-  - Read
+context: fork
+agent: general-purpose
+allowed-tools: Bash, Glob, Grep, Read
 model: sonnet
 ---
 
-冗長なコマンド出力やログファイルから重要な情報を抽出することに特化したログ解析エージェントです。
+冗長なコマンド出力やログファイルから重要な情報を抽出することに特化したログ解析スキルです。
+
+# 解析対象
+
+$ARGUMENTS
 
 # 作業ディレクトリ
 

@@ -2,7 +2,18 @@
 name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
-allowed-tools: Bash(node:*), Glob, Grep, Read, Task, mcp__github
+allowed-tools: >-
+  Bash(node:*),
+  Glob,
+  Grep,
+  Read,
+  Skill(kyosei:code-quality-reviewer),
+  Skill(kyosei:dependency-reviewer),
+  Skill(kyosei:documentation-reviewer),
+  Skill(kyosei:performance-reviewer),
+  Skill(kyosei:security-reviewer),
+  Skill(kyosei:test-reviewer),
+  mcp__github
 effort: medium
 ---
 
@@ -113,7 +124,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 ## 簡易レビューの実行
 
 `incrementalChangeset.status`が`"tree-identical"`または`"diff-empty"`の場合は、
-サブエージェントを一切起動せず、
+レビュースキルを一切起動せず、
 前回レビューの判定を引き継いだ簡易レビューを組み立てて投稿してください。
 Claudeの使用量を節約するための分岐です。
 
@@ -146,30 +157,32 @@ Claudeの使用量を節約するための分岐です。
 
 # コードレビューの実行
 
-主要領域について以下の専門のサブエージェントを並列で使用して包括的なコードレビューを実行します。
+主要領域について以下の専門のレビュースキルを並列で使用して包括的なコードレビューを実行します。
 
-- [kyosei:code-quality-reviewer](../../agents/code-quality-reviewer.md)
-- [kyosei:dependency-reviewer](../../agents/dependency-reviewer.md)
-- [kyosei:documentation-reviewer](../../agents/documentation-reviewer.md)
-- [kyosei:performance-reviewer](../../agents/performance-reviewer.md)
-- [kyosei:security-reviewer](../../agents/security-reviewer.md)
-- [kyosei:test-reviewer](../../agents/test-reviewer.md)
+- [kyosei:code-quality-reviewer](../code-quality-reviewer/SKILL.md)
+- [kyosei:dependency-reviewer](../dependency-reviewer/SKILL.md)
+- [kyosei:documentation-reviewer](../documentation-reviewer/SKILL.md)
+- [kyosei:performance-reviewer](../performance-reviewer/SKILL.md)
+- [kyosei:security-reviewer](../security-reviewer/SKILL.md)
+- [kyosei:test-reviewer](../test-reviewer/SKILL.md)
 
-Taskツールの`subagent_type`には、
-プラグイン名を含めた完全修飾名(`kyosei:<agent-name>`)を指定してください。
-プラグインから提供されるサブエージェントは`<plugin-name>:<agent-name>`の形式で登録されているため、
-prefixを省略すると`Agent type 'code-quality-reviewer' not found`のようなエラーになります。
+Skillツールの`skill`には、
+プラグイン名を含めた完全修飾名(`kyosei:<skill-name>`)を指定してください。
+プラグインから提供されるスキルは`<plugin-name>:<skill-name>`の形式で登録されているため、
+prefixを省略すると見つからない旨のエラーになります。
 
-サブエージェントは一度に全て並列に起動してください。
+各レビュースキルは`context: fork`で定義されているため、
+それぞれ独立したサブエージェントとして実行されます。
+レビュースキルは一度に全て並列に起動してください。
 
-各レビューエージェントのプロンプトにはget-review-infoで取得済みの情報を含めてください。
-レビューエージェントは差分を取得するためのツールを原則として持たないため、
+各レビュースキルの引数(`args`)にはget-review-infoで取得済みの情報を含めてください。
+レビュースキルは差分を取得するためのツールを原則として持たないため、
 自分で差分を取得しないようになっています。
 
 # 並列実行結果のマージ
 
-各サブエージェントはJSON配列で結果を返します。
-全エージェントの配列を結合した上で、
+各レビュースキルはJSON配列で結果を返します。
+全スキルの配列を結合した上で、
 重複する指摘は1つにまとめてください。
 
 以下の3条件を全て満たす指摘は同一とみなし、
@@ -302,7 +315,7 @@ see jlord/sheetsee.js#26
 
 報告すべき例(想定外で実行を乱したエラー):
 
-- 並列起動したサブエージェントの一部が想定外に失敗し、欠けたまま続行した
+- 並列起動したレビュースキルの一部が想定外に失敗し、欠けたまま続行した
 - `get-review-info`の取得で部分的な失敗があり、`conversation`等が欠けた状態でレビューを組み立てた
 - `submit-review`のJSON組み立てや引数渡しで試行錯誤が発生した
 - レビュー対象とは別の補助コマンドが想定外のエラーで使えなかった

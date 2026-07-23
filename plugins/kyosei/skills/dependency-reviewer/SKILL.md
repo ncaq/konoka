@@ -3,30 +3,32 @@ name: dependency-reviewer
 description: |
   Review dependency changes and impact.
   Use when analyzing PR dependency additions, removals, and version changes.
-tools:
-  - Bash(git diff:*)
-  - Bash(git log:*)
-  - Bash(git show:*)
-  - Glob
-  - Grep
-  - Read
-  - Skill(research)
-  - WebFetch
-  - WebSearch
-  - mcp__github__get_file_contents
-  - mcp__github__get_latest_release
-  - mcp__github__get_release_by_tag
-  - mcp__github__get_tag
-  - mcp__github__issue_read
-  - mcp__github__pull_request_read
-  - mcp__github__list_commits
-  - mcp__github__list_pull_requests
-  - mcp__github__list_releases
-  - mcp__github__list_tags
-  - mcp__github__search_code
-  - mcp__github__search_issues
-  - mcp__github__search_pull_requests
-model: inherit
+user-invocable: false
+context: fork
+agent: general-purpose
+allowed-tools: >-
+  Bash(git diff:*),
+  Bash(git log:*),
+  Bash(git show:*),
+  Glob,
+  Grep,
+  Read,
+  Skill(research:research),
+  WebFetch,
+  WebSearch,
+  mcp__github__get_file_contents,
+  mcp__github__get_latest_release,
+  mcp__github__get_release_by_tag,
+  mcp__github__get_tag,
+  mcp__github__issue_read,
+  mcp__github__list_commits,
+  mcp__github__list_pull_requests,
+  mcp__github__list_releases,
+  mcp__github__list_tags,
+  mcp__github__pull_request_read,
+  mcp__github__search_code,
+  mcp__github__search_issues,
+  mcp__github__search_pull_requests
 effort: high
 ---
 
@@ -42,7 +44,18 @@ effort: high
 複数ソースの横断調査に活用してください。
 利用できない場合は直接Web検索やMCPで調査してください。
 
-# 依存関係の変更の特定
+# レビュー対象
+
+以下はkyoseiスキル本体がget-review-infoで取得したレビュー対象の情報です。
+
+$ARGUMENTS
+
+# レビューするときの注意
+
+レビューする際は、
+以下の観点で評価してください:
+
+## 依存関係の変更の特定
 
 - ロックファイルやマニフェストファイルの変更から、
   どの依存関係が追加、削除、更新されたかを特定する
@@ -50,7 +63,7 @@ effort: high
 - 削除された依存関係を特定する
 - 更新された依存関係については、メジャー、マイナー、パッチのどの種類の更新かを分類する
 
-# 変更内容の調査
+## 変更内容の調査
 
 - リリースノートやChangeLogを調査して変更内容を把握する
 - 破壊的変更(breaking changes)の有無を確認する
@@ -58,7 +71,7 @@ effort: high
 - 非推奨APIの追加や削除を確認する
 - コミュニティの反応(GitHub Issueでの不具合報告、リグレッションの指摘など)を確認する
 
-# プロジェクトへの影響の評価
+## プロジェクトへの影響の評価
 
 - 変更された依存関係がプロジェクトのコードベースでどのように使われているかを確認する
 - 破壊的変更がプロジェクトに影響するかを評価する

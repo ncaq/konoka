@@ -39,9 +39,10 @@ Claude Codeで以下を実行します。
 技術調査や情報収集が必要な場面でClaude Codeが自動的にresearchスキルを起動します。
 
 クエリは自動的に独立したサブクエリに分解され、
-適切なエージェントが並列起動して調査を行います。
+適切な調査手段が並列起動して調査を行います。
 
-- `survey`エージェントが常に調査を実行します。
+- `survey`スキルが常に調査を実行します。
+  `context: fork`により独立したサブエージェントとして、
   コスト節約と速度のため`sonnet`で動作します。
 - Claude Code、Claude Agent SDK、Claude APIに関するサブクエリは、
   Claude Code組み込みの`claude-code-guide`エージェントも使います。

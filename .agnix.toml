@@ -21,7 +21,8 @@ codex = false
 
 disabled_rules = [
 "CC-AG-009",                    # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
-"CC-SK-008",                    # 同上。スキルのallowed-toolsでも同じ理由。
+"CC-SK-007",                    # log-analyzerは任意コマンドを実行してログを採取する用途なので、Bashをスコープ制限できない。
+"CC-SK-008",                    # CC-AG-009と同じくスキルのallowed-toolsでも`mcp__<server>`のワイルドカードを許容。
 "CC-SK-013",                    # 英語の命令型動詞のみで判定するため日本語スキルでは常に誤検知する。
 "VER-001",                      # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
 "XP-SK-001",                    # Claude Codeの固有機能が使いたいので互換性は犠牲にします。
