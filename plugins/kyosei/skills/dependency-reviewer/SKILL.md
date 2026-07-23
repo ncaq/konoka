@@ -13,7 +13,7 @@ allowed-tools: >-
   Glob,
   Grep,
   Read,
-  Skill(research),
+  Skill(research:research),
   WebFetch,
   WebSearch,
   mcp__github__get_file_contents,
