@@ -1,29 +1,29 @@
-target = "ClaudeCode"
+tools = [
+"claude-code",
+"opencode",
+"github-copilot",
+"generic",
+]
 
 [rules]
-skills = true
-hooks = true
-agents = true
-memory = true
-plugins = true
-xml = true
-mcp = true
-imports = true
-cross_platform = true
-copilot = true
-prompt_engineering = true
-generic_instructions = true
-frontmatter_validation = true
-xml_balance = true
-import_references = true
-
-codex = false
+skills = true              # AS-*, CC-SK-* rules
+hooks = true               # CC-HK-* rules
+agents = true              # CC-AG-* rules
+copilot = true             # COP-* rules
+cursor = true              # CUR-* rules
+memory = true              # CC-MEM-* rules
+plugins = true             # CC-PL-* rules
+mcp = true                 # MCP-* rules
+prompt_engineering = true  # PE-* rules
+xml = true                 # XML-* rules
+imports = true             # REF-* rules
+cross_platform = true      # XP-* rules
+agents_md = true           # AGM-* rules
 
 disabled_rules = [
-"CC-AG-009",                    # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
-"CC-SK-007",                    # log-analyzerは任意コマンドを実行してログを採取する用途なので、Bashをスコープ制限できない。
-"CC-SK-008",                    # CC-AG-009と同じくスキルのallowed-toolsでも`mcp__<server>`のワイルドカードを許容。
-"CC-SK-013",                    # 英語の命令型動詞のみで判定するため日本語スキルでは常に誤検知する。
-"VER-001",                      # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
-"XP-SK-001",                    # Claude Codeの固有機能が使いたいので互換性は犠牲にします。
+"CC-SK-007", # log-analyzerは任意コマンドを実行するので、Bashをスコープ制限できない。
+"CC-SK-008", # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
+"CC-SK-013", # 英語の命令型動詞のみで判定するため日本語スキルでは常に誤検知する。
+"VER-001",   # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
+"XP-SK-001", # Claude Codeの固有機能の使用を許可する。
 ]
