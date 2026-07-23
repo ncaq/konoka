@@ -21,11 +21,11 @@ allowed-tools: >-
   mcp__github__get_release_by_tag,
   mcp__github__get_tag,
   mcp__github__issue_read,
-  mcp__github__pull_request_read,
   mcp__github__list_commits,
   mcp__github__list_pull_requests,
   mcp__github__list_releases,
   mcp__github__list_tags,
+  mcp__github__pull_request_read,
   mcp__github__search_code,
   mcp__github__search_issues,
   mcp__github__search_pull_requests
