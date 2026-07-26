@@ -18,7 +18,7 @@
     "effect": "3.22.0"
   },
   "devDependencies": {
-    "@effect/language-service": "0.87.0",
+    "@effect/language-service": "0.87.1",
     "@effect/vitest": "0.30.0",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.1",
