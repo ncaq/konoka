@@ -14,7 +14,7 @@ allowed-tools: >-
   Skill(kyosei:security-reviewer),
   Skill(kyosei:test-reviewer),
   mcp__github
-effort: medium
+effort: low
 ---
 
 # get-review-infoでの情報の取得
