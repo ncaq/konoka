@@ -49,7 +49,8 @@ export const ReviewInfoFilePathsSchema = Schema.Struct({
 
 export type ReviewInfoFilePaths = typeof ReviewInfoFilePathsSchema.Type;
 
-const personalWorkDirectory = Config.nonEmptyString("XDG_RUNTIME_DIR").pipe(
+const personalWorkDirectory = Config.nonEmptyString("RUNNER_TEMP").pipe(
+  Effect.orElse(() => Config.nonEmptyString("XDG_RUNTIME_DIR")),
   Effect.orElseSucceed(() => tmpdir()),
 );
 

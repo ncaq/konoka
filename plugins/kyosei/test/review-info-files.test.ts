@@ -61,6 +61,27 @@ const localReviewInfo = {
 } as const satisfies ReviewInfo;
 
 describe("writeReviewInfoFiles", () => {
+  it.scoped("`RUNNER_TEMP`を`XDG_RUNTIME_DIR`より優先する", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const runnerTemp = yield* fs.makeTempDirectoryScoped();
+      const xdgRuntimeDirectory = yield* fs.makeTempDirectoryScoped();
+      const filePaths = yield* writeReviewInfoFiles(localReviewInfo).pipe(
+        Effect.withConfigProvider(
+          ConfigProvider.fromMap(
+            new Map([
+              ["RUNNER_TEMP", runnerTemp],
+              ["XDG_RUNTIME_DIR", xdgRuntimeDirectory],
+            ]),
+          ),
+        ),
+      );
+
+      expect(filePaths.context.startsWith(path.join(runnerTemp, "coding-agent-work"))).toBe(true);
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
+
   it.scoped("レビュー情報を用途別のファイルへ書き出す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
