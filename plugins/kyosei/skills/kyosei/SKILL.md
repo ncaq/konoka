@@ -19,18 +19,41 @@ effort: low
 
 # get-review-infoでの情報の取得
 
-以下のコマンドでレビューに必要な情報を一括取得します。
+以下のコマンドでレビューに必要な情報を取得して、
+用途別のファイルに書き出します。
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-review-info.js $ARGUMENTS
 ```
 
-結果はJSONで返されるので、
-以下のガイドに従って解釈してください。
+標準出力にはレビュー情報自体ではなく、
+書き出したファイルの絶対パスを持つJSONが1行だけ返されます。
+出力を`tail`やパイプなどで加工せず、
+JSON全体をそのまま受け取ってください。
 
-## JSONの解釈
+以下は出力例です。
 
-### `context` フィールド
+```json
+{
+  "context": "/run/user/1000/coding-agent-work/kyosei/review-info-example/context.json",
+  "patch": "/run/user/1000/coding-agent-work/kyosei/review-info-example/changeset.patch",
+  "commits": "/run/user/1000/coding-agent-work/kyosei/review-info-example/commits.log",
+  "changesetMetadata": "/run/user/1000/coding-agent-work/kyosei/review-info-example/changeset-metadata.json",
+  "conversation": "/run/user/1000/coding-agent-work/kyosei/review-info-example/conversation.json",
+  "previousReview": "/run/user/1000/coding-agent-work/kyosei/review-info-example/previous-review.json",
+  "incrementalChangeset": "/run/user/1000/coding-agent-work/kyosei/review-info-example/incremental-changeset.json"
+}
+```
+
+返されたパスのファイルを`Read`ツールで直接読んでください。
+レビュー情報を1つのJSONへ結合したり、
+一部を取り出すためにシェルコマンドで加工したりしないでください。
+
+## パスJSONの解釈
+
+### `context`
+
+`context.json`へのパスです。
 
 `context.output`フィールドで出力先を判別します。
 
@@ -46,18 +69,25 @@ GitHub出力。
 結果はターミナルに直接出力されます。
 ブランチに紐付くPRが特定できた場合は`pr`が含まれます。
 
-### `changeset` フィールド
+### `patch`
 
-- `diff`: 差分(diffフォーマット)
-- `log`: コミットログ
-- `headCommitId`: PRのheadコミットSHA(GitHub出力時のみ)
+レビュー対象の差分をdiffフォーマットで保存した`changeset.patch`へのパスです。
 
-### `conversation` フィールド(PRが特定できた場合のみ)
+### `commits`
 
-PRの既存コメント・レビュー情報です。
+コミットログを保存した`commits.log`へのパスです。
+
+### `changesetMetadata` (`headCommitId`が存在する場合のみ)
+
+`headCommitId`を保存した`changeset-metadata.json`へのパスです。
+主にGitHub出力時に含まれます。
+
+### `conversation` (PRが特定できた場合のみ)
+
+PRの既存コメント・レビュー情報を保存した`conversation.json`へのパスです。
 GitHub出力モードでは常に含まれます。
 ローカル出力モードでもブランチに紐付くPRがあれば含まれます。
-PRが特定できない場合はフィールド自体が省略されます。
+PRが特定できない場合はパスJSONから省略されます。
 
 トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、
 以下の3つのサブフィールドがあります。
@@ -84,10 +114,11 @@ PRが特定できない場合はフィールド自体が省略されます。
   - `diffSide`
   - `comments`: スレッド内配列
 
-### `previousReview` フィールド(前回kyoseiレビューが復元できた場合のみ)
+### `previousReview` (前回kyoseiレビューが復元できた場合のみ)
 
-過去のレビュー本文末尾のメタデータフッターから復元できた最新のkyoseiレビューが含まれます。
-復元できなければフィールド自体が省略されます。
+過去のレビュー本文末尾のメタデータフッターから復元できた、
+最新のkyoseiレビューを保存した`previous-review.json`へのパスです。
+復元できなければパスJSONから省略されます。
 
 - `reviewId`: GitHubのreview ID
 - `event`: 前回のreview state(`APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`等)
@@ -95,9 +126,10 @@ PRが特定できない場合はフィールド自体が省略されます。
 - `metadata`: フッターから復元したメタデータ全体
   - `commit`: 特にここに前回レビュー対象コミットSHAが入ります
 
-### `incrementalChangeset` フィールド(`previousReview`があり`headCommitId`が取れる場合のみ)
+### `incrementalChangeset` (`previousReview`があり`headCommitId`が取れる場合のみ)
 
-前回レビュー対象コミットから現headへの増分判定です。
+前回レビュー対象コミットから現headへの増分判定を保存した、
+`incremental-changeset.json`へのパスです。
 `status`の値で取り扱いを分岐します。
 
 - `status`: 以下のいずれか
@@ -123,7 +155,7 @@ PRが特定できない場合はフィールド自体が省略されます。
 
 ## 簡易レビューの実行
 
-`incrementalChangeset.status`が`"tree-identical"`または`"diff-empty"`の場合は、
+`incremental-changeset.json`の`status`が`"tree-identical"`または`"diff-empty"`の場合は、
 レビュースキルを一切起動せず、
 前回レビューの判定を引き継いだ簡易レビューを組み立てて投稿してください。
 Claudeの使用量を節約するための分岐です。
@@ -145,14 +177,14 @@ Claudeの使用量を節約するための分岐です。
   `COMMENTED`等それ以外は`"COMMENT"`に、
   マップしてください。
 - `metadata.model`は通常通り渡してください。
-- `headCommitId`は`changeset.headCommitId`を使います。
+- `headCommitId`は`changeset-metadata.json`の`headCommitId`を使います。
 
 フィードバックの出力セクションまでスキップしてください。
 
 ## 通常レビューの実行
 
 `status`が`"diff-present"`/`"lookup-failed"`、
-もしくは`incrementalChangeset`/`previousReview`フィールド自体が無い場合は、
+もしくは`incrementalChangeset`/`previousReview`のパス自体が無い場合は、
 通常フローを実行してください。
 
 # コードレビューの実行
@@ -175,9 +207,10 @@ prefixを省略すると見つからない旨のエラーになります。
 それぞれ独立したサブエージェントとして実行されます。
 レビュースキルは一度に全て並列に起動してください。
 
-各レビュースキルの引数(`args`)にはget-review-infoで取得済みの情報を含めてください。
+各レビュースキルの引数(`args`)にはget-review-infoが返したパスJSON全体を、
+加工せずに含めてください。
 レビュースキルは差分を取得するためのツールを原則として持たないため、
-自分で差分を取得しないようになっています。
+`patch`などのパスを`Read`してレビューします。
 
 # 並列実行結果のマージ
 
@@ -204,7 +237,7 @@ prefixを省略すると見つからない旨のエラーになります。
 
 # 重複コメントの除外
 
-`conversation`フィールドが存在する場合、
+`conversation`のパスが存在する場合、
 レビューフィードバックと照合し、
 以下に該当するものは除外します:
 
@@ -246,7 +279,7 @@ see jlord/sheetsee.js#26
 - `owner`: リポジトリオーナー(`context.pr.owner`)
 - `repo`: リポジトリ名(`context.pr.repo`)
 - `prNumber`: PR番号(`context.pr.prNumber`)
-- `headCommitId`: headコミットSHA(`changeset.headCommitId`)。
+- `headCommitId`: headコミットSHA(`changeset-metadata.json`の`headCommitId`)。
   必須かつSHA形式(7〜40桁の16進)である必要があります。
 - `event`: レビューイベント。以下のいずれか。
   - `"APPROVE"`
@@ -336,10 +369,10 @@ see jlord/sheetsee.js#26
 
 `event`はレビュー全体の判定を表します。
 今回のレビューで新たに投稿するコメントだけでなく、
-`conversation`フィールドの既存レビュー状態も考慮して総合的に判定してください。
+`conversation.json`の既存レビュー状態も考慮して総合的に判定してください。
 
 対応や修正がされているかどうかは、
-差分やコミットログや`conversation`フィールドの返信から判断してください。
+`changeset.patch`, `commits.log`, `conversation.json`の返信から判断してください。
 
 判定基準は以下の通りです。
 順番に判定してください。

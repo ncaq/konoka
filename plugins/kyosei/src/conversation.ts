@@ -4,7 +4,7 @@
  * 追加ページがあればページネーションで全件取得します。
  */
 
-import { Data, Effect } from "effect";
+import { Data, Effect, Schema } from "effect";
 import type { UnknownException } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
@@ -21,58 +21,68 @@ class GraphQlConnectionMissing extends Data.TaggedError("GraphQlConnectionMissin
 // --- 出力型定義 ---
 
 /** PRの全体コメント(issue comment)。 */
-export interface ConversationComment {
-  readonly id: string;
-  readonly author: string | null;
-  readonly body: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly url: string;
-}
+export const ConversationCommentSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  author: Schema.NullOr(Schema.NonEmptyString),
+  body: Schema.String,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+  url: Schema.String,
+});
+
+export type ConversationComment = typeof ConversationCommentSchema.Type;
 
 /** PRのレビュー(APPROVE, CHANGES_REQUESTED等)。 */
-export interface ConversationReview {
-  readonly id: string;
-  readonly author: string | null;
-  readonly state: string;
-  readonly body: string;
-  readonly submittedAt: string | null;
-  readonly url: string;
-}
+export const ConversationReviewSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  author: Schema.NullOr(Schema.NonEmptyString),
+  state: Schema.NonEmptyString,
+  body: Schema.String,
+  submittedAt: Schema.NullOr(Schema.String),
+  url: Schema.String,
+});
+
+export type ConversationReview = typeof ConversationReviewSchema.Type;
 
 /** レビュースレッド内の個別コメント。 */
-export interface ReviewThreadComment {
-  readonly id: string;
-  readonly author: string | null;
-  readonly body: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly url: string;
-}
+export const ReviewThreadCommentSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  author: Schema.NullOr(Schema.NonEmptyString),
+  body: Schema.String,
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
+  url: Schema.String,
+});
+
+export type ReviewThreadComment = typeof ReviewThreadCommentSchema.Type;
 
 /** PRのレビュースレッド(インラインコメントのスレッド)。 */
-export interface ConversationReviewThread {
-  readonly id: string;
-  readonly isResolved: boolean;
-  readonly isOutdated: boolean;
-  readonly resolvedBy: string | null;
-  readonly path: string;
-  readonly line: number | null;
-  readonly startLine: number | null;
-  readonly diffSide: string;
-  readonly comments: readonly ReviewThreadComment[];
-}
+export const ConversationReviewThreadSchema = Schema.Struct({
+  id: Schema.NonEmptyString,
+  isResolved: Schema.Boolean,
+  isOutdated: Schema.Boolean,
+  resolvedBy: Schema.NullOr(Schema.NonEmptyString),
+  path: Schema.NonEmptyString,
+  line: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
+  startLine: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
+  diffSide: Schema.NonEmptyString,
+  comments: Schema.Array(ReviewThreadCommentSchema),
+});
+
+export type ConversationReviewThread = typeof ConversationReviewThreadSchema.Type;
 
 /** PRの会話情報全体。 */
-export interface Conversation {
-  readonly title: string;
-  readonly body: string;
-  readonly author: string | null;
-  readonly url: string;
-  readonly comments: readonly ConversationComment[];
-  readonly reviews: readonly ConversationReview[];
-  readonly reviewThreads: readonly ConversationReviewThread[];
-}
+export const ConversationSchema = Schema.Struct({
+  title: Schema.String,
+  body: Schema.String,
+  author: Schema.NullOr(Schema.NonEmptyString),
+  url: Schema.String,
+  comments: Schema.Array(ConversationCommentSchema),
+  reviews: Schema.Array(ConversationReviewSchema),
+  reviewThreads: Schema.Array(ConversationReviewThreadSchema),
+});
+
+export type Conversation = typeof ConversationSchema.Type;
 
 // --- GraphQLレスポンス型定義 ---
 
