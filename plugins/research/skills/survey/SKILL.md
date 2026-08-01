@@ -4,6 +4,7 @@ description: Internal skill for the `/research` skill. Use when dispatched from 
 user-invocable: false
 context: fork
 agent: general-purpose
+background: true
 allowed-tools: >-
   Glob,
   Grep,
