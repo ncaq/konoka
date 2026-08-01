@@ -6,6 +6,7 @@ description: |
 user-invocable: false
 context: fork
 agent: general-purpose
+background: true
 allowed-tools: >-
   Bash(git diff:*),
   Bash(git log:*),
