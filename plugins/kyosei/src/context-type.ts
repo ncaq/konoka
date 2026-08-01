@@ -2,46 +2,60 @@
  * レビューコンテキストの型定義モジュール。
  */
 
+import { Schema } from "effect";
+import { PrNumberSchema } from "./review-schema";
+
 /**
  * PRの識別情報。
  * owner, repo, PR番号の組み合わせでPRを一意に特定します。
  */
-export interface PrIdentifier {
+export const PrIdentifierSchema = Schema.Struct({
   /** リポジトリの所有者。ユーザーまたはOrganization。 */
-  readonly owner: string;
+  owner: Schema.NonEmptyString,
   /** リポジトリ名。 */
-  readonly repo: string;
+  repo: Schema.NonEmptyString,
   /** PR番号。 */
-  readonly prNumber: number;
-}
+  prNumber: PrNumberSchema,
+});
+
+export type PrIdentifier = typeof PrIdentifierSchema.Type;
 
 /**
  * GitHub出力のコンテキスト。
  * GitHub PRのURLから抽出された情報を保持します。
  * レビュー結果はGitHub PRにコメントとして投稿されます。
  */
-export interface GitHubOutputContext {
-  readonly output: "github";
+export const GitHubOutputContextSchema = Schema.Struct({
+  output: Schema.Literal("github"),
   /** GitHubのホスト名。github.comまたはGitHub Enterpriseのドメイン。 */
-  readonly host: string;
-  readonly pr: PrIdentifier;
-}
+  host: Schema.NonEmptyString,
+  pr: PrIdentifierSchema,
+});
+
+export type GitHubOutputContext = typeof GitHubOutputContextSchema.Type;
 
 /**
  * ローカル出力のコンテキスト。
  * 引数が指定されないか、PR URLとして解析できない場合にこの出力先になります。
  * レビュー結果はターミナルに直接出力されます。
  */
-export interface LocalOutputContext {
-  readonly output: "local";
-  readonly pr?: PrIdentifier;
+export const LocalOutputContextSchema = Schema.Struct({
+  output: Schema.Literal("local"),
+  pr: Schema.optionalWith(PrIdentifierSchema, { exact: true }),
   /** diff対象のベースブランチ名。PRのベースまたはリポジトリのデフォルトブランチ。 */
-  readonly baseBranch: string;
+  baseBranch: Schema.NonEmptyString,
   /** gitリモート名。省略時はリモートなし扱い。 */
-  readonly remoteName?: string;
-}
+  remoteName: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+});
+
+export type LocalOutputContext = typeof LocalOutputContextSchema.Type;
 
 /**
  * レビューコンテキストの判別共用体。
  */
-export type ReviewContext = GitHubOutputContext | LocalOutputContext;
+export const ReviewContextSchema = Schema.Union(
+  GitHubOutputContextSchema,
+  LocalOutputContextSchema,
+);
+
+export type ReviewContext = typeof ReviewContextSchema.Type;

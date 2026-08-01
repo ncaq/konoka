@@ -46,7 +46,10 @@ effort: medium
 
 # レビュー対象
 
-以下はkyoseiスキル本体がget-review-infoで取得したレビュー対象の情報です。
+以下はkyoseiスキル本体がget-review-infoで取得した、
+レビュー対象ファイルへの絶対パスを持つJSONです。
+JSONに含まれるファイルを`Read`ツールで直接読んでレビューしてください。
+特に`patch`はレビュー対象の差分です。
 
 $ARGUMENTS
 
