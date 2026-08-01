@@ -3,6 +3,7 @@ name: log-analyzer
 description: Extract key information from verbose command output. Use when you want to keep main conversation context lean.
 context: fork
 agent: general-purpose
+background: true
 allowed-tools: Bash, Glob, Grep, Read
 model: sonnet
 ---

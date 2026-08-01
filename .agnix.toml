@@ -22,7 +22,6 @@ agents_md = true           # AGM-* rules
 
 disabled_rules = [
 "CC-SK-007", # log-analyzerは任意コマンドを実行するので、Bashをスコープ制限できない。
-"CC-SK-008", # `mcp__github`など、`mcp__<server>`のワイルドカードを許容。
 "CC-SK-013", # 英語の命令型動詞のみで判定するため日本語スキルでは常に誤検知する。
 "VER-001",   # 新しくなって警告が発生したらそれに対応するだけなのでPINする理由がない。
 "XP-SK-001", # Claude Codeの固有機能の使用を許可する。

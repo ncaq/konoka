@@ -12,6 +12,7 @@ description: |
 user-invocable: false
 context: fork
 agent: general-purpose
+background: true
 allowed-tools: >-
   Glob,
   Grep,

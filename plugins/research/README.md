@@ -42,7 +42,8 @@ Claude Codeで以下を実行します。
 適切な調査手段が並列起動して調査を行います。
 
 - `survey`スキルが常に調査を実行します。
-  `context: fork`により独立したサブエージェントとして、
+  `context: fork`と`background: true`により、
+  独立したサブエージェントとしてバックグラウンドで並行実行され、
   コスト節約と速度のため`sonnet`で動作します。
 - Claude Code、Claude Agent SDK、Claude APIに関するサブクエリは、
   Claude Code組み込みの`claude-code-guide`エージェントも使います。
