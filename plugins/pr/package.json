@@ -12,10 +12,10 @@
     "test": "vitest run --reporter=verbose"
   },
   "dependencies": {
-    "@effect/cli": "0.76.0",
-    "@effect/platform": "0.97.0",
+    "@effect/cli": "0.77.0",
+    "@effect/platform": "0.97.1",
     "@effect/platform-node": "0.108.0",
-    "effect": "3.22.0"
+    "effect": "3.22.1"
   },
   "devDependencies": {
     "@effect/language-service": "0.87.1",
