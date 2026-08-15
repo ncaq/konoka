@@ -54,16 +54,12 @@ describe("verifyContextHost", () => {
 
   test("GITHUB_SERVER_URLがGHEを指す場合はGHEのURLが成功する", () => {
     stubBaseUrlEnvironment({ GITHUB_SERVER_URL: "https://ghe.example.com" });
-    expect(() =>
-      Effect.runSync(verifyContextHost(githubContext("ghe.example.com"))),
-    ).not.toThrow();
+    expect(() => Effect.runSync(verifyContextHost(githubContext("ghe.example.com")))).not.toThrow();
   });
 
   test("GITHUB_SERVER_URLがGHEを指す場合はgithub.comのURLが失敗する", () => {
     stubBaseUrlEnvironment({ GITHUB_SERVER_URL: "https://ghe.example.com" });
-    const error = Effect.runSync(
-      verifyContextHost(githubContext("github.com")).pipe(Effect.flip),
-    );
+    const error = Effect.runSync(verifyContextHost(githubContext("github.com")).pipe(Effect.flip));
     expect(error).toMatchObject({ _tag: "HostMismatch", clientHost: "ghe.example.com" });
   });
 

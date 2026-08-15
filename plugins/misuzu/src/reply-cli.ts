@@ -49,7 +49,8 @@ export class SubmissionTargetMismatch extends Data.TaggedError("SubmissionTarget
   override get message(): string {
     const show = (pr: PrIdentifier): string => `${pr.owner}/${pr.repo}#${pr.prNumber}`;
     return (
-      `submission target ${show(this.actual)} does not match detected context ${show(this.expected)}. ` +
+      `submission target ${show(this.actual)} does not match ` +
+      `detected context ${show(this.expected)}. ` +
       "誤ったリポジトリやPRへの投稿を防ぐため中止しました。"
     );
   }

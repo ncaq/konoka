@@ -269,8 +269,7 @@ function makeCommentNode(id: string): Record<string, unknown> {
 /** PR直下connectionの追加ページ取得クエリかどうかを判定します。 */
 function isConnectionPageQuery(query: string, connectionName: string): boolean {
   return (
-    query.includes(`${connectionName}(first: 100, after: $after)`) &&
-    !query.includes("$threadId")
+    query.includes(`${connectionName}(first: 100, after: $after)`) && !query.includes("$threadId")
   );
 }
 
