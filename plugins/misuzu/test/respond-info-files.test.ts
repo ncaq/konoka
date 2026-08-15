@@ -17,6 +17,8 @@ const githubRespondInfo: RespondInfo = {
     body: "Body",
     author: "test-user",
     url: "https://github.com/test/repo/pull/1",
+    headRefName: "feature-branch",
+    baseRefName: "master",
     comments: [],
     reviews: [],
     reviewThreads: [],

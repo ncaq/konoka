@@ -77,6 +77,10 @@ export const ConversationSchema = Schema.Struct({
   body: Schema.String,
   author: Schema.NullOr(Schema.NonEmptyString),
   url: Schema.String,
+  /** PRのheadブランチ名。カレントブランチとの一致確認に使います。 */
+  headRefName: Schema.NonEmptyString,
+  /** PRのbaseブランチ名。 */
+  baseRefName: Schema.NonEmptyString,
   comments: Schema.Array(ConversationCommentSchema),
   reviews: Schema.Array(ConversationReviewSchema),
   reviewThreads: Schema.Array(ConversationReviewThreadSchema),
@@ -135,6 +139,8 @@ interface GraphQLInitialResponse {
       readonly body: string;
       readonly author: GraphQLAuthor | null;
       readonly url: string;
+      readonly headRefName: string;
+      readonly baseRefName: string;
       readonly comments: {
         readonly pageInfo: PageInfo;
         readonly nodes: readonly GraphQLCommentNode[];
@@ -207,6 +213,8 @@ const initialQuery = `
         body
         author { login }
         url
+        headRefName
+        baseRefName
         comments(first: 100) {
           pageInfo { hasNextPage endCursor }
           nodes { ${commentFields} }
@@ -399,6 +407,8 @@ export function getConversation(
       body: pr.body,
       author: pr.author?.login ?? null,
       url: pr.url,
+      headRefName: pr.headRefName,
+      baseRefName: pr.baseRefName,
       comments: commentNodes.map(mapCommentNode),
       reviews: reviewNodes.map(mapReviewNode),
       reviewThreads,

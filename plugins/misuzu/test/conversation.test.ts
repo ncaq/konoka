@@ -18,6 +18,8 @@ describe("getConversation", () => {
         body: "PR body",
         author: { login: "test-user" },
         url: "https://github.com/test/repo/pull/1",
+        headRefName: "feature-branch",
+        baseRefName: "master",
         comments: {
           pageInfo: { hasNextPage: false, endCursor: null },
           nodes: [
@@ -86,6 +88,8 @@ describe("getConversation", () => {
         body: "PR body",
         author: "test-user",
         url: "https://github.com/test/repo/pull/1",
+        headRefName: "feature-branch",
+        baseRefName: "master",
         comments: [
           {
             id: "C1",
@@ -139,6 +143,8 @@ describe("getConversation", () => {
         body: "",
         author: null,
         url: "https://github.com/test/repo/pull/1",
+        headRefName: "feature-branch",
+        baseRefName: "master",
         comments: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
         reviews: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
         reviewThreads: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
@@ -171,6 +177,8 @@ describe("getConversation", () => {
         body: "",
         author: null,
         url: "https://github.com/test/repo/pull/1",
+        headRefName: "feature-branch",
+        baseRefName: "master",
         comments: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
         reviews: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
         reviewThreads: {

@@ -80,8 +80,13 @@ URLのフラグメントから優先対応対象が特定できた場合は`focu
 ### `conversation` (PRが特定できた場合のみ)
 
 PRの既存コメント・レビュー情報を保存した`conversation.json`へのパスです。
-トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、
-以下の3つのサブフィールドがあります。
+トップレベルにPR自体の情報があります。
+
+- `title`, `body`, `author`, `url`
+- `headRefName`: PRのheadブランチ名
+- `baseRefName`: PRのbaseブランチ名
+
+さらに以下の3つのサブフィールドがあります。
 
 - `comments`: PR全体へのコメント一覧(`id`, `author`, `body`, `createdAt`, `url`など)
 - `reviews`: レビュー一覧(`id`, `author`, `state`, `body`, `submittedAt`, `url`など)
@@ -98,7 +103,9 @@ PRの既存コメント・レビュー情報を保存した`conversation.json`�
 # ブランチの確認
 
 対応の修正はカレントブランチにコミットするため、
-`git status`と`git log`等でカレントブランチがPRのheadブランチと一致しているか確認してください。
+カレントブランチがPRのheadブランチと一致しているか確認してください。
+`conversation.json`の`headRefName`と、
+`git branch --show-current`の出力を比較します。
 一致していない場合は作業を進めず、
 ユーザにブランチを切り替えるかどうか確認してください。
 
