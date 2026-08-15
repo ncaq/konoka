@@ -1,6 +1,9 @@
 # konokaのビルド済みプラグインをhome-manager経由でAIコーディングアシスタントへ接続するモジュール。
-# `konokaFlake`にはこのリポジトリのflake(self)を渡す。
-{ konokaFlake }:
+# `konokaFlake`にはこのリポジトリのflake(self)を、
+# `pluginNames`にはflake.nixが導出したプラグイン名の一覧を渡す。
+# パッケージの導出と同じ一覧を受け取ることで、
+# 存在しないパッケージ名を参照する齟齬を防ぐ。
+{ konokaFlake, pluginNames }:
 {
   lib,
   pkgs,
@@ -13,15 +16,8 @@ let
 
   konokaPackages = konokaFlake.packages.${pkgs.stdenv.hostPlatform.system};
 
-  # `plugins/`直下のディレクトリ名をそのままプラグイン名として使う。
-  # flake.nixのパッケージ導出と同じ方針で、
-  # プラグインの追加削除にこの一覧を手動追随させる必要をなくす。
-  pluginNames = lib.attrNames (
-    lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ../plugins)
-  );
-
   # プラグイン名からビルド済みパッケージへの辞書。
-  plugins = lib.genAttrs pluginNames (pluginName: konokaPackages.${pluginName});
+  plugins = lib.getAttrs pluginNames konokaPackages;
 
   # skillsを持つプラグインの名前リスト。
   # `skills/`ディレクトリの有無で判定するため、

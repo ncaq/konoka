@@ -20,6 +20,27 @@
       treefmt-nix,
       ...
     }:
+    let
+      inherit (nixpkgs) lib;
+
+      # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
+      # ビルド設定ファイルの有無で種別を判定するため、
+      # プラグインを追加してもここに手動で一覧を追記する必要はなく、
+      # パッケージ化やチェックからの漏れも起きない。
+      # system非依存なのでmkFlakeの外で導出し、
+      # perSystemとhome-managerモジュールが同じ一覧を共有する。
+      pluginDirOf = pluginName: ./plugins + "/${pluginName}";
+      pluginNames = lib.attrNames (
+        lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
+      );
+      npmPluginNames = lib.filter (
+        pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
+      ) pluginNames;
+      rustPluginNames = lib.filter (
+        pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
+      ) pluginNames;
+      staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
+    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         treefmt-nix.flakeModule
@@ -31,7 +52,10 @@
       ];
 
       # ビルド済みプラグイン一式をClaude CodeやOpenCodeへ接続するhome-managerモジュール。
-      flake.homeModules.default = import ./modules/home-manager.nix { konokaFlake = inputs.self; };
+      flake.homeModules.default = import ./modules/home-manager.nix {
+        konokaFlake = inputs.self;
+        inherit pluginNames;
+      };
 
       perSystem =
         {
@@ -52,22 +76,6 @@
               ];
           };
           inherit (pkgs) nodejs;
-
-          # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
-          # ビルド設定ファイルの有無で種別を判定するため、
-          # プラグインを追加してもここに手動で一覧を追記する必要はなく、
-          # パッケージ化やチェックからの漏れも起きない。
-          pluginDirOf = pluginName: ./plugins + "/${pluginName}";
-          pluginNames = lib.attrNames (
-            lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
-          );
-          npmPluginNames = lib.filter (
-            pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
-          ) pluginNames;
-          rustPluginNames = lib.filter (
-            pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
-          ) pluginNames;
-          staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
 
           # プラグインディレクトリのpackage.json/package-lock.jsonからnode_modulesを構築する。
           mkNodeModules =
