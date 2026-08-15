@@ -6,6 +6,11 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # home-managerモジュールの検証にのみ使用する。
+    home-manager = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -15,6 +20,27 @@
       treefmt-nix,
       ...
     }:
+    let
+      inherit (nixpkgs) lib;
+
+      # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
+      # ビルド設定ファイルの有無で種別を判定するため、
+      # プラグインを追加してもここに手動で一覧を追記する必要はなく、
+      # パッケージ化やチェックからの漏れも起きない。
+      # system非依存なのでmkFlakeの外で導出し、
+      # perSystemとhome-managerモジュールが同じ一覧を共有する。
+      pluginDirOf = pluginName: ./plugins + "/${pluginName}";
+      pluginNames = lib.attrNames (
+        lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
+      );
+      npmPluginNames = lib.filter (
+        pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
+      ) pluginNames;
+      rustPluginNames = lib.filter (
+        pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
+      ) pluginNames;
+      staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
+    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         treefmt-nix.flakeModule
@@ -24,6 +50,12 @@
         "aarch64-linux"
         "x86_64-linux"
       ];
+
+      # ビルド済みプラグイン一式をClaude CodeやOpenCodeへ接続するhome-managerモジュール。
+      flake.homeModules.default = import ./modules/home-manager.nix {
+        konokaFlake = inputs.self;
+        inherit pluginNames;
+      };
 
       perSystem =
         {
@@ -44,22 +76,6 @@
               ];
           };
           inherit (pkgs) nodejs;
-
-          # plugins/配下の実ディレクトリからプラグイン一覧を導出する。
-          # ビルド設定ファイルの有無で種別を判定するため、
-          # プラグインを追加してもここに手動で一覧を追記する必要はなく、
-          # パッケージ化やチェックからの漏れも起きない。
-          pluginDirOf = pluginName: ./plugins + "/${pluginName}";
-          pluginNames = lib.attrNames (
-            lib.filterAttrs (_name: type: type == "directory") (builtins.readDir ./plugins)
-          );
-          npmPluginNames = lib.filter (
-            pluginName: builtins.pathExists (pluginDirOf pluginName + "/package.json")
-          ) pluginNames;
-          rustPluginNames = lib.filter (
-            pluginName: builtins.pathExists (pluginDirOf pluginName + "/Cargo.toml")
-          ) pluginNames;
-          staticPluginNames = lib.subtractLists (npmPluginNames ++ rustPluginNames) pluginNames;
 
           # プラグインディレクトリのpackage.json/package-lock.jsonからnode_modulesを構築する。
           mkNodeModules =
@@ -397,6 +413,49 @@
           };
 
           checks = {
+            # home-managerモジュールを実際のhome-manager構成へ組み込んで、
+            # 評価とビルドが通ることに加えて、
+            # プラグインとスキルが実際に接続されていることを検証する。
+            # 接続が空になってもビルド自体は成功し続けるため、
+            # 内容を検証しないとモジュールが実質何も接続しなくなった退行を検出できない。
+            home-manager-module =
+              let
+                homeConfiguration = inputs.home-manager.lib.homeManagerConfiguration {
+                  inherit pkgs;
+                  modules = [
+                    inputs.self.homeModules.default
+                    {
+                      home = {
+                        username = "konoka-test";
+                        homeDirectory = "/home/konoka-test";
+                        stateVersion = "26.05";
+                      };
+                      programs = {
+                        claude-code.enable = true;
+                        opencode.enable = true;
+                      };
+                      konoka = {
+                        claude-code.enable = true;
+                        opencode.enable = true;
+                      };
+                    }
+                  ];
+                };
+                inherit (homeConfiguration.config.programs) claude-code opencode;
+              in
+              assert lib.assertMsg (
+                claude-code.plugins != [ ] && claude-code.plugins != { }
+              ) "konokaプラグインがprograms.claude-code.pluginsへ接続されていません";
+              assert lib.assertMsg (opencode.skills ? commit) "konokaのスキルがprograms.opencode.skillsへ展開されていません";
+              pkgs.runCommand "home-manager-module" { } ''
+                generation=${homeConfiguration.activationPackage}
+                # OpenCode側: 代表スキルがホームへ展開されている。
+                test -e "$generation/home-files/.config/opencode/skills/commit/SKILL.md"
+                # Claude Code側: 代表プラグインのパッケージが構成へ取り込まれている。
+                grep -r -q konoka-plugin-commit "$generation/home-path/bin/claude" "$generation/home-files/.claude" 2>/dev/null
+                touch $out
+              '';
+
             lint-agnix =
               pkgs.runCommand "lint-agnix"
                 {
