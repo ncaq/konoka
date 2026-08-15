@@ -158,15 +158,11 @@ export function submitReplies(
       }),
     ).pipe(Effect.either);
     if (summaryResult._tag === "Left") {
+      // 総括コメントの失敗はスレッド失敗とは種別が違うため、`failed`には混ぜません。
       return {
         succeeded,
-        failed: [
-          ...failed,
-          {
-            threadId: "summaryComment",
-            message: `summary comment failed: ${errorMessage(summaryResult.left)}`,
-          },
-        ],
+        failed,
+        summaryCommentError: `summary comment failed: ${errorMessage(summaryResult.left)}`,
       };
     }
     return {

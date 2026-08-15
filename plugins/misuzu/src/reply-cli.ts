@@ -129,6 +129,9 @@ export function runReplyAndResolve(options: {
     const octokit = yield* options.makeOctokit;
     const result = yield* submitReplies(octokit, submission);
     const output = yield* Schema.encode(Schema.parseJson(ReplySubmissionResultSchema))(result);
-    return { output, partialFailure: 0 < result.failed.length };
+    return {
+      output,
+      partialFailure: 0 < result.failed.length || result.summaryCommentError != null,
+    };
   });
 }

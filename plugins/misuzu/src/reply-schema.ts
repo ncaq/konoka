@@ -63,9 +63,15 @@ export const ThreadReplyFailureSchema = Schema.Struct({
 /** 返信+resolve投稿の全体の結果スキーマ。 */
 export const ReplySubmissionResultSchema = Schema.Struct({
   succeeded: Schema.Array(ThreadReplyResultSchema),
+  /** スレッド返信の失敗のみが入ります。総括コメントの失敗は含まれません。 */
   failed: Schema.Array(ThreadReplyFailureSchema),
-  /** 総括コメントのURL。投稿した場合のみ含まれます。 */
+  /** 総括コメントのURL。投稿に成功した場合のみ含まれます。 */
   summaryCommentUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+  /**
+   * 総括コメントの投稿失敗の内容。失敗した場合のみ含まれます。
+   * `failed`とは種別を分離し、`threadId`の名前空間に擬似IDを持ち込まないようにしています。
+   */
+  summaryCommentError: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
 });
 
 export type ReplySubmissionResult = typeof ReplySubmissionResultSchema.Type;

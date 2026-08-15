@@ -129,7 +129,14 @@ describe("submitReplies", () => {
   it.effect("返信に失敗したスレッドはfailedに含まれ他スレッドの処理は続行される", () =>
     Effect.gen(function* () {
       const { octokit, graphql } = makeOctokitMock();
-      graphql.mockImplementationOnce(() => Promise.reject(new Error("boom")));
+      const original = graphql.getMockImplementation();
+      // 実行順序に依存しないよう、threadIdで条件分岐して失敗させます。
+      graphql.mockImplementation((query: string, variables: { threadId: string }) => {
+        if (query.includes("addPullRequestReviewThreadReply") && variables.threadId === "PRRT_1") {
+          return Promise.reject(new Error("boom"));
+        }
+        return original?.(query, variables) as Promise<unknown>;
+      });
       const result = yield* submitReplies(octokit, baseSubmission);
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0]?.threadId).toBe("PRRT_1");
@@ -161,18 +168,19 @@ describe("submitReplies", () => {
     }),
   );
 
-  it.effect("summaryCommentの投稿失敗もfailedに含まれる", () =>
+  it.effect("summaryCommentの投稿失敗はfailedとは別のフィールドで報告される", () =>
     Effect.gen(function* () {
       const { octokit, createComment } = makeOctokitMock();
-      createComment.mockRejectedValue(new Error("comment boom"));
+      createComment.mockImplementation(() => Promise.reject(new Error("comment boom")));
       const result = yield* submitReplies(octokit, {
         ...baseSubmission,
         threadReplies: [],
         summaryComment: "総括コメント",
       });
-      expect(result.failed).toHaveLength(1);
-      expect(result.failed[0]?.threadId).toBe("summaryComment");
-      expect(result.failed[0]?.message).toContain("summary comment failed");
+      // スレッド失敗と種別を分離し、threadIdの名前空間に擬似IDを混ぜない。
+      expect(result.failed).toEqual([]);
+      expect(result.summaryCommentError).toContain("summary comment failed");
+      expect(result.summaryCommentUrl).toBeUndefined();
     }),
   );
 });
