@@ -75,6 +75,37 @@ describe("submitReplies", () => {
     }),
   );
 
+  it.effect("返信コメントのURLが不正でも投稿成功として扱いresolveも実行する", () =>
+    Effect.gen(function* () {
+      const { octokit, graphql } = makeOctokitMock();
+      graphql.mockImplementation((query: string, variables: { threadId: string }) => {
+        if (query.includes("addPullRequestReviewThreadReply")) {
+          // APIは成功したがURLが想定外の形式で返ってきたケース。
+          return Promise.resolve({
+            addPullRequestReviewThreadReply: {
+              comment: { id: "c", url: "not a valid url" },
+            },
+          });
+        }
+        return Promise.resolve({
+          resolveReviewThread: {
+            thread: { id: variables.threadId, isResolved: true },
+          },
+        });
+      });
+      const result = yield* submitReplies(octokit, baseSubmission);
+      // 返信自体は投稿済みなので、URLが読めなくても失敗扱いにして再試行(二重投稿)を誘発しない。
+      expect(result.failed).toEqual([]);
+      expect(result.succeeded.map((s) => ({ threadId: s.threadId, resolved: s.resolved }))).toEqual(
+        [
+          { threadId: "PRRT_1", resolved: true },
+          { threadId: "PRRT_2", resolved: false },
+        ],
+      );
+      expect(result.succeeded[0]?.replyUrl).toBeUndefined();
+    }),
+  );
+
   it.effect("summaryCommentを指定するとPR全体コメントを投稿する", () =>
     Effect.gen(function* () {
       const { octokit, createComment } = makeOctokitMock();
