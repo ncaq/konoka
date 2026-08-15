@@ -42,13 +42,12 @@ function getDefaultBranchFromGit(
 /**
  * リモートURLからGitHubリポジトリ情報の取得を試みます。
  * リモート未設定やURL解析失敗は`Option.none`で表現し、それ以外のエラーはそのまま伝播します。
+ * リモート名は呼び出し側で解決済みの値を渡し、git呼び出しの重複を避けます。
  */
-function tryGetRemoteRepo(): Effect.Effect<
-  Option.Option<RemoteRepo>,
-  Error,
-  CommandExecutor.CommandExecutor
-> {
-  return getRemoteRepo().pipe(
+function tryGetRemoteRepo(
+  remoteName: string,
+): Effect.Effect<Option.Option<RemoteRepo>, Error, CommandExecutor.CommandExecutor> {
+  return getRemoteRepo(remoteName).pipe(
     Effect.map(Option.some),
     // GitHubリポジトリが特定できない正当なケースは`None`に畳んで上位に渡します。
     Effect.catchTags({
@@ -73,7 +72,7 @@ export function resolveLocalContext(
       { concurrency: "unbounded" },
     );
     const currentBranch = currentBranchOutput.trim();
-    const remoteRepo = yield* tryGetRemoteRepo();
+    const remoteRepo = yield* tryGetRemoteRepo(remoteName);
     if (Option.isNone(remoteRepo)) {
       // GitHubリポジトリが特定できない場合はgitからデフォルトブランチを取得します。
       const baseBranch = yield* getDefaultBranchFromGit(remoteName);

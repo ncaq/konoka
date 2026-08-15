@@ -67,14 +67,18 @@ export function getRemoteName(): Effect.Effect<
 /**
  * 現在のブランチに関連するリモートのリポジトリ情報を取得します。
  * リモートが未設定なら`NoGitRemotes`、URLが解釈できなければ`RemoteUrlParseError`で失敗します。
+ * 解決済みのリモート名を`knownRemoteName`で渡すと、
+ * `getRemoteName`の再実行によるgit呼び出しを省略できます。
  */
-export function getRemoteRepo(): Effect.Effect<
+export function getRemoteRepo(
+  knownRemoteName?: string,
+): Effect.Effect<
   RemoteRepo,
   Error | NoGitRemotes | RemoteUrlParseError,
   CommandExecutor.CommandExecutor
 > {
   return Effect.gen(function* () {
-    const remoteName = yield* getRemoteName();
+    const remoteName = knownRemoteName ?? (yield* getRemoteName());
     const remoteUrlOutput = yield* Command.string(
       Command.make("git", "remote", "get-url", remoteName),
     );
