@@ -6,16 +6,20 @@
 import { Either } from "effect";
 import type { Focus, GitHubOutputContext } from "./context-type";
 
-/** フラグメントの接頭辞とfocus種別の対応。 */
-const focusPrefixList: readonly { prefix: string; kind: Focus["kind"] }[] = [
+/**
+ * フラグメントの形式とfocus種別の対応。
+ * 接頭辞の部分一致ではなくフラグメント全体との完全一致で判定し、
+ * `r`のような短い接頭辞が他の形式を誤って拾わないようにしています。
+ */
+const focusPatternList: readonly { pattern: RegExp; kind: Focus["kind"] }[] = [
   // レビュー全体。例: #pullrequestreview-123456789
-  { prefix: "pullrequestreview-", kind: "review" },
+  { pattern: /^pullrequestreview-([0-9]+)$/, kind: "review" },
   // Conversationタブのレビュースレッドコメント。例: #discussion_r123456789
-  { prefix: "discussion_r", kind: "review-comment" },
+  { pattern: /^discussion_r([0-9]+)$/, kind: "review-comment" },
   // Files changedタブのレビュースレッドコメント。例: /files#r123456789
-  { prefix: "r", kind: "review-comment" },
+  { pattern: /^r([0-9]+)$/, kind: "review-comment" },
   // PR全体へのコメント。例: #issuecomment-123456789
-  { prefix: "issuecomment-", kind: "issue-comment" },
+  { pattern: /^issuecomment-([0-9]+)$/, kind: "issue-comment" },
 ];
 
 /**
@@ -24,17 +28,12 @@ const focusPrefixList: readonly { prefix: string; kind: Focus["kind"] }[] = [
  */
 export function parseFocusFragment(hash: string): Focus | undefined {
   const fragment = hash.startsWith("#") ? hash.slice(1) : hash;
-  if (fragment === "") {
-    return undefined;
-  }
-  for (const { prefix, kind } of focusPrefixList) {
-    if (fragment.startsWith(prefix)) {
-      const idStr = fragment.slice(prefix.length);
-      if (/^[0-9]+$/.test(idStr)) {
-        const databaseId = Number.parseInt(idStr, 10);
-        if (Number.isSafeInteger(databaseId) && 0 < databaseId) {
-          return { kind, databaseId };
-        }
+  for (const { pattern, kind } of focusPatternList) {
+    const idStr = pattern.exec(fragment)?.[1];
+    if (idStr != null) {
+      const databaseId = Number.parseInt(idStr, 10);
+      if (Number.isSafeInteger(databaseId) && 0 < databaseId) {
+        return { kind, databaseId };
       }
     }
   }

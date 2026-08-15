@@ -173,4 +173,10 @@ describe("parseFocusFragment", () => {
   test("IDが0の場合はundefinedを返す", () => {
     expect(parseFocusFragment("#issuecomment-0")).toBeUndefined();
   });
+
+  test("rで始まるだけの未知の形式をreview-commentと誤認しない", () => {
+    // 接頭辞の部分一致だとr123の後に余計な文字列が続く形式を拾ってしまう。
+    expect(parseFocusFragment("#r123-extra")).toBeUndefined();
+    expect(parseFocusFragment("#readme")).toBeUndefined();
+  });
 });
