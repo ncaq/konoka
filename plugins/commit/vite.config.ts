@@ -19,6 +19,7 @@ export default defineConfig({
         "commit-prepare": "src/bin/commit-prepare.ts",
         "konoka-editor": "src/bin/konoka-editor.ts",
         "read-commit-instructions": "src/bin/read-commit-instructions.ts",
+        "run-commit-msg-hook": "src/bin/run-commit-msg-hook.ts",
       },
       output: {
         format: "esm",
