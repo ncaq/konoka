@@ -76,6 +76,21 @@ in
   };
 
   config = lib.mkMerge [
+    {
+      # konoka側だけを有効にしてもhome-manager側の設定が丸ごと捨てられて、
+      # 警告もエラーも出ずに何も起きないため、
+      # 起こりやすい設定ミスとして明示的なエラーで検出する。
+      assertions = [
+        {
+          assertion = cfg.claude-code.enable -> config.programs.claude-code.enable;
+          message = "konoka.claude-code.enableには`programs.claude-code.enable = true`が必要です";
+        }
+        {
+          assertion = cfg.opencode.enable -> config.programs.opencode.enable;
+          message = "konoka.opencode.enableには`programs.opencode.enable = true`が必要です";
+        }
+      ];
+    }
     (lib.mkIf cfg.claude-code.enable {
       # 属性セット型が推奨の新しいhome-managerと、
       # リスト型のみを受け付ける古いhome-managerの両方に対応するため、
