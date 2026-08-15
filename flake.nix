@@ -414,29 +414,47 @@
 
           checks = {
             # home-managerモジュールを実際のhome-manager構成へ組み込んで、
-            # 評価とビルドが通ることを検証する。
+            # 評価とビルドが通ることに加えて、
+            # プラグインとスキルが実際に接続されていることを検証する。
+            # 接続が空になってもビルド自体は成功し続けるため、
+            # 内容を検証しないとモジュールが実質何も接続しなくなった退行を検出できない。
             home-manager-module =
-              (inputs.home-manager.lib.homeManagerConfiguration {
-                inherit pkgs;
-                modules = [
-                  inputs.self.homeModules.default
-                  {
-                    home = {
-                      username = "konoka-test";
-                      homeDirectory = "/home/konoka-test";
-                      stateVersion = "26.05";
-                    };
-                    programs = {
-                      claude-code.enable = true;
-                      opencode.enable = true;
-                    };
-                    konoka = {
-                      claude-code.enable = true;
-                      opencode.enable = true;
-                    };
-                  }
-                ];
-              }).activationPackage;
+              let
+                homeConfiguration = inputs.home-manager.lib.homeManagerConfiguration {
+                  inherit pkgs;
+                  modules = [
+                    inputs.self.homeModules.default
+                    {
+                      home = {
+                        username = "konoka-test";
+                        homeDirectory = "/home/konoka-test";
+                        stateVersion = "26.05";
+                      };
+                      programs = {
+                        claude-code.enable = true;
+                        opencode.enable = true;
+                      };
+                      konoka = {
+                        claude-code.enable = true;
+                        opencode.enable = true;
+                      };
+                    }
+                  ];
+                };
+                inherit (homeConfiguration.config.programs) claude-code opencode;
+              in
+              assert lib.assertMsg (
+                claude-code.plugins != [ ] && claude-code.plugins != { }
+              ) "konokaプラグインがprograms.claude-code.pluginsへ接続されていません";
+              assert lib.assertMsg (opencode.skills ? commit) "konokaのスキルがprograms.opencode.skillsへ展開されていません";
+              pkgs.runCommand "home-manager-module" { } ''
+                generation=${homeConfiguration.activationPackage}
+                # OpenCode側: 代表スキルがホームへ展開されている。
+                test -e "$generation/home-files/.config/opencode/skills/commit/SKILL.md"
+                # Claude Code側: 代表プラグインのパッケージが構成へ取り込まれている。
+                grep -r -q konoka-plugin-commit "$generation/home-path/bin/claude" "$generation/home-files/.claude" 2>/dev/null
+                touch $out
+              '';
 
             lint-agnix =
               pkgs.runCommand "lint-agnix"
