@@ -1,16 +1,15 @@
 /**
  * レビュー対応コンテキストの判定モジュール。
- * 引数から出力先がGitHubかローカルかを判定し、
- * GitHub出力の場合はURLからowner, repo, PR番号を抽出します。
- * ローカル出力の場合はブランチ情報を解決してベースブランチを特定します。
+ * 引数のPR URLからowner, repo, PR番号を抽出するか、
+ * 引数がなければカレントブランチからPRを探索します。
  */
 
 import { type CommandExecutor } from "@effect/platform";
-import { Data, Effect, Either } from "effect";
+import { Data, Effect, Either, Option } from "effect";
 import type { Octokit } from "octokit";
 import { parsePrUrl } from "./context-github";
-import { resolveLocalContext } from "./context-local";
-import type { ReviewContext } from "./context-type";
+import { findPrForCurrentBranch } from "./context-local";
+import type { RespondContext } from "./context-type";
 
 /** 引数がPR URLとして解釈できなかった場合の失敗。 */
 export class InvalidPrUrlArgument extends Data.TaggedError("InvalidPrUrlArgument")<{
@@ -26,12 +25,13 @@ export class InvalidPrUrlArgument extends Data.TaggedError("InvalidPrUrlArgument
  * 引数文字列からレビュー対応コンテキストを判定します。
  * 引数が指定された場合はPR URLとしてのみ解釈し、解釈できなければエラーになります。
  * 不正なURLを黙ってローカル解決に落とすと意図しない対象への対応につながるためです。
- * 引数が指定されない場合はローカル解決を行い、ブランチに紐付くPRがあればpr情報を設定します。
+ * 引数が指定されない場合はカレントブランチからPRを探索し、
+ * 見つからなければ`pr`を持たないコンテキストを返します。
  */
-export function detectReviewContext(
+export function detectRespondContext(
   octokit: Octokit,
   argument: string | undefined,
-): Effect.Effect<ReviewContext, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<RespondContext, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     // 引数が指定されていればURLからPRのコンテキストを取得します。
     if (argument != null && argument.trim() !== "") {
@@ -41,7 +41,11 @@ export function detectReviewContext(
       }
       return yield* new InvalidPrUrlArgument({ argument, reason: parsed.left });
     }
-    // 引数が指定されていない場合はローカル出力向けにブランチ情報を解決します。
-    return yield* resolveLocalContext(octokit);
+    // 引数が指定されていない場合はカレントブランチからPRを探索します。
+    const pr = yield* findPrForCurrentBranch(octokit);
+    return Option.match(pr, {
+      onSome: (value): RespondContext => ({ pr: value }),
+      onNone: (): RespondContext => ({}),
+    });
   });
 }

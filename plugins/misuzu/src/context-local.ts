@@ -1,43 +1,15 @@
 /**
- * ローカル出力コンテキストの解決モジュール。
- * gitとGitHub APIからブランチ情報を解決します。
+ * カレントブランチからPRを探索するモジュール。
+ *
+ * kyoseiの複製元はdiff生成のためにベースブランチの解決まで行っていましたが、
+ * misuzuはdiffを扱わないため、PRの特定だけに絞っています。
  */
 
 import { Command, type CommandExecutor } from "@effect/platform";
-import { Data, Effect, Option } from "effect";
+import { Effect, Option } from "effect";
 import type { Octokit } from "octokit";
-import type { LocalOutputContext } from "./context-type";
+import type { PrIdentifier } from "./context-type";
 import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
-
-/** `git symbolic-ref`の出力が想定形式でない場合の失敗。 */
-class UnexpectedSymbolicRefFormat extends Data.TaggedError("UnexpectedSymbolicRefFormat")<{
-  readonly ref: string;
-}> {
-  override get message(): string {
-    return `unexpected symbolic-ref format: ${this.ref}`;
-  }
-}
-
-/**
- * gitのsymbolic-refからリモートのデフォルトブランチ名を取得します。
- * `git remote set-head`で設定されている必要があります。
- */
-function getDefaultBranchFromGit(
-  remoteName: string,
-): Effect.Effect<string, Error, CommandExecutor.CommandExecutor> {
-  return Effect.gen(function* () {
-    const symbolicRef = yield* Command.string(
-      Command.make("git", "symbolic-ref", `refs/remotes/${remoteName}/HEAD`),
-    );
-    // "refs/remotes/origin/main" → "main"
-    const prefix = `refs/remotes/${remoteName}/`;
-    const ref = symbolicRef.trim();
-    if (!ref.startsWith(prefix)) {
-      return yield* new UnexpectedSymbolicRefFormat({ ref });
-    }
-    return ref.slice(prefix.length);
-  });
-}
 
 /**
  * リモートURLからGitHubリポジトリ情報の取得を試みます。
@@ -58,25 +30,33 @@ function tryGetRemoteRepo(
 }
 
 /**
- * ローカル出力向けにブランチ情報を解決します。
- * GitHubリポジトリが存在する場合はAPIからPRのベースブランチまたはデフォルトブランチを取得します。
- * GitHubリポジトリが存在しない場合はgitのsymbolic-refからデフォルトブランチを取得します。
+ * カレントブランチに紐付くopenなPRを探索します。
+ * gitリモートが存在しない場合、GitHubリポジトリとして特定できない場合、
+ * 対応するPRが存在しない場合は`Option.none`を返します。
  * トークンやAPIの応答エラーはそのまま失敗として伝播します。
  */
-export function resolveLocalContext(
+export function findPrForCurrentBranch(
   octokit: Octokit,
-): Effect.Effect<LocalOutputContext, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<Option.Option<PrIdentifier>, Error, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     const [remoteName, currentBranchOutput] = yield* Effect.all(
-      [getRemoteName(), Command.string(Command.make("git", "rev-parse", "--abbrev-ref", "HEAD"))],
+      [
+        // リモートが1つもないのはPRが特定できない正当なケースなのでNoneに畳みます。
+        getRemoteName().pipe(
+          Effect.map(Option.some),
+          Effect.catchTag("NoGitRemotes", () => Effect.succeed(Option.none<string>())),
+        ),
+        Command.string(Command.make("git", "rev-parse", "--abbrev-ref", "HEAD")),
+      ],
       { concurrency: "unbounded" },
     );
+    if (Option.isNone(remoteName)) {
+      return Option.none();
+    }
     const currentBranch = currentBranchOutput.trim();
-    const remoteRepo = yield* tryGetRemoteRepo(remoteName);
+    const remoteRepo = yield* tryGetRemoteRepo(remoteName.value);
     if (Option.isNone(remoteRepo)) {
-      // GitHubリポジトリが特定できない場合はgitからデフォルトブランチを取得します。
-      const baseBranch = yield* getDefaultBranchFromGit(remoteName);
-      return { output: "local", baseBranch, remoteName };
+      return Option.none();
     }
     const repo = remoteRepo.value;
     const prListResponse = yield* Effect.tryPromise(() =>
@@ -89,21 +69,8 @@ export function resolveLocalContext(
       }),
     );
     const pr = prListResponse.data[0];
-    if (pr != null) {
-      return {
-        output: "local",
-        pr: { owner: repo.owner, repo: repo.repo, prNumber: pr.number },
-        baseBranch: pr.base.ref,
-        remoteName,
-      };
-    }
-    // PRが見つからない場合はデフォルトブランチにフォールバックします。
-    const repoResponse = yield* Effect.tryPromise(() =>
-      octokit.rest.repos.get({
-        owner: repo.owner,
-        repo: repo.repo,
-      }),
-    );
-    return { output: "local", baseBranch: repoResponse.data.default_branch, remoteName };
+    return pr == null
+      ? Option.none()
+      : Option.some({ owner: repo.owner, repo: repo.repo, prNumber: pr.number });
   });
 }

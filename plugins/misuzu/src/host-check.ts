@@ -10,7 +10,7 @@
 
 import { Data, Effect } from "effect";
 import { getClientWebHost, type EnvVarInvalidUrl } from "./client";
-import type { ReviewContext } from "./context-type";
+import type { RespondContext } from "./context-type";
 
 /** URLで指定されたホストとクライアントの向き先が一致しない場合の失敗。 */
 export class HostMismatch extends Data.TaggedError("HostMismatch")<{
@@ -30,15 +30,16 @@ export class HostMismatch extends Data.TaggedError("HostMismatch")<{
  * ホスト情報がない(ローカル解決由来の)コンテキストでは何もしません。
  */
 export function verifyContextHost(
-  context: ReviewContext,
+  context: RespondContext,
 ): Effect.Effect<void, HostMismatch | EnvVarInvalidUrl> {
-  if (context.output !== "github") {
+  const contextHost = context.host;
+  if (contextHost == null) {
     return Effect.void;
   }
   return Effect.gen(function* () {
     const clientHost = yield* getClientWebHost();
-    if (clientHost !== context.host) {
-      return yield* new HostMismatch({ contextHost: context.host, clientHost });
+    if (clientHost !== contextHost) {
+      return yield* new HostMismatch({ contextHost, clientHost });
     }
   });
 }

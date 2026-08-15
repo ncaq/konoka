@@ -4,7 +4,7 @@
  */
 
 import { Either } from "effect";
-import type { Focus, GitHubOutputContext } from "./context-type";
+import type { Focus, RespondContext } from "./context-type";
 
 /**
  * フラグメントの形式とfocus種別の対応。
@@ -49,7 +49,7 @@ export function parseFocusFragment(hash: string): Focus | undefined {
  * 末尾のサブパス(/files, /commits等)やクエリパラメータがあっても問題ありません。
  * `#pullrequestreview-<id>`等のフラグメントは優先対応対象(focus)として抽出します。
  */
-export function parsePrUrl(argument: string): Either.Either<GitHubOutputContext, string> {
+export function parsePrUrl(argument: string): Either.Either<RespondContext, string> {
   return Either.try({
     try: () => new URL(argument.trim()),
     catch: (cause) =>
@@ -69,10 +69,9 @@ export function parsePrUrl(argument: string): Either.Either<GitHubOutputContext,
         return Either.left(`PR number is not a positive integer: ${prNumberStr}`);
       }
       const focus = parseFocusFragment(url.hash);
-      return Either.right<GitHubOutputContext>({
-        output: "github",
-        host: url.hostname,
+      return Either.right<RespondContext>({
         pr: { owner, repo, prNumber },
+        host: url.hostname,
         ...(focus == null ? {} : { focus }),
       });
     }),

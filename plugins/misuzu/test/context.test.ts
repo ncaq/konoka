@@ -3,7 +3,7 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
-import { detectReviewContext, InvalidPrUrlArgument } from "../src/context";
+import { detectRespondContext, InvalidPrUrlArgument } from "../src/context";
 import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
@@ -12,14 +12,14 @@ const failingCommandLayer = fakeCommandExecutor(() =>
   Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
 );
 
-describe("detectReviewContext", () => {
+describe("detectRespondContext", () => {
   it.layer(failingCommandLayer)((it) => {
     // 引数なしの場合のみローカル解決にフォールスルーするので、
     // フェイクgitが失敗することでrejectされます。
     const expectLocalFallthrough = (
       argument: string | undefined,
     ): Effect.Effect<void, never, CommandExecutor.CommandExecutor> =>
-      detectReviewContext(dummyOctokit, argument).pipe(
+      detectRespondContext(dummyOctokit, argument).pipe(
         // 成功してしまった場合はテストの前提が崩れているので`die`させて落とします。
         Effect.flip,
         Effect.orDie,
@@ -31,7 +31,7 @@ describe("detectReviewContext", () => {
     const expectInvalidArgument = (
       argument: string,
     ): Effect.Effect<void, never, CommandExecutor.CommandExecutor> =>
-      detectReviewContext(dummyOctokit, argument).pipe(
+      detectRespondContext(dummyOctokit, argument).pipe(
         Effect.flip,
         Effect.orDie,
         Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(InvalidPrUrlArgument))),

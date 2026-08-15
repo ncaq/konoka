@@ -1,17 +1,17 @@
 import { Effect } from "effect";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { ReviewContext } from "../src/context-type";
+import type { RespondContext } from "../src/context-type";
 import { verifyContextHost } from "../src/host-check";
 
-function githubContext(host: string): ReviewContext {
+function githubContext(host: string): RespondContext {
   return {
-    output: "github",
-    host,
     pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
+    host,
   };
 }
 
-const localContext: ReviewContext = { output: "local", baseBranch: "master" };
+/** カレントブランチからPRを特定した場合のようにホスト情報を持たないコンテキスト。 */
+const localContext: RespondContext = {};
 
 const baseUrlEnvironmentVariableNameList = [
   "GITHUB_API_URL",

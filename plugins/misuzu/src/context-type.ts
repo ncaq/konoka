@@ -1,5 +1,5 @@
 /**
- * レビューコンテキストの型定義モジュール。
+ * レビュー対応コンテキストの型定義モジュール。
  */
 
 import { Schema } from "effect";
@@ -34,43 +34,19 @@ export const FocusSchema = Schema.Struct({
 export type Focus = typeof FocusSchema.Type;
 
 /**
- * GitHub出力のコンテキスト。
- * GitHub PRのURLから抽出された情報を保持します。
- * レビュー対応の返信はGitHub PRに投稿されます。
+ * レビュー対応のコンテキスト。
+ *
+ * misuzuはローカルでの対話実行が前提のため、
+ * kyoseiのような出力先(`output`)の区別は持ちません。
+ * `pr`の有無がそのまま「GitHub上のレビューへ返信できるかどうか」を表します。
  */
-export const GitHubOutputContextSchema = Schema.Struct({
-  output: Schema.Literal("github"),
-  /** GitHubのホスト名。github.comまたはGitHub Enterpriseのドメイン。 */
-  host: Schema.NonEmptyString,
-  pr: PrIdentifierSchema,
+export const RespondContextSchema = Schema.Struct({
+  /** 対象のPR。URL指定またはカレントブランチから特定できた場合のみ含まれます。 */
+  pr: Schema.optionalWith(PrIdentifierSchema, { exact: true }),
+  /** GitHubのホスト名。URLでPRを指定した場合のみ含まれます。 */
+  host: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
   /** URLフラグメントから抽出した優先対応対象。省略時はPR全体が対象。 */
   focus: Schema.optionalWith(FocusSchema, { exact: true }),
 });
 
-export type GitHubOutputContext = typeof GitHubOutputContextSchema.Type;
-
-/**
- * ローカル出力のコンテキスト。
- * 引数が指定されないか、PR URLとして解析できない場合にこの出力先になります。
- * レビュー結果はターミナルに直接出力されます。
- */
-export const LocalOutputContextSchema = Schema.Struct({
-  output: Schema.Literal("local"),
-  pr: Schema.optionalWith(PrIdentifierSchema, { exact: true }),
-  /** diff対象のベースブランチ名。PRのベースまたはリポジトリのデフォルトブランチ。 */
-  baseBranch: Schema.NonEmptyString,
-  /** gitリモート名。省略時はリモートなし扱い。 */
-  remoteName: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
-});
-
-export type LocalOutputContext = typeof LocalOutputContextSchema.Type;
-
-/**
- * レビューコンテキストの判別共用体。
- */
-export const ReviewContextSchema = Schema.Union(
-  GitHubOutputContextSchema,
-  LocalOutputContextSchema,
-);
-
-export type ReviewContext = typeof ReviewContextSchema.Type;
+export type RespondContext = typeof RespondContextSchema.Type;

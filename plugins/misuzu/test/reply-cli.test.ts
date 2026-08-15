@@ -15,22 +15,16 @@ const validSubmission = {
 };
 
 const matchingContext = {
-  output: "github",
+  pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
   host: "github.com",
-  pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
 };
 
-/** PRが特定できているローカルモードのコンテキスト。投稿先検証の対象になります。 */
+/** カレントブランチからPRを特定した場合のホスト情報を持たないコンテキスト。投稿先検証の対象になります。 */
 const localContextWithPr = {
-  output: "local",
   pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
-  baseBranch: "master",
 };
 
-const localContextWithoutPr = {
-  output: "local",
-  baseBranch: "master",
-};
+const localContextWithoutPr = {};
 
 interface SubmissionFiles {
   readonly submissionPath: string;

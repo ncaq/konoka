@@ -8,7 +8,7 @@ import { Args, Command } from "@effect/cli";
 import { NodeContext, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Option, Schema } from "effect";
 import { createOctokitClient } from "../client";
-import { detectReviewContext } from "../context";
+import { detectRespondContext } from "../context";
 import { getConversation } from "../conversation";
 import { verifyContextHost } from "../host-check";
 import { RespondInfoFilePathsSchema, writeRespondInfoFiles } from "../respond-info-files";
@@ -24,7 +24,7 @@ const prUrl = Args.text({ name: "pr-url" }).pipe(
 const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
   Effect.gen(function* () {
     const octokit = yield* createOctokitClient();
-    const context = yield* detectReviewContext(octokit, Option.getOrUndefined(prUrl));
+    const context = yield* detectRespondContext(octokit, Option.getOrUndefined(prUrl));
     // 誤ったホストの同名リポジトリを対象にしないよう、クライアントの向き先と突き合わせます。
     yield* verifyContextHost(context);
     const conversation =

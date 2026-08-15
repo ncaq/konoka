@@ -7,9 +7,8 @@ import { writeRespondInfoFiles, type RespondInfo } from "../src/respond-info-fil
 
 const githubRespondInfo: RespondInfo = {
   context: {
-    output: "github",
-    host: "github.com",
     pr: { owner: "test", repo: "repo", prNumber: 1 },
+    host: "github.com",
     focus: { kind: "review", databaseId: 123 },
   },
   conversation: {
@@ -26,7 +25,7 @@ const githubRespondInfo: RespondInfo = {
 };
 
 const localRespondInfo: RespondInfo = {
-  context: { output: "local", baseBranch: "master" },
+  context: {},
 };
 
 describe("writeRespondInfoFiles", () => {

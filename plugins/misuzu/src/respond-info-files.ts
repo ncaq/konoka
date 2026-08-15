@@ -9,7 +9,7 @@ import process from "node:process";
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
 import { Config, Data, Effect, Option, ParseResult, Schema } from "effect";
-import { ReviewContextSchema, type ReviewContext } from "./context-type";
+import { RespondContextSchema, type RespondContext } from "./context-type";
 import { ConversationSchema, type Conversation } from "./conversation";
 
 /** 作業ディレクトリが他者から読み書きできる状態にある場合の失敗。 */
@@ -74,7 +74,7 @@ export type RespondInfoFilePaths = typeof RespondInfoFilePathsSchema.Type;
 
 /** レビュー対応情報。conversationはPRが特定できた場合のみ含まれます。 */
 export interface RespondInfo {
-  readonly context: ReviewContext;
+  readonly context: RespondContext;
   readonly conversation?: Conversation;
 }
 
@@ -117,7 +117,7 @@ export function writeRespondInfoFiles(
 
     yield* Effect.all(
       [
-        encodeJson(ReviewContextSchema, respondInfo.context).pipe(
+        encodeJson(RespondContextSchema, respondInfo.context).pipe(
           Effect.flatMap((encoded) => fs.writeFileString(context, encoded)),
         ),
         conversationValue == null

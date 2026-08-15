@@ -1,8 +1,8 @@
 import { it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
-import { resolveLocalContext } from "../src/context-local";
+import { findPrForCurrentBranch } from "../src/context-local";
 import { FakeCommandError, fakeCommandExecutor, type CommandHandler } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
@@ -29,26 +29,21 @@ const githubGitOutputs = {
 interface OctokitRestMock {
   octokit: Octokit;
   pullsList: ReturnType<typeof vi.fn>;
-  reposGet: ReturnType<typeof vi.fn>;
 }
 
-function makeOctokitRestMock(
-  pulls: readonly { number: number; base: { ref: string } }[],
-  defaultBranch: string,
-): OctokitRestMock {
+function makeOctokitRestMock(pulls: readonly { number: number }[]): OctokitRestMock {
   const pullsList = vi.fn().mockResolvedValue({ data: pulls });
-  const reposGet = vi.fn().mockResolvedValue({ data: { default_branch: defaultBranch } });
   const octokit = {
-    rest: { pulls: { list: pullsList }, repos: { get: reposGet } },
+    rest: { pulls: { list: pullsList } },
   } as unknown as Octokit;
-  return { octokit, pullsList, reposGet };
+  return { octokit, pullsList };
 }
 
-describe("resolveLocalContext", () => {
+describe("findPrForCurrentBranch", () => {
   // ブランチ解決の入口で必ずgitが必要なので、
   // フェイクで全コマンドを失敗させてrejectされることを確認します。
   it.effect("コマンド実行が全て失敗する場合は失敗で抜ける", () =>
-    resolveLocalContext(dummyOctokit).pipe(
+    findPrForCurrentBranch(dummyOctokit).pipe(
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(FakeCommandError))),
       Effect.provide(
@@ -59,18 +54,14 @@ describe("resolveLocalContext", () => {
     ),
   );
 
-  it.effect("ブランチに紐付くPRが見つかればprとbaseブランチを設定する", () => {
-    const { octokit, pullsList, reposGet } = makeOctokitRestMock(
-      [{ number: 42, base: { ref: "develop" } }],
-      "master",
-    );
+  it.effect("ブランチに紐付くPRが見つかればPR識別情報を返す", () => {
+    const { octokit, pullsList } = makeOctokitRestMock([{ number: 42 }]);
     return Effect.gen(function* () {
-      const context = yield* resolveLocalContext(octokit);
-      expect(context).toEqual({
-        output: "local",
-        pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
-        baseBranch: "develop",
-        remoteName: "origin",
+      const pr = yield* findPrForCurrentBranch(octokit);
+      expect(Option.getOrUndefined(pr)).toEqual({
+        owner: "ncaq",
+        repo: "konoka",
+        prNumber: 42,
       });
       // headパラメータがowner付きの形式で組まれていることを固定します。
       expect(pullsList).toHaveBeenCalledWith({
@@ -80,30 +71,21 @@ describe("resolveLocalContext", () => {
         state: "open",
         per_page: 1,
       });
-      expect(reposGet).not.toHaveBeenCalled();
     }).pipe(Effect.provide(fakeCommandExecutor(gitHandler(githubGitOutputs))));
   });
 
-  it.effect("PRが見つからない場合はデフォルトブランチにフォールバックする", () => {
-    const { octokit } = makeOctokitRestMock([], "main");
+  it.effect("PRが見つからない場合はNoneを返す", () => {
+    const { octokit } = makeOctokitRestMock([]);
     return Effect.gen(function* () {
-      const context = yield* resolveLocalContext(octokit);
-      expect(context).toEqual({
-        output: "local",
-        baseBranch: "main",
-        remoteName: "origin",
-      });
+      const pr = yield* findPrForCurrentBranch(octokit);
+      expect(Option.isNone(pr)).toBe(true);
     }).pipe(Effect.provide(fakeCommandExecutor(gitHandler(githubGitOutputs))));
   });
 
-  it.effect("GitHubリポジトリが特定できない場合はsymbolic-refからデフォルトブランチを取る", () =>
+  it.effect("GitHubリポジトリが特定できない場合はNoneを返す", () =>
     Effect.gen(function* () {
-      const context = yield* resolveLocalContext(dummyOctokit);
-      expect(context).toEqual({
-        output: "local",
-        baseBranch: "master",
-        remoteName: "origin",
-      });
+      const pr = yield* findPrForCurrentBranch(dummyOctokit);
+      expect(Option.isNone(pr)).toBe(true);
     }).pipe(
       Effect.provide(
         fakeCommandExecutor(
@@ -111,26 +93,23 @@ describe("resolveLocalContext", () => {
             ...githubGitOutputs,
             // GitHub形式として解釈できないリモートURL。
             "git remote get-url origin": "https://example.com/repo.git\n",
-            "git symbolic-ref refs/remotes/origin/HEAD": "refs/remotes/origin/master\n",
           }),
         ),
       ),
     ),
   );
 
-  it.effect("symbolic-refの出力が想定形式でない場合は失敗する", () =>
-    resolveLocalContext(dummyOctokit).pipe(
-      Effect.flip,
-      Effect.tap((err) =>
-        Effect.sync(() => expect(err).toMatchObject({ _tag: "UnexpectedSymbolicRefFormat" })),
-      ),
+  it.effect("gitリモートが1つもない場合はNoneを返す", () =>
+    Effect.gen(function* () {
+      const pr = yield* findPrForCurrentBranch(dummyOctokit);
+      expect(Option.isNone(pr)).toBe(true);
+    }).pipe(
       Effect.provide(
         fakeCommandExecutor(
           gitHandler({
-            ...githubGitOutputs,
-            "git remote get-url origin": "https://example.com/repo.git\n",
-            // リモート名のprefixを持たない想定外の出力。
-            "git symbolic-ref refs/remotes/origin/HEAD": "refs/heads/master\n",
+            // upstream未設定でgit remoteも空 = リモートなし。
+            "git remote": "\n",
+            "git rev-parse --abbrev-ref HEAD": "feature\n",
           }),
         ),
       ),

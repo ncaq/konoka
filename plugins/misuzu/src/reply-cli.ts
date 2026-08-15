@@ -11,7 +11,7 @@ import { FileSystem, type CommandExecutor } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect, ParseResult, Schema } from "effect";
 import type { Octokit } from "octokit";
-import { ReviewContextSchema, type PrIdentifier } from "./context-type";
+import { RespondContextSchema, type PrIdentifier } from "./context-type";
 import {
   decodeReplySubmission,
   ReplySubmissionResultSchema,
@@ -71,7 +71,7 @@ function verifySubmissionTarget(
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const raw = yield* fs.readFileString(contextPath);
-    const context = yield* Schema.decodeUnknown(Schema.parseJson(ReviewContextSchema))(raw);
+    const context = yield* Schema.decodeUnknown(Schema.parseJson(RespondContextSchema))(raw);
     const expected = context.pr;
     if (expected == null) {
       return yield* new ContextWithoutPr({ contextPath });
