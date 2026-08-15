@@ -41,13 +41,21 @@ JSON全体をそのまま受け取ってください。
 ### `context`
 
 `context.json`へのパスです。
-`context.output`フィールドで動作モードを判別します。
 
-#### `"github"`
+動作モードは`context.pr`の有無で判別します。
+`context.output`フィールドはdiff取得元に関する内部情報であり、
+モード判別に使ってはいけません。
+引数を省略してカレントブランチからPRが特定できた場合、
+`output`は`"local"`のまま`pr`が設定されるためです。
 
-GitHubモード。
+#### GitHubモード(`context.pr`あり)
+
 PRのURLが指定されたか、カレントブランチに紐付くPRが特定できた場合です。
-`host`と`pr`(`owner`, `repo`, `prNumber`)が含まれます。
+`pr`(`owner`, `repo`, `prNumber`)が含まれ、
+パスJSONに`conversation`も含まれます。
+返信とresolveまで行います。
+
+URLでPRが指定された場合は`host`(GitHubのホスト名)が含まれます。
 
 URLのフラグメントから優先対応対象が特定できた場合は`focus`が含まれます。
 
@@ -55,10 +63,10 @@ URLのフラグメントから優先対応対象が特定できた場合は`focu
 - `databaseId`: GitHubのdatabase ID。
   `conversation.json`内の各要素の`url`末尾の数値と照合できます。
 
-#### `"local"`
+#### ローカルモード(`context.pr`なし)
 
-ローカルモード。
 引数がなくブランチに紐付くPRも特定できなかった場合です。
+パスJSONに`conversation`は含まれません。
 
 このモードではGitHub上のレビューは存在しないため、
 対応対象の指摘は現在の会話コンテキストから読み取ってください。
