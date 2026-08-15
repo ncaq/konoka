@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
-allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
+allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
 model: opus
 effort: low
 ---
@@ -104,6 +104,39 @@ PR全体の変更を要約するタイトルと本文を新たに書いてくだ
 得たパスに`Write`ツールで内容を書き出してください。
 ファイルは1行目をタイトル、
 空行を挟んで本文という構造にします。
+
+# タイトルと本文の検査
+
+書き出したら以下のコマンドで検査してください。
+
+値は実際のファイルのパスに置き換えてください。
+
+```bash
+run-commit-msg-hook <PULLREQ_EDITMSGのパス>
+```
+
+このコマンドは`commit`プラグインが提供します。
+`git commit`が起動するのと同じ`commit-msg`フックを同じ方法で起動します。
+グローバル設定のフックも作業中のリポジトリのフックも対象です。
+フックが設定されていない場合は何も検査せずに成功します。
+
+PRのタイトルはコミットメッセージと同じくConventional Commits準拠なので、
+`PULLREQ_EDITMSG`はコミットメッセージと同じ構造として検査できます。
+
+コマンドが失敗した場合は、
+出力された指摘に従ってタイトルと本文を修正し、
+このコマンドを再実行してください。
+
+ただしリポジトリのpull requestテンプレートに由来する部分への指摘など、
+PRとして必要な内容を壊さないと直せない指摘もあります。
+その場合は無理に修正せず、
+指摘の内容をユーザに報告して指示を仰いでください。
+
+3回修正しても検査を通らない場合も同様にユーザに報告してください。
+
+フックはメッセージファイルを書き換えることがあるため、
+検査を通ったら`Read`ツールでファイルを読み直して、
+以降のステップではその内容を使ってください。
 
 # ユーザによる確認
 

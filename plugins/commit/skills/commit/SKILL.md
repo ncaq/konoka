@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Edit, Read, Write, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Edit, Read, Write, Skill(commit-style)
 model: opus
 effort: low
 ---
@@ -33,6 +33,35 @@ AIがコミットメッセージを生成し、
 適切なコミットメッセージを生成してください。
 
 `Write`ツールで`editmsgPath`のファイルにコミットメッセージを書き込んでください。
+
+# コミットメッセージの検査
+
+コミットメッセージを書き込んだら、
+以下のコマンドで検査してください。
+
+値は実際のファイルのパスに置き換えてください。
+
+```bash
+run-commit-msg-hook <editmsgPathの値>
+```
+
+このコマンドは`git commit`が起動するのと同じ`commit-msg`フックを、
+同じ方法で起動します。
+グローバル設定のフックも作業中のリポジトリのフックも対象です。
+フックが設定されていない場合は何も検査せずに成功します。
+
+コマンドが失敗した場合は、
+出力された指摘に従ってコミットメッセージを修正し、
+このコマンドを再実行してください。
+コミットの実行時ではなくこの時点で直すことで、
+ユーザに確認してもらった後で弾かれる手戻りを防げます。
+
+3回修正しても検査を通らない場合は、
+指摘の内容をユーザに報告して指示を仰いでください。
+
+フックはコミットメッセージファイルを書き換えることがあるため、
+検査を通ったら`Read`ツールでファイルを読み直して、
+以降のステップではその内容を使ってください。
 
 # ステージされた差分の表示
 
@@ -94,8 +123,15 @@ konoka-commit-editor <editmsgPathの値> <patchPathの値>
 
 エディタが正常終了したら、
 `COMMIT_EDITMSG`ファイルを`Read`ツールで読み直してください。
-誤字があれば修正してファイルを上書きしてから、
-コミットの実行に進んでください。
+誤字があれば修正してファイルを上書きしてください。
+
+その後`run-commit-msg-hook`をもう一度実行して、
+編集後の内容も検査してください。
+ユーザ自身が書いた内容なので、
+検査に失敗しても勝手に書き換えず、
+指摘の内容を報告して指示を仰いでください。
+
+検査を通ったらコミットの実行に進んでください。
 
 エディタが異常終了した場合、
 ユーザがコミットをキャンセルしたいという意思表示であると解釈して、

@@ -33,6 +33,9 @@ Claude Codeで以下を実行します。
 
 - `Node.js >= 22.22.2`
 - npm。Node.jsに同梱されているはずです。
+- [commitプラグイン](../commit/README.md)。
+  タイトルと本文の検査に`run-commit-msg-hook`を使うため、
+  プラグインの依存関係として指定しています。
 - [GitHub CLI(`gh`)](https://cli.github.com/) (`gh repo view`、`gh label list`で使用)
 - 認証済みのGitHub MCPサーバ (PR作成、アサイン、ラベル設定で利用)
 - リモートにブランチをpushできるgit設定
@@ -85,9 +88,16 @@ Claude Codeで`/pr`スキルを呼び出してください。
    PR作成前なのでrebase後はforce-with-leaseで安全に上書きできます。
 3. リポジトリの`CONTRIBUTING.md`と`pull_request_template.md`を読み込み、
    過去のmerged PRも参考にしてタイトルと本文を生成します。
-4. ユーザが内容を確認します。
+4. 生成したタイトルと本文を`commit-msg`フックで検査します。
+   `git commit`が起動するのと同じフックを同じ方法で起動するため、
+   グローバル設定の`core.hooksPath`のフックも、
+   作業中のリポジトリのフックも対象になります。
+   PRのタイトルはコミットメッセージと同じくConventional Commits準拠なので、
+   commitlintなどをフックとして設定していればその指摘を受け取って修正できます。
+   フックを設定していない場合は何も検査せずに次へ進みます。
+5. ユーザが内容を確認します。
    必要なら`$EDITOR`で本文を編集できます。
-5. PRを作成し、自分自身をアサインして適切なラベルを付与します。
+6. PRを作成し、自分自身をアサインして適切なラベルを付与します。
 
 このスキルは新規作成のみを扱います。
 既存PRの更新は対象外です。
