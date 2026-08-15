@@ -397,9 +397,11 @@ export function getConversation(
       { concurrency: "unbounded" },
     );
 
+    // スレッド数だけAPI呼び出しが並ぶため、
+    // 巨大PRでsecondary rate limitに触れないよう並列度を制限します。
     const reviewThreads = yield* Effect.all(
       reviewThreadNodes.map((node) => mapReviewThreadNode(octokit, node)),
-      { concurrency: "unbounded" },
+      { concurrency: 5 },
     );
 
     return {
