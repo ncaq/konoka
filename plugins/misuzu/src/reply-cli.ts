@@ -119,17 +119,17 @@ export function runReplyAndResolve(options: {
     const submission = yield* decodeReplySubmission(raw);
     yield* verifySubmissionTarget(options.contextPath, submission);
     if (options.dryRun) {
-      const encodedSubmission = yield* Schema.encode(Schema.parseJson(ReplySubmissionSchema))(
-        submission,
-      );
+      const encodedSubmission = yield* Schema.encode(ReplySubmissionSchema)(submission);
       return {
-        output: `{"dryRun":true,"submission":${encodedSubmission}}`,
+        output: JSON.stringify({ dryRun: true, submission: encodedSubmission }, null, 2),
         partialFailure: false,
       };
     }
     const octokit = yield* options.makeOctokit;
     const result = yield* submitReplies(octokit, submission);
-    const output = yield* Schema.encode(Schema.parseJson(ReplySubmissionResultSchema))(result);
+    const output = yield* Schema.encode(
+      Schema.parseJson(ReplySubmissionResultSchema, { space: 2 }),
+    )(result);
     return {
       output,
       partialFailure: 0 < result.failed.length || result.summaryCommentError != null,

@@ -26,12 +26,12 @@ const command = Command.make("submit-review", { dryRun, json }, ({ dryRun, json 
     const submission = decodeReviewSubmission(json);
     if (dryRun) {
       const params = yield* previewReview(submission);
-      yield* Console.log(JSON.stringify({ dryRun: true, params }));
+      yield* Console.log(JSON.stringify({ dryRun: true, params }, null, 2));
       return;
     }
     const octokit = yield* createOctokitClient();
     const submissionResult = yield* submitReview(octokit, submission);
-    yield* Console.log(JSON.stringify(submissionResult));
+    yield* Console.log(JSON.stringify(submissionResult, null, 2));
   }),
 );
 
