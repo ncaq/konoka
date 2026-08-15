@@ -14,7 +14,15 @@
 let
   cfg = config.konoka;
 
-  konokaPackages = konokaFlake.packages.${pkgs.stdenv.hostPlatform.system};
+  # 未対応システムでは属性欠落の分かりにくいエラーではなく、
+  # 対応システムが分かるメッセージで失敗させる。
+  konokaPackages =
+    let
+      inherit (pkgs.stdenv.hostPlatform) system;
+    in
+    assert lib.assertMsg (konokaFlake.packages ? ${system})
+      "konokaはシステム${system}に対応していません。対応システム: ${lib.concatStringsSep ", " (lib.attrNames konokaFlake.packages)}";
+    konokaFlake.packages.${system};
 
   # プラグイン名からビルド済みパッケージへの辞書。
   plugins = lib.getAttrs pluginNames konokaPackages;
