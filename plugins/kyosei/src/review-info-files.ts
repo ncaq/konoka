@@ -108,7 +108,7 @@ function encodeJson<A, I>(
   schema: Schema.Schema<A, I>,
   value: A,
 ): Effect.Effect<string, ParseResult.ParseError> {
-  return Schema.encode(Schema.parseJson(schema))(value).pipe(
+  return Schema.encode(Schema.parseJson(schema, { space: 2 }))(value).pipe(
     Effect.map((encoded) => `${encoded}\n`),
   );
 }
