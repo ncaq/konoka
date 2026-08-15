@@ -60,6 +60,10 @@ flakeのパッケージはビルド生成物(`dist/`や`target/release/`)を同�
 - `konoka.opencode.enable`は各プラグインのスキルをフラットに展開して`programs.opencode.skills`へ追加し、
   スキルの埋め込みコマンドを呼び出せるようにプラグインの`bin/`を`programs.opencode.extraPackages`へ追加します
 
+OpenCodeへ接続されるのはスキルのみです。
+hooks・commands・agents・MCPサーバは連携されないため、
+hookのみで構成されるプラグイン(rm-to-trashなど)はOpenCodeでは機能しません。
+
 `programs.claude-code`や`programs.opencode`自体の有効化や設定は、
 通常通りhome-manager側で行ってください。
 
