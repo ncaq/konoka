@@ -28,6 +28,10 @@
       "source": "./plugins/log-analyzer"
     },
     {
+      "name": "misuzu",
+      "source": "./plugins/misuzu"
+    },
+    {
       "name": "nix-tasuke",
       "source": "./plugins/nix-tasuke"
     },
