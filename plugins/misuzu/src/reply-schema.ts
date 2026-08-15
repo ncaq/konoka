@@ -44,8 +44,12 @@ export type ReplySubmission = typeof ReplySubmissionSchema.Type;
 /** スレッド1件の投稿成功の結果。 */
 export const ThreadReplyResultSchema = Schema.Struct({
   threadId: Schema.NonEmptyString,
-  /** 投稿された返信コメントのURL。 */
-  replyUrl: Schema.URL,
+  /**
+   * 投稿された返信コメントのURL。
+   * APIが想定外の形式のURLを返して解釈できなかった場合は省略されます。
+   * 返信自体は投稿済みなのでURLの解釈失敗を失敗扱いにはしません。
+   */
+  replyUrl: Schema.optionalWith(Schema.URL, { exact: true }),
   /** resolveまで完了したかどうか。 */
   resolved: Schema.Boolean,
 });

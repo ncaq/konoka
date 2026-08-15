@@ -87,11 +87,17 @@ function submitThreadReply(
         },
       };
     }
-    const replyUrl = new URL(replyResult.right.addPullRequestReviewThreadReply.comment.url);
+    // APIが想定外の形式のURLを返しても、返信自体は投稿済みなので失敗にはしません。
+    const replyUrl =
+      URL.parse(replyResult.right.addPullRequestReviewThreadReply.comment.url) ?? undefined;
     if (!threadReply.resolve) {
       return {
         kind: "succeeded" as const,
-        value: { threadId: threadReply.threadId, replyUrl, resolved: false },
+        value: {
+          threadId: threadReply.threadId,
+          ...(replyUrl == null ? {} : { replyUrl }),
+          resolved: false,
+        },
       };
     }
     const resolveResult = yield* Effect.tryPromise(() =>
@@ -115,7 +121,7 @@ function submitThreadReply(
       kind: "succeeded" as const,
       value: {
         threadId: threadReply.threadId,
-        replyUrl,
+        ...(replyUrl == null ? {} : { replyUrl }),
         resolved: resolveResult.right.resolveReviewThread.thread.isResolved,
       },
     };
