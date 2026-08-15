@@ -1,0 +1,279 @@
+---
+name: misuzu
+description: Respond to PR review comments semi-automatically. Fetches all review threads and comments, splits them into logical units, fixes and commits one unit at a time, then replies and resolves review threads. Use when the user wants to address PR review feedback or respond to review comments.
+argument-hint: "[pr-or-review-url]"
+allowed-tools: AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, TodoWrite, Write
+---
+
+# get-respond-infoでの情報の取得
+
+以下のコマンドでレビュー対応に必要な情報を取得して、
+用途別のファイルに書き出します。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-respond-info.js $ARGUMENTS
+```
+
+引数には対象のPRのURLを指定できます。
+レビューやレビューコメントのURL(`#pullrequestreview-<id>`等のフラグメント付きURL)でも構いません。
+引数を省略するとカレントブランチからPRを推定します。
+
+標準出力にはレビュー情報自体ではなく、
+書き出したファイルの絶対パスを持つJSONが1行だけ返されます。
+出力を`tail`やパイプなどで加工せず、
+JSON全体をそのまま受け取ってください。
+
+以下は出力例です。
+
+```json
+{
+  "context": "/run/user/1000/coding-agent-work/misuzu/respond-info-example/context.json",
+  "conversation": "/run/user/1000/coding-agent-work/misuzu/respond-info-example/conversation.json"
+}
+```
+
+返されたパスのファイルを`Read`ツールで直接読んでください。
+情報を1つのJSONへ結合したり、
+一部を取り出すためにシェルコマンドで加工したりしないでください。
+
+## パスJSONの解釈
+
+### `context`
+
+`context.json`へのパスです。
+`context.output`フィールドで動作モードを判別します。
+
+#### `"github"`
+
+GitHubモード。
+PRのURLが指定されたか、カレントブランチに紐付くPRが特定できた場合です。
+`host`と`pr`(`owner`, `repo`, `prNumber`)が含まれます。
+
+URLのフラグメントから優先対応対象が特定できた場合は`focus`が含まれます。
+
+- `kind`: `"review"`, `"review-comment"`, `"issue-comment"`のいずれか
+- `databaseId`: GitHubのdatabase ID。
+  `conversation.json`内の各要素の`url`末尾の数値と照合できます。
+
+#### `"local"`
+
+ローカルモード。
+引数がなくブランチに紐付くPRも特定できなかった場合です。
+
+このモードではGitHub上のレビューは存在しないため、
+対応対象の指摘は現在の会話コンテキストから読み取ってください。
+直前にkyoseiなどのレビューがターミナルに出力されている場合はそれが対象です。
+会話中に対応すべき指摘が見つからない場合は、
+ユーザに指摘内容の提示を求めてください。
+
+ローカルモードでは後述の「返信とresolve」のセクションは全てスキップし、
+分割・承認・修正・コミット・全体検証のみを行います。
+
+### `conversation` (PRが特定できた場合のみ)
+
+PRの既存コメント・レビュー情報を保存した`conversation.json`へのパスです。
+トップレベルにPR自体の情報(`title`, `body`, `author`, `url`など)があり、
+以下の3つのサブフィールドがあります。
+
+- `comments`: PR全体へのコメント一覧(`id`, `author`, `body`, `createdAt`, `url`など)
+- `reviews`: レビュー一覧(`id`, `author`, `state`, `body`, `submittedAt`, `url`など)
+- `reviewThreads`: インラインレビュースレッド一覧。
+  以下のフィールドなどを持ちます。
+  - `id`: スレッドのGraphQL node ID。返信とresolveに使います。
+  - `isResolved`
+  - `isOutdated`
+  - `path`
+  - `line`
+  - `diffSide`
+  - `comments`: スレッド内のコメント配列
+
+# ブランチの確認
+
+対応の修正はカレントブランチにコミットするため、
+`git status`と`git log`等でカレントブランチがPRのheadブランチと一致しているか確認してください。
+一致していない場合は作業を進めず、
+ユーザにブランチを切り替えるかどうか確認してください。
+
+# 対応対象の抽出
+
+GitHubモードでは以下の優先順位で対応対象を抽出します。
+
+- `context.focus`がある場合はその対象を優先します。
+  それ以外の指摘は対応対象から外して構いませんが、
+  同じ根本原因の指摘があれば一緒に対応して構いません。
+- `reviewThreads`のうち`isResolved: false`のスレッドが主対象です。
+- レビュー本文(`reviews[].body`)やPR全体のコメント(`comments`)に含まれる指摘も対象に含めます。
+
+以下は原則として対応対象から外します。
+
+- resolved済みのスレッド
+- `isOutdated: true`のスレッド。
+  ただし指摘内容が現在のコードにも当てはまる場合は対象に含めて構いません。
+- 既に「対応しない」「意図的」等の合意が返信で成立しているもの
+
+過去のレビューやresolved済みスレッドも、
+指摘の背景や既に行われた議論を理解するための文脈として活用してください。
+
+# 論理単位への分割
+
+対応をファイル単位ではなく修正意図単位の論理単位に分割します。
+
+- 同じファイルへの修正でも、修正意図が独立しているなら別の単位にします。
+- 複数の指摘が同じ根本原因に由来するなら、1つの単位に統合して構いません。
+- テストの追加とバグ修正を伴う単位はテストファースト対象として印を付けます。
+- 対応しないと判断した指摘も1つの単位として挙げ、理由を明記します。
+
+各単位には以下を含めてください。
+
+- 単位名
+- 対応するスレッドID(`reviewThreads[].id`)またはコメントの一覧
+- 修正方針
+- テストファースト対象かどうか
+- 対応しない場合はその理由
+
+# 計画の承認
+
+`EnterPlanMode`ツールでplanモードに入り、
+分割した論理単位の全リストと対応方針を計画として提示してください。
+承認は`ExitPlanMode`で得ます。
+承認されなかった場合は指示に従って計画を修正し、
+再度承認を求めてください。
+
+既にplanモードで起動されている場合は、
+そのまま計画を提示して承認を得てください。
+
+# 単位ごとの修正とコミット
+
+承認された論理単位を`TodoWrite`で管理し、
+必ず1単位ずつ順番に処理します。
+
+## 禁止事項
+
+複数の単位をまとめて修正してから一部だけをコミットすることは禁止です。
+差分が混ざってコミットの内容が不正確になりやすいためです。
+1つの単位の修正とコミットが完了してから次の単位に移ってください。
+
+各コミットの前に`git status`で、
+無関係なファイルがstageされていないことを確認してください。
+
+## 通常の単位
+
+- 修正を実装します。
+- その単位に関連するテストやlintを実行して修正が正しいことを確認します。
+- その単位のファイルだけを`git add`します。
+- `Skill`ツールで`commit:commit`スキルを呼び出してコミットします。
+
+`Skill`ツールの`skill`には、
+プラグイン名を含めた完全修飾名(`commit:commit`)を指定してください。
+プラグインから提供されるスキルは`<plugin-name>:<skill-name>`の形式で登録されているため、
+prefixを省略すると見つからない旨のエラーになります。
+
+## テストファーストの単位
+
+テストの追加とバグ修正を同時に行う単位は、
+2つのコミットに分けてテストファーストで進めます。
+
+- 先にバグを再現する失敗するテストを書きます。
+- テストを実行して失敗することを確認し、バグが本当に存在することを検証します。
+- テストのファイルだけを`git add`して`commit:commit`スキルでコミットします。
+- バグを修正します。
+- テストを実行して成功することを確認します。
+- 修正のファイルだけを`git add`して`commit:commit`スキルでコミットします。
+
+# 全体検証
+
+全ての単位の対応が完了したら、
+プロジェクト全体が壊れていないか軽く検証します。
+テスト・lint・ビルドなどのコマンドをプロジェクトの設定ファイルやドキュメントから探して実行してください。
+
+検証で問題が見つかった場合は、
+追加の論理単位として扱い「単位ごとの修正とコミット」の手順で修正してください。
+
+# 返信とresolve
+
+GitHubモードでは全ての対応が完了した後、
+各スレッドへの返信を組み立てて投稿します。
+
+このスキルはpushを行いません。
+返信本文にはどのコミットでどう修正したかをコミットSHA付きで書いてください。
+pushされるまでコミットへのリンクは404になりますが、
+それは許容されています。
+
+## 返信内容の組み立て
+
+- 修正したスレッド: どのコミットでどう修正したかを書き、`resolve: true`にします。
+- 対応を見送ったスレッド: 理由を書き、`resolve: false`にします。
+- 議論が必要なスレッド: 質問や提案を書き、`resolve: false`にします。
+
+resolveして良いのは修正で完全に解決したスレッドだけです。
+
+レビュー本文(スレッドではない`reviews[].body`)やPR全体のコメントへの応答が必要な場合は、
+スレッド返信ではなく`summaryComment`(PR全体への総括コメント)に含めてください。
+
+issueやPRを参照する時には常にUsernameとRepositoryを含めてください
+(例: `see jlord/sheetsee.js#26`)。
+`#26`のような省略記法は誤った内部参照になる恐れがあるため避けてください。
+
+## 投稿JSONのスキーマ
+
+- `owner`: リポジトリオーナー(`context.pr.owner`)
+- `repo`: リポジトリ名(`context.pr.repo`)
+- `prNumber`: PR番号(`context.pr.prNumber`)
+- `threadReplies`: スレッド返信の配列。空配列も可。
+  - `threadId`: `conversation.json`の`reviewThreads[].id`
+  - `body`: 返信本文。Markdown。
+  - `resolve`: 返信後にスレッドをresolveするかどうか
+- `summaryComment`: PR全体への総括コメント(省略可)
+
+## 投稿の確認
+
+投稿前に組み立てたJSON全文をテキストとして提示し、
+`AskUserQuestion`で投稿して良いかユーザに確認してください。
+
+## 注意事項
+
+reply-and-resolveコマンドはGitHub APIを直接呼び出し、
+PRに返信を即座に投稿する破壊的アクションです。
+投稿された瞬間にPR著者やwatcherに通知が飛びます。
+投稿後に「投稿しなかったことにする」操作はできません。
+
+実投稿で試し打ちするのは禁止です。
+コマンドが正しく動くか不安だったり、
+JSONがスキーマを通るか確認したいだけの場合は、
+後述の`--dry-run`を使ってください。
+
+resolveにはリポジトリへのpush権限が必要です。
+権限がない場合はresolveだけが失敗し、
+その旨が結果に含まれます。
+
+## 実際のコマンド
+
+以下のコマンドで返信とresolveを一括投稿します。
+引数にJSON文字列を渡してください。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js 'JSON_STRING'
+```
+
+結果は`{"succeeded": [...], "failed": [...]}`形式のJSONで返されます。
+一部が失敗した場合は非0で終了しますが、
+成功したスレッドへの投稿は完了しています。
+失敗した分だけを含むJSONを組み立て直して再試行するか、
+エラー内容をユーザに報告して判断を仰いでください。
+成功済みのスレッドへ再投稿してはいけません。
+
+## 動作確認(`--dry-run`)
+
+組み立てたJSONがスキーマを通るかだけ検証したい場合は、
+`--dry-run`フラグを付けて実行します。
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run 'JSON_STRING'
+```
+
+GitHub APIへの投稿は行われず、
+`{"dryRun": true, "submission": {...}}`の形式で検証済みの投稿予定データがJSON出力されます。
+
+通常のワークフローでは使いません。
+スキーマが不正な場合は本番モードでもバリデーションでエラーになるので、
+本当に投稿する予定のデータならエラーログを確認すれば十分なはずだからです。
