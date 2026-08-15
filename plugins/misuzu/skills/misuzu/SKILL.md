@@ -287,11 +287,15 @@ resolveにはリポジトリへのpush権限が必要です。
 ## 実際のコマンド
 
 以下のコマンドで返信とresolveを一括投稿します。
-引数には書き出したJSONファイルのパスを渡してください。
+1つ目の引数には書き出したJSONファイルのパスを、
+2つ目の引数にはget-respond-infoが出力した`context.json`のパスを渡してください。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.jsonのパス>
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.jsonのパス> <context.jsonのパス>
 ```
+
+投稿JSONのowner/repo/prNumberが`context.json`の`pr`と一致しない場合、
+誤ったリポジトリやPRへの投稿を防ぐためコマンドは投稿せずに失敗します。
 
 結果は`{"succeeded": [...], "failed": [...]}`形式のJSONで返されます。
 一部が失敗した場合は非0で終了しますが、
@@ -306,7 +310,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.json�
 `--dry-run`フラグを付けて実行します。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run <reply-submission.jsonのパス>
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run <reply-submission.jsonのパス> <context.jsonのパス>
 ```
 
 GitHub APIへの投稿は行われず、

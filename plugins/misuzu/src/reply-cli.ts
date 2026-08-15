@@ -11,10 +11,12 @@ import { FileSystem, type CommandExecutor } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect, ParseResult, Schema } from "effect";
 import type { Octokit } from "octokit";
+import { ReviewContextSchema, type PrIdentifier } from "./context-type";
 import {
   decodeReplySubmission,
   ReplySubmissionResultSchema,
   ReplySubmissionSchema,
+  type ReplySubmission,
 } from "./reply-schema";
 import { submitReplies } from "./thread-mutation";
 
@@ -27,6 +29,67 @@ export class PartialSubmissionFailure extends Data.TaggedError("PartialSubmissio
   }
 }
 
+/** context.jsonにPR情報がなく、投稿先を検証できない場合の失敗。 */
+export class ContextWithoutPr extends Data.TaggedError("ContextWithoutPr")<{
+  readonly contextPath: string;
+}> {
+  override get message(): string {
+    return (
+      `context file has no pr: ${this.contextPath}. ` +
+      "ローカルモードのコンテキストに対して返信を投稿することはできません。"
+    );
+  }
+}
+
+/** 投稿JSONの投稿先が検出済みコンテキストのPRと一致しない場合の失敗。 */
+export class SubmissionTargetMismatch extends Data.TaggedError("SubmissionTargetMismatch")<{
+  readonly expected: PrIdentifier;
+  readonly actual: PrIdentifier;
+}> {
+  override get message(): string {
+    const show = (pr: PrIdentifier): string => `${pr.owner}/${pr.repo}#${pr.prNumber}`;
+    return (
+      `submission target ${show(this.actual)} does not match detected context ${show(this.expected)}. ` +
+      "誤ったリポジトリやPRへの投稿を防ぐため中止しました。"
+    );
+  }
+}
+
+/**
+ * 投稿JSONの投稿先が`context.json`で検出済みのPRと一致することを検証します。
+ * プロンプトインジェクションやエージェントの取り違えによる誤投稿を防ぎます。
+ */
+function verifySubmissionTarget(
+  contextPath: string,
+  submission: ReplySubmission,
+): Effect.Effect<
+  void,
+  ContextWithoutPr | SubmissionTargetMismatch | ParseResult.ParseError | PlatformError,
+  FileSystem.FileSystem
+> {
+  return Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const raw = yield* fs.readFileString(contextPath);
+    const context = yield* Schema.decodeUnknown(Schema.parseJson(ReviewContextSchema))(raw);
+    const expected = context.pr;
+    if (expected == null) {
+      return yield* new ContextWithoutPr({ contextPath });
+    }
+    const actual: PrIdentifier = {
+      owner: submission.owner,
+      repo: submission.repo,
+      prNumber: submission.prNumber,
+    };
+    if (
+      expected.owner !== actual.owner ||
+      expected.repo !== actual.repo ||
+      expected.prNumber !== actual.prNumber
+    ) {
+      return yield* new SubmissionTargetMismatch({ expected, actual });
+    }
+  });
+}
+
 /** CLI実行の結果。`output`は標準出力へ表示するJSON文字列です。 */
 export interface ReplyCliOutcome {
   readonly output: string;
@@ -35,12 +98,13 @@ export interface ReplyCliOutcome {
 }
 
 /**
- * 投稿JSONファイルを読み込み、dry-runなら検証済みデータを、
- * 実行なら投稿結果を出力用JSONとして返します。
+ * 投稿JSONファイルを読み込み、投稿先が`context.json`と一致することを検証した上で、
+ * dry-runなら検証済みデータを、実行なら投稿結果を出力用JSONとして返します。
  * Octokitクライアントの生成は遅延させ、dry-runではGitHubアクセスを行いません。
  */
 export function runReplyAndResolve(options: {
   readonly submissionPath: string;
+  readonly contextPath: string;
   readonly dryRun: boolean;
   readonly makeOctokit: Effect.Effect<Octokit, Error, CommandExecutor.CommandExecutor>;
 }): Effect.Effect<
@@ -52,6 +116,7 @@ export function runReplyAndResolve(options: {
     const fs = yield* FileSystem.FileSystem;
     const raw = yield* fs.readFileString(options.submissionPath);
     const submission = yield* decodeReplySubmission(raw);
+    yield* verifySubmissionTarget(options.contextPath, submission);
     if (options.dryRun) {
       const encodedSubmission = yield* Schema.encode(Schema.parseJson(ReplySubmissionSchema))(
         submission,

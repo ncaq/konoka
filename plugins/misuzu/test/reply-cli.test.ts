@@ -14,15 +14,41 @@ const validSubmission = {
   threadReplies: [{ threadId: "PRRT_1", body: "reply 1", resolve: false }],
 };
 
-function writeSubmissionFile(
-  content: string,
-): Effect.Effect<string, PlatformError, FileSystem.FileSystem | Scope.Scope> {
+const matchingContext = {
+  output: "github",
+  host: "github.com",
+  pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
+};
+
+/** PRが特定できているローカルモードのコンテキスト。投稿先検証の対象になります。 */
+const localContextWithPr = {
+  output: "local",
+  pr: { owner: "ncaq", repo: "konoka", prNumber: 42 },
+  baseBranch: "master",
+};
+
+const localContextWithoutPr = {
+  output: "local",
+  baseBranch: "master",
+};
+
+interface SubmissionFiles {
+  readonly submissionPath: string;
+  readonly contextPath: string;
+}
+
+function writeInputFiles(
+  submission: unknown,
+  context: unknown,
+): Effect.Effect<SubmissionFiles, PlatformError, FileSystem.FileSystem | Scope.Scope> {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const dir = yield* fs.makeTempDirectoryScoped();
-    const path = `${dir}/submission.json`;
-    yield* fs.writeFileString(path, content);
-    return path;
+    const submissionPath = `${dir}/reply-submission.json`;
+    const contextPath = `${dir}/context.json`;
+    yield* fs.writeFileString(submissionPath, JSON.stringify(submission));
+    yield* fs.writeFileString(contextPath, JSON.stringify(context));
+    return { submissionPath, contextPath };
   });
 }
 
@@ -38,9 +64,9 @@ function makeFailingOctokit(): Octokit {
 describe("runReplyAndResolve", () => {
   it.scoped("dry-runは投稿せずに検証済みデータを出力する", () =>
     Effect.gen(function* () {
-      const path = yield* writeSubmissionFile(JSON.stringify(validSubmission));
+      const files = yield* writeInputFiles(validSubmission, matchingContext);
       const outcome = yield* runReplyAndResolve({
-        submissionPath: path,
+        ...files,
         dryRun: true,
         makeOctokit: octokitMustNotBeUsed,
       });
@@ -54,9 +80,9 @@ describe("runReplyAndResolve", () => {
 
   it.scoped("スキーマに合わないJSONファイルはParseErrorで失敗する", () =>
     Effect.gen(function* () {
-      const path = yield* writeSubmissionFile(JSON.stringify({ owner: "ncaq" }));
+      const files = yield* writeInputFiles({ owner: "ncaq" }, matchingContext);
       const error = yield* runReplyAndResolve({
-        submissionPath: path,
+        ...files,
         dryRun: true,
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
@@ -67,11 +93,39 @@ describe("runReplyAndResolve", () => {
   it.scoped("存在しないファイルパスは失敗する", () =>
     Effect.gen(function* () {
       const error = yield* runReplyAndResolve({
-        submissionPath: "/nonexistent/submission.json",
+        submissionPath: "/nonexistent/reply-submission.json",
+        contextPath: "/nonexistent/context.json",
         dryRun: true,
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
       expect(error).toBeDefined();
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
+
+  it.scoped("投稿先がcontextのPRと一致しない場合は投稿せずに失敗する", () =>
+    Effect.gen(function* () {
+      const files = yield* writeInputFiles(
+        { ...validSubmission, repo: "another-repo" },
+        matchingContext,
+      );
+      const error = yield* runReplyAndResolve({
+        ...files,
+        dryRun: false,
+        makeOctokit: octokitMustNotBeUsed,
+      }).pipe(Effect.flip);
+      expect(error).toMatchObject({ _tag: "SubmissionTargetMismatch" });
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
+
+  it.scoped("PRのないローカルコンテキストへの投稿は失敗する", () =>
+    Effect.gen(function* () {
+      const files = yield* writeInputFiles(validSubmission, localContextWithoutPr);
+      const error = yield* runReplyAndResolve({
+        ...files,
+        dryRun: false,
+        makeOctokit: octokitMustNotBeUsed,
+      }).pipe(Effect.flip);
+      expect(error).toMatchObject({ _tag: "ContextWithoutPr" });
     }).pipe(Effect.provide(NodeContext.layer)),
   );
 
@@ -83,9 +137,10 @@ describe("runReplyAndResolve", () => {
         },
       });
       const octokit = { graphql, rest: { issues: {} } } as unknown as Octokit;
-      const path = yield* writeSubmissionFile(JSON.stringify(validSubmission));
+      // 引数省略でPRが特定できたローカルコンテキストでも投稿できることの検証を兼ねます。
+      const files = yield* writeInputFiles(validSubmission, localContextWithPr);
       const outcome = yield* runReplyAndResolve({
-        submissionPath: path,
+        ...files,
         dryRun: false,
         makeOctokit: Effect.succeed(octokit),
       });
@@ -99,9 +154,9 @@ describe("runReplyAndResolve", () => {
   it.scoped("一部の投稿が失敗するとpartialFailureがtrueになる", () =>
     Effect.gen(function* () {
       const octokit = makeFailingOctokit();
-      const path = yield* writeSubmissionFile(JSON.stringify(validSubmission));
+      const files = yield* writeInputFiles(validSubmission, matchingContext);
       const outcome = yield* runReplyAndResolve({
-        submissionPath: path,
+        ...files,
         dryRun: false,
         makeOctokit: Effect.succeed(octokit),
       });

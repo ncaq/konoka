@@ -24,13 +24,21 @@ const submissionPath = Args.text({ name: "submission-path" }).pipe(
   ),
 );
 
+const contextPath = Args.text({ name: "context-path" }).pipe(
+  Args.withDescription(
+    "get-respond-infoが出力したcontext.jsonのパス。" +
+      "投稿JSONの投稿先がここで検出済みのPRと一致しない場合は投稿せずに失敗します。",
+  ),
+);
+
 const command = Command.make(
   "reply-and-resolve",
-  { dryRun, submissionPath },
-  ({ dryRun, submissionPath }) =>
+  { dryRun, submissionPath, contextPath },
+  ({ dryRun, submissionPath, contextPath }) =>
     Effect.gen(function* () {
       const outcome = yield* runReplyAndResolve({
         submissionPath,
+        contextPath,
         dryRun,
         makeOctokit: createOctokitClient(),
       });
