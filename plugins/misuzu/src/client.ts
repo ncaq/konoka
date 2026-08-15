@@ -255,7 +255,7 @@ function handleSecondaryRateLimit(
 /**
  * 利用可能な認証情報からOctokitクライアントを生成します。
  * 生成できない場合は失敗を伝達します。
- * kyoseiは想定環境として、
+ * misuzuは想定環境として、
  * GitHub Actionsや手元でのCLI環境など、
  * 様々な環境で動かすことを想定しているので、
  * 単一の環境変数に頼るようなシンプルな方法ではなく、
@@ -283,7 +283,7 @@ export function createOctokitClient(): Effect.Effect<
     return new Octokit({
       auth: githubAuthOptions.token,
       ...githubBaseUrlOptions,
-      userAgent: `kyosei (${githubAuthOptions.source})`,
+      userAgent: `misuzu (${githubAuthOptions.source})`,
       throttle: {
         onRateLimit: handleRateLimit,
         onSecondaryRateLimit: handleSecondaryRateLimit,
