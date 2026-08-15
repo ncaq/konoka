@@ -3,7 +3,7 @@
  * 循環参照を避けるためにスキーマ関連はまとめたほうが良いことが多い。
  */
 
-import { Schema } from "effect";
+import { Effect, ParseResult, Schema } from "effect";
 
 /** PR 番号は正の整数。 */
 export const PrNumberSchema = Schema.Number.pipe(Schema.int(), Schema.positive());
@@ -68,10 +68,12 @@ export type ReplySubmissionResult = typeof ReplySubmissionResultSchema.Type;
 
 /**
  * JSON文字列をパース・バリデーションして`ReplySubmission`に変換します。
- * JSONパースまたはバリデーション失敗時はエラーメッセージを含む例外をスローします。
+ * JSONパースまたはバリデーションの失敗は`ParseError`として型付きの失敗になります。
  */
-export function decodeReplySubmission(input: string): ReplySubmission {
-  return Schema.decodeUnknownSync(Schema.parseJson(ReplySubmissionSchema), {
+export function decodeReplySubmission(
+  input: string,
+): Effect.Effect<ReplySubmission, ParseResult.ParseError> {
+  return Schema.decodeUnknown(Schema.parseJson(ReplySubmissionSchema), {
     onExcessProperty: "error",
   })(input);
 }

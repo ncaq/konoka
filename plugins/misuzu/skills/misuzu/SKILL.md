@@ -254,6 +254,15 @@ issueやPRを参照する時には常に完全なURL形式を使ってくださ�
   - `resolve`: 返信後にスレッドをresolveするかどうか
 - `summaryComment`: PR全体への総括コメント(省略可)
 
+## 投稿JSONのファイルへの書き出し
+
+組み立てたJSONは`Write`ツールでファイルに書き出してください。
+書き出し先は`context.json`と同じディレクトリの`reply-submission.json`を推奨します。
+
+コマンドライン引数としてJSON文字列を直接渡してはいけません。
+返信本文にはレビューコメント由来の任意の文字列が含まれるため、
+シェルのクォート崩れや意図しないコマンド実行につながるからです。
+
 ## 投稿の確認
 
 投稿前に組み立てたJSON全文をテキストとして提示し、
@@ -278,10 +287,10 @@ resolveにはリポジトリへのpush権限が必要です。
 ## 実際のコマンド
 
 以下のコマンドで返信とresolveを一括投稿します。
-引数にJSON文字列を渡してください。
+引数には書き出したJSONファイルのパスを渡してください。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js 'JSON_STRING'
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.jsonのパス>
 ```
 
 結果は`{"succeeded": [...], "failed": [...]}`形式のJSONで返されます。
@@ -297,7 +306,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js 'JSON_STRING'
 `--dry-run`フラグを付けて実行します。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run 'JSON_STRING'
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run <reply-submission.jsonのパス>
 ```
 
 GitHub APIへの投稿は行われず、
