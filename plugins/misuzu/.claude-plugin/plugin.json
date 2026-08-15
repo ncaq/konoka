@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "misuzu",
+  "version": "1.0.0",
+  "description": "Respond to PR review comments semi-automatically. Splits review findings into logical units, fixes and commits them one by one, then replies and resolves review threads.",
+  "dependencies": ["commit"],
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/misuzu",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["github", "pull-request", "resolve", "respond", "review"]
+}
