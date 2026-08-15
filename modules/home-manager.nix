@@ -53,13 +53,9 @@ let
   # スキル名からそれを提供するプラグイン名のリストへの辞書。
   # 複数プラグインが同名のスキルを持つとフラット展開時に片方が消えるため、
   # 検出できるように所有者一覧を組み立てる。
-  skillOwners = lib.foldl' (
-    acc: entry:
-    acc
-    // {
-      ${entry.skillName} = (acc.${entry.skillName} or [ ]) ++ [ entry.pluginName ];
-    }
-  ) { } skillEntries;
+  skillOwners = lib.mapAttrs (_skillName: map (entry: entry.pluginName)) (
+    lib.groupBy (entry: entry.skillName) skillEntries
+  );
 
   skillNameConflicts = lib.filterAttrs (_skillName: owners: 1 < lib.length owners) skillOwners;
 
