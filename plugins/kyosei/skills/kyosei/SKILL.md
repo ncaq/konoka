@@ -256,21 +256,22 @@ prefixを省略すると見つからない旨のエラーになります。
 
 サマリーでもインラインコメントでも、
 あらゆる場所のテキストに言えることですが、
-issueやPRを参照する時には常にUsernameとRepositoryを含めてください。
+issueやPRを参照する時には常に完全なURL形式を使ってください。
 
 外部のリポジトリのissueやPRに言及したつもりで、
 内部のリポジトリへの誤った参照をしてしまうのを防ぐためです。
 
-以下のような記法は避けてください。
+以下のような省略記法は避けてください。
 
 ```markdown
 see #26
+see jlord/sheetsee.js#26
 ```
 
 代わりに以下のような記法を使ってください。
 
 ```markdown
-see jlord/sheetsee.js#26
+see https://github.com/jlord/sheetsee.js/issues/26
 ```
 
 # フィードバックの出力

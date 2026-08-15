@@ -81,7 +81,23 @@ Markdownのインラインコード記法であるバッククォートで囲ん
 
 順序に意味がない場合は番号付きリストを使わないでください。
 
-GitHub向けのissueに関連付けるキーワードは`close`などの原形を使ってください。
+GitHubのissueやpull requestを参照する場合は、
+`#123`や`owner/repo#123`のような短縮記法は使わず、
+完全なURLを使ってください。
+
+同じリポジトリのissueやPRであっても完全なURLを使ってください。
+
+短縮記法はGitHub上でしか解決されず、
+ローカルの`git log`の出力やエディタからは移動出来ないためです。
+
+issueに関連付けるキーワードは`close`などの原形を使ってください。
+
+例:
+
+```
+close https://github.com/owner/repo/issues/123
+ref https://github.com/owner/repo/pull/456
+```
 
 本文には変更の内容だけではなく、
 なぜその変更が必要だったのか、

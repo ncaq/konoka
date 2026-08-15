@@ -230,17 +230,28 @@ ASCIIに対応する全角形は使用禁止です。
 - 全角カンマ`,`は半角`,`を使ってください。
 - 全角数字`0-9`は半角`0-9`を使ってください。
 
-# issueとの関連付け
+# issueやPRとの関連付け
+
+## 参照は完全なURL
+
+issueやpull requestを参照する場合は、
+`#123`や`owner/repo#123`のような短縮記法は使わず、
+完全なURLを使ってください。
+
+同じリポジトリのissueやPRであっても完全なURLを使ってください。
+
+短縮記法はGitHub上でしか解決されず、
+ローカルの`git log`の出力やエディタからは移動出来ないためです。
 
 ## issueをクローズする場合
 
 そのPRがissueをクローズする場合は、
-原型小文字の`close`キーワードと番号を本文に含めてください。
+原型小文字の`close`キーワードとURLを本文に含めてください。
 
 例:
 
 ```
-close #123
+close https://github.com/owner/repo/issues/123
 ```
 
 - `closes`
@@ -264,22 +275,12 @@ close #123
 例:
 
 ```
-ref #123
+ref https://github.com/owner/repo/issues/456
+ref https://github.com/owner/repo/pull/789
 ```
 
 `refs`, `references`などは使いません。
 原型小文字の`ref`に統一してください。
-
-## 外部リポジトリのissue
-
-別リポジトリのissueを参照する場合は、
-わかりやすさと移動しやすさのために、
-短縮記法ではなくURLを使ってください。
-
-```
-close https://github.com/owner/repo/issues/123
-ref https://github.com/owner/repo/issues/456
-```
 
 # アサインの決定
 
