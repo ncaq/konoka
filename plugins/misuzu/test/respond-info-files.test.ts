@@ -95,6 +95,25 @@ describe("writeRespondInfoFiles", () => {
     }).pipe(Effect.provide(NodeContext.layer)),
   );
 
+  it.scoped("ベースディレクトリがgroup/otherから読める場合は失敗する", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
+      // 第三者が緩い権限で先回り作成したベースディレクトリを模倣します。
+      const baseDirectory = path.join(runtimeDirectory, "coding-agent-work", "misuzu");
+      yield* fs.makeDirectory(baseDirectory, { recursive: true });
+      yield* fs.chmod(baseDirectory, 0o755);
+      const error = yield* writeRespondInfoFiles(localRespondInfo).pipe(
+        Effect.withConfigProvider(
+          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        ),
+        Effect.flip,
+      );
+      expect(error).toMatchObject({ _tag: "UnsafeWorkDirectory" });
+    }).pipe(Effect.provide(NodeContext.layer)),
+  );
+
   it.scoped("呼び出しごとに一意な作業ディレクトリを作る", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;

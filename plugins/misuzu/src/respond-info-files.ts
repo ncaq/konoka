@@ -5,11 +5,61 @@
 
 import { tmpdir } from "node:os";
 import { isAbsolute } from "node:path";
+import process from "node:process";
 import { FileSystem, Path } from "@effect/platform";
 import type { PlatformError } from "@effect/platform/Error";
-import { Config, Effect, ParseResult, Schema } from "effect";
+import { Config, Data, Effect, Option, ParseResult, Schema } from "effect";
 import { ReviewContextSchema, type ReviewContext } from "./context-type";
 import { ConversationSchema, type Conversation } from "./conversation";
+
+/** 作業ディレクトリが他者から読み書きできる状態にある場合の失敗。 */
+export class UnsafeWorkDirectory extends Data.TaggedError("UnsafeWorkDirectory")<{
+  readonly path: string;
+  readonly reason: string;
+}> {
+  override get message(): string {
+    return (
+      `work directory is not private: ${this.path} (${this.reason}). ` +
+      "TMPDIR等をユーザ専有のディレクトリに設定して再実行してください。"
+    );
+  }
+}
+
+/**
+ * ベースディレクトリを作成し、自ユーザ専有であることを検証します。
+ *
+ * `makeDirectory`の`mode: 0o700`は既存ディレクトリには適用されないため、
+ * 共有tmp配下で第三者が同名ディレクトリやシンボリックリンクを先回りで作成していると、
+ * そのまま書き込んで内容を読まれたり別の場所へ誘導されたりする恐れがあります(CWE-377/CWE-59)。
+ * 作成後にstatで実ディレクトリであること・所有者が自プロセスであること・
+ * group/otherの権限がないことを検証し、満たさない場合は失敗します。
+ */
+function ensurePrivateDirectory(
+  fs: FileSystem.FileSystem,
+  path: string,
+): Effect.Effect<void, PlatformError | UnsafeWorkDirectory> {
+  return Effect.gen(function* () {
+    yield* fs.makeDirectory(path, { recursive: true, mode: 0o700 });
+    const info = yield* fs.stat(path);
+    if (info.type !== "Directory") {
+      return yield* new UnsafeWorkDirectory({ path, reason: `not a directory: ${info.type}` });
+    }
+    const processUid = process.getuid?.();
+    const ownerUid = Option.getOrUndefined(info.uid);
+    if (processUid != null && ownerUid != null && ownerUid !== processUid) {
+      return yield* new UnsafeWorkDirectory({
+        path,
+        reason: `owned by another user: uid ${ownerUid}`,
+      });
+    }
+    if ((info.mode & 0o077) !== 0) {
+      return yield* new UnsafeWorkDirectory({
+        path,
+        reason: `accessible by group/other: mode ${(info.mode & 0o777).toString(8)}`,
+      });
+    }
+  });
+}
 
 const AbsolutePathSchema = Schema.NonEmptyString.pipe(
   Schema.filter(isAbsolute, { description: "absolute file path" }),
@@ -47,7 +97,7 @@ export function writeRespondInfoFiles(
   respondInfo: RespondInfo,
 ): Effect.Effect<
   RespondInfoFilePaths,
-  PlatformError | ParseResult.ParseError,
+  PlatformError | ParseResult.ParseError | UnsafeWorkDirectory,
   FileSystem.FileSystem | Path.Path
 > {
   return Effect.gen(function* () {
@@ -55,7 +105,7 @@ export function writeRespondInfoFiles(
     const path = yield* Path.Path;
     const personalWorkDir = yield* personalWorkDirectory;
     const baseDirectory = path.resolve(personalWorkDir, "coding-agent-work", "misuzu");
-    yield* fs.makeDirectory(baseDirectory, { recursive: true, mode: 0o700 });
+    yield* ensurePrivateDirectory(fs, baseDirectory);
     const workDirectory = yield* fs.makeTempDirectory({
       directory: baseDirectory,
       prefix: "respond-info-",
