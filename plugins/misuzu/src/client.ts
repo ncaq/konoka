@@ -12,7 +12,7 @@ import { Octokit } from "octokit";
 class EnvVarNotSet extends Data.TaggedError("EnvVarNotSet")<{ readonly name: string }> {}
 
 /** 環境変数の値がURLとして解釈できない場合の失敗。 */
-class EnvVarInvalidUrl extends Data.TaggedError("EnvVarInvalidUrl")<{
+export class EnvVarInvalidUrl extends Data.TaggedError("EnvVarInvalidUrl")<{
   readonly name: string;
   readonly cause: unknown;
 }> {}
@@ -156,6 +156,18 @@ function getGitHubBaseUrl(): Effect.Effect<URL, EnvVarNotSet | EnvVarInvalidUrl>
         onNone: () => Effect.fail(new EnvVarNotSet({ name: "GH_HOST" })),
       }),
     ),
+  );
+}
+
+/**
+ * クライアントが向くGitHubのwebホスト名を返します。
+ * baseUrl関連の環境変数が一切未設定の場合はデフォルトのgithub.comです。
+ * APIホストのapi.github.comはwebホストとしてはgithub.comに読み替えます。
+ */
+export function getClientWebHost(): Effect.Effect<string, EnvVarInvalidUrl> {
+  return getGitHubBaseUrl().pipe(
+    Effect.map((url) => (url.hostname === "api.github.com" ? "github.com" : url.hostname)),
+    Effect.catchTag("EnvVarNotSet", () => Effect.succeed("github.com")),
   );
 }
 
