@@ -77,14 +77,11 @@ in
 
   config = lib.mkMerge [
     (lib.mkIf cfg.claude-code.enable {
-      # home-managerのrelease-26.05では`plugins`はリスト型のみを受け付けるが、
-      # それより新しいhome-managerでは属性セット型が推奨でリスト型は非推奨のため、
-      # オプションの型を見てどちらの形式で渡すか切り替える。
+      # 属性セット型が推奨の新しいhome-managerと、
+      # リスト型のみを受け付ける古いhome-managerの両方に対応するため、
+      # 属性セットのまま受理されるかをオプションの型に問い合わせて渡す形式を決める。
       programs.claude-code.plugins =
-        if options.programs.claude-code.plugins.type.name == "listOf" then
-          lib.attrValues plugins
-        else
-          plugins;
+        if options.programs.claude-code.plugins.type.check plugins then plugins else lib.attrValues plugins;
     })
     (lib.mkIf cfg.opencode.enable {
       programs.opencode = {
