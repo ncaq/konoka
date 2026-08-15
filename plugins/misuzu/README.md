@@ -43,8 +43,15 @@ Claude Codeで以下を実行します。
 
 ## セットアップ
 
-このプラグインは一時ファイルを`$XDG_RUNTIME_DIR/coding-agent-work/misuzu/`配下に、
+このプラグインは一時ファイルを`coding-agent-work/misuzu/`配下に、
 サブディレクトリを作成して保存します。
+配置先のベースは以下の優先順で決まります。
+
+- `$RUNNER_TEMP` (GitHub Actions環境)
+- `$XDG_RUNTIME_DIR`
+- OSの一時ディレクトリ(`os.tmpdir()`)
+
+典型的なローカル環境では`$XDG_RUNTIME_DIR/coding-agent-work/misuzu/`になります。
 Claude Codeの自動承認ディレクトリに追加することを推奨します。
 
 ### 環境変数の確認
