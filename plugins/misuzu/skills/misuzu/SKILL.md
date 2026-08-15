@@ -210,9 +210,10 @@ resolveして良いのは修正で完全に解決したスレッドだけです�
 レビュー本文(スレッドではない`reviews[].body`)やPR全体のコメントへの応答が必要な場合は、
 スレッド返信ではなく`summaryComment`(PR全体への総括コメント)に含めてください。
 
-issueやPRを参照する時には常にUsernameとRepositoryを含めてください
-(例: `see jlord/sheetsee.js#26`)。
-`#26`のような省略記法は誤った内部参照になる恐れがあるため避けてください。
+issueやPRを参照する時には常に完全なURL形式を使ってください
+(例: `see https://github.com/jlord/sheetsee.js/issues/26`)。
+`#26`や`jlord/sheetsee.js#26`のような省略記法は、
+誤った参照になったり参照先が曖昧になったりする恐れがあるため避けてください。
 
 ## 投稿JSONのスキーマ
 
