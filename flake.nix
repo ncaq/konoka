@@ -6,6 +6,11 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # home-managerモジュールの検証にのみ使用する。
+    home-manager = {
+      url = "github:nix-community/home-manager/release-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -24,6 +29,9 @@
         "aarch64-linux"
         "x86_64-linux"
       ];
+
+      # ビルド済みプラグイン一式をClaude CodeやOpenCodeへ接続するhome-managerモジュール。
+      flake.homeModules.default = import ./modules/home-manager.nix { konokaFlake = inputs.self; };
 
       perSystem =
         {
@@ -397,6 +405,31 @@
           };
 
           checks = {
+            # home-managerモジュールを実際のhome-manager構成へ組み込んで、
+            # 評価とビルドが通ることを検証する。
+            home-manager-module =
+              (inputs.home-manager.lib.homeManagerConfiguration {
+                inherit pkgs;
+                modules = [
+                  inputs.self.homeModules.default
+                  {
+                    home = {
+                      username = "konoka-test";
+                      homeDirectory = "/home/konoka-test";
+                      stateVersion = "26.05";
+                    };
+                    programs = {
+                      claude-code.enable = true;
+                      opencode.enable = true;
+                    };
+                    konoka = {
+                      claude-code.enable = true;
+                      opencode.enable = true;
+                    };
+                  }
+                ];
+              }).activationPackage;
+
             lint-agnix =
               pkgs.runCommand "lint-agnix"
                 {

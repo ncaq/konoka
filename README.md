@@ -40,6 +40,29 @@ flakeのパッケージはビルド生成物(`dist/`や`target/release/`)を同�
 
 各プラグイン単体も`packages.<system>.<プラグイン名>`として提供しています。
 
+### home-managerモジュール
+
+`homeModules.default`をimportすると、
+ビルド済みプラグイン一式をClaude CodeやOpenCodeへ簡単に接続できます。
+
+```nix
+{
+  imports = [ inputs.konoka.homeModules.default ];
+
+  konoka = {
+    claude-code.enable = true;
+    opencode.enable = true;
+  };
+}
+```
+
+- `konoka.claude-code.enable`は全プラグインを`programs.claude-code.plugins`へ追加します
+- `konoka.opencode.enable`は各プラグインのスキルをフラットに展開して`programs.opencode.skills`へ追加し、
+  スキルの埋め込みコマンドを呼び出せるようにプラグインの`bin/`を`programs.opencode.extraPackages`へ追加します
+
+`programs.claude-code`や`programs.opencode`自体の有効化や設定は、
+通常通りhome-manager側で行ってください。
+
 ## Development
 
 ### Setup
