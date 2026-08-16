@@ -3,7 +3,9 @@ name: kyosei
 description: Code review for PRs or local changes. Covers code quality, dependency updates, performance, test coverage, documentation accuracy, and security. Use when reviewing PRs, checking code quality, or running comprehensive code reviews.
 argument-hint: "[pr-url]"
 allowed-tools: >-
+  Bash(get-review-info:*),
   Bash(node:*),
+  Bash(submit-review:*),
   Glob,
   Grep,
   Read,
@@ -16,6 +18,13 @@ allowed-tools: >-
   mcp__github
 effort: low
 ---
+
+# コマンドの実行方法
+
+このスキルは`node <プラグインルート>/dist/bin/*.js`形式でヘルパーコマンドを実行します。
+Claude Codeはコマンド例中の変数`CLAUDE_PLUGIN_ROOT`の参照を絶対パスへ展開しますが、
+展開されず文字通りのまま残っている環境(OpenCodeなど)ではこの形式は動きません。
+その場合は代わりにPATH上の`get-review-info`と`submit-review`を同じ引数で実行してください。
 
 # get-review-infoでの情報の取得
 
