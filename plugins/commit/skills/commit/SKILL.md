@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Edit, Read, Write, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
 model: opus
 effort: low
 ---
@@ -66,23 +66,28 @@ run-commit-msg-hook <editmsgPathの値>
 # ステージされた差分の表示
 
 `AskUserQuestion`ツールを呼び出す直前に、
-通常のテキストメッセージとして、
-ステージされた差分(`patchPath`のファイルの内容)の全文を出力してください。
-言語指定を`diff`にしたコードフェンスで囲み、
-シンタックスハイライトが掛かるようにしてください。
-差分は要約や省略をせず全文を出力してください。
+以下のコマンドでステージされた差分をユーザに表示してください。
+
+値は実際のファイルのパスに置き換えてください。
+
+```bash
+show-staged-patch <patchPathの値>
+```
+
+このコマンドは`delta`が利用できる環境では、
+シンタックスハイライト付きで差分を表示します。
+`delta`が無い環境では素のパッチをそのまま表示します。
 
 半自動で変更していた場合に、
 ユーザが差分を別途追いかけなくてもその場で確認できるようにするためです。
 
-テキストメッセージとして出力するのは、
-ターミナルでもモバイル環境でも、
-インラインに畳まれずそのまま表示されるからです。
-差分が巨大になることも多いですが、
-確認画面より前に流れるだけなので、
-興味がなければ画面下部のコミットメッセージと選択肢だけを見て判断できます。
+あなた自身が差分をテキストメッセージとして再出力してはいけません。
+差分全文を出力トークンとして再生成すると遅く、
+差分内にコードフェンス記号が含まれるとMarkdownの表示が壊れるからです。
+差分の表示はコマンドの出力に任せて、
+あなたは要約や説明を付け加えずに次のステップへ進んでください。
 
-差分はあくまでテキストメッセージとして表示するだけです。
+差分はあくまで表示するだけです。
 `editmsgPath`のコミットメッセージファイルに差分を書き込んではいけません。
 commitlintを混乱させないためです。
 

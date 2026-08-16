@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+script_dir="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+target="${script_dir}/../dist/bin/show-staged-patch.js"
+[ -f "${target}" ] || "${script_dir}/build-commit"
+exec node "${target}" "$@"
