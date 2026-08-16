@@ -2,5 +2,5 @@
 set -euo pipefail
 script_dir="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 target="${script_dir}/../dist/bin/submit-review.js"
-[ -f "${target}" ] || "${script_dir}/build-kyosei"
+[ -f "${target}" ] || "${script_dir}/build-kyosei" "${target}"
 exec node "${target}" "$@"

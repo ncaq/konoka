@@ -2,5 +2,5 @@
 set -euo pipefail
 script_dir="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 target="${script_dir}/../dist/bin/get-respond-info.js"
-[ -f "${target}" ] || "${script_dir}/build-misuzu"
+[ -f "${target}" ] || "${script_dir}/build-misuzu" "${target}"
 exec node "${target}" "$@"
