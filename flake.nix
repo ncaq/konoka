@@ -273,11 +273,17 @@
                     runHook postInstall
                   '';
                 };
+              # npmプラグインごとにbinのラッパーへPATHとして付与する追加のランタイム依存。
+              npmPluginRuntimeInputs = {
+                # ステージされた差分のシンタックスハイライト表示に使う。
+                commit = [ pkgs.delta ];
+              };
               # TypeScript製ヘルパーをビルドしてdistを同梱する。
               mkNpmPlugin =
                 pluginName:
                 let
                   nodeModules = mkNodeModules (pluginDirOf pluginName);
+                  runtimeInputs = [ nodejs ] ++ (npmPluginRuntimeInputs.${pluginName} or [ ]);
                 in
                 pkgs.stdenv.mkDerivation {
                   pname = "konoka-plugin-${pluginName}";
@@ -299,12 +305,12 @@
                     cp -r . $out
                     runHook postInstall
                   '';
-                  # binのスクリプトはnodeをPATHから探すため、
-                  # スクリプト本体は無改変のままラップしてランタイム依存としてnodeを付与する。
+                  # binのスクリプトはnodeなどの外部コマンドをPATHから探すため、
+                  # スクリプト本体は無改変のままラップしてランタイム依存をPATHとして付与する。
                   postInstall = ''
                     if [ -d "$out/bin" ]; then
                       for script in "$out"/bin/*; do
-                        wrapProgram "$script" --prefix PATH : ${lib.makeBinPath [ nodejs ]}
+                        wrapProgram "$script" --prefix PATH : ${lib.makeBinPath runtimeInputs}
                       done
                     fi
                   '';

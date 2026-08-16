@@ -20,6 +20,7 @@ export default defineConfig({
         "konoka-editor": "src/bin/konoka-editor.ts",
         "read-commit-instructions": "src/bin/read-commit-instructions.ts",
         "run-commit-msg-hook": "src/bin/run-commit-msg-hook.ts",
+        "show-staged-patch": "src/bin/show-staged-patch.ts",
       },
       output: {
         format: "esm",
