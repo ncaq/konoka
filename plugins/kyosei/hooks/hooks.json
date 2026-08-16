@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/build",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/build-kyosei",
             "timeout": 300
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/build",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/build-kyosei",
             "timeout": 300
           }
         ]
