@@ -11,7 +11,7 @@ allowed-tools: AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, G
 用途別のファイルに書き出します。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-respond-info.js $ARGUMENTS
+get-respond-info $ARGUMENTS
 ```
 
 引数には対象のPRのURLを指定できます。
@@ -294,7 +294,7 @@ resolveにはリポジトリへのpush権限が必要です。
 2つ目の引数にはget-respond-infoが出力した`context.json`のパスを渡してください。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.jsonのパス> <context.jsonのパス>
+reply-and-resolve <reply-submission.jsonのパス> <context.jsonのパス>
 ```
 
 投稿JSONのowner/repo/prNumberが`context.json`の`pr`と一致しない場合、
@@ -321,7 +321,7 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js <reply-submission.json�
 `--dry-run`フラグを付けて実行します。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/reply-and-resolve.js --dry-run <reply-submission.jsonのパス> <context.jsonのパス>
+reply-and-resolve --dry-run <reply-submission.jsonのパス> <context.jsonのパス>
 ```
 
 GitHub APIへの投稿は行われず、

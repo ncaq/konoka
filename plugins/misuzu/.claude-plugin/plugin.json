@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "misuzu",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Respond to PR review comments semi-automatically. Splits review findings into logical units, fixes and commits them one by one, then replies and resolves review threads.",
   "dependencies": ["commit"],
   "author": {
