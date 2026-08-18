@@ -10,6 +10,12 @@ const claudeFakeLayer = fakeCommandExecutor(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
+// `claude --version`がバージョンを返す環境を模倣します。
+const claudeVersionFakeLayer = fakeCommandExecutor(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+
+// `baseInput`のリポジトリに対応するリンク先。
+const repositoryUrl = "https://github.com/test-owner/test-repo";
+
 const baseInput = {
   owner: "test-owner",
   repo: "test-repo",
@@ -187,10 +193,51 @@ describe("buildReviewBody", () => {
 
         expect(output).toContain("review body");
         expect(output).toContain("<details>\n<summary>Review metadata</summary>");
-        expect(output).toContain("- Reviewed commit: a214aef83b6ce8f");
-        expect(output).toContain("- PR: #178");
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${repositoryUrl}/commit/a214aef83b6ce8f)`,
+        );
+        expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
         expect(output).toContain("- Model: claude-opus-4-7");
         expect(output).toContain("</details>");
+      }),
+    );
+
+    it.effect("GITHUB_SERVER_URLが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        // 末尾スラッシュ付きでもダブルスラッシュにならないことを同時に確かめます。
+        vi.stubEnv("GITHUB_SERVER_URL", "https://github.example.com/");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const enterpriseUrl = "https://github.example.com/test-owner/test-repo";
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${enterpriseUrl}/commit/a214aef83b6ce8f)`,
+        );
+        expect(output).toContain(`- PR: [#178](${enterpriseUrl}/pull/178)`);
+      }),
+    );
+
+    it.effect("バージョンを取得できた項目はリリースページへのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("KYOSEI_ACTION_VERSION", "2.4.0");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const releaseUrl = "https://github.com/ncaq/kyosei-action/releases/tag/v2.4.0";
+        expect(output).toContain(`- kyosei-action: [2.4.0](${releaseUrl})`);
+      }),
+    );
+
+    it.effect("バージョンがunknownの項目はリンクなし", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain("- kyosei-action: unknown\n");
+        expect(output).toContain("- Claude Code: unknown\n");
       }),
     );
 
@@ -306,6 +353,19 @@ describe("buildReviewBody", () => {
         expect(bodyIndex).toBeGreaterThanOrEqual(0);
         expect(errorsIndex).toBeGreaterThan(bodyIndex);
         expect(footerIndex).toBeGreaterThan(errorsIndex);
+      }),
+    );
+  });
+
+  it.layer(claudeVersionFakeLayer)((it) => {
+    it.effect("Claude Codeのバージョンはリリースページへのリンクになる", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const releaseUrl = "https://github.com/anthropics/claude-code/releases/tag/v2.1.234";
+        expect(output).toContain(`- Claude Code: [2.1.234](${releaseUrl})`);
       }),
     );
   });

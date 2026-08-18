@@ -122,6 +122,78 @@ describe("parseFooterMetadata", () => {
     expect(parseFooterMetadata(body)).toEqual(Option.none());
   });
 
+  test("リンク付きのフッターから表示テキストの値を復元する", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: [a214aef83b6ce8f](https://github.com/ncaq/konoka/commit/a214aef83b6ce8f)",
+      "- PR: [#178](https://github.com/ncaq/konoka/pull/178)",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://github.com/ncaq/kyosei-action/releases/tag/v2.4.0)",
+      "- Claude Code: [2.1.234](https://github.com/anthropics/claude-code/releases/tag/v2.1.234)",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      expect(restored.value.commit).toBe("a214aef83b6ce8f");
+      expect(restored.value.pr).toBe(178);
+      expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("リンク導入前に投稿された形式のフッターも復元できる", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: 2.4.0",
+      "- Claude Code: 2.1.234",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      expect(restored.value.commit).toBe("a214aef83b6ce8f");
+      expect(restored.value.pr).toBe(178);
+      expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("PR番号が数値でなければNone", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: [#one-seven-eight](https://github.com/ncaq/konoka/pull/178)",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: unknown",
+      "- Claude Code: unknown",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
   test("kyoseiバージョンがSemVer形式でなければNone(将来のフォーマット変更時のフェイルセーフ)", () => {
     const body = [
       "<details>",

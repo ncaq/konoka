@@ -26,18 +26,53 @@ const skipUntilDetails: P.Parser<C.Char, string> = pipe(
   P.map((chars) => chars.join("")),
 );
 
+/**
+ * `[{text}]({url})`形式のMarkdownリンクから表示テキストだけを取り出す。
+ * フッターはリンク付きで出力されるが、
+ * 復元したいのはリンク先ではなく表示されている値そのもの。
+ */
+const markdownLinkText: P.Parser<C.Char, string> = pipe(
+  C.char("["),
+  P.apSecond(P.manyTill(P.item<C.Char>(), C.char("]"))),
+  P.apFirst(C.char("(")),
+  P.apFirst(P.manyTill(P.item<C.Char>(), C.char(")"))),
+  P.map((chars) => chars.join("")),
+);
+
+/**
+ * 値部分をパースする。
+ * Markdownリンクならその表示テキストを、リンクでなければ行末までをそのまま値とする。
+ * リンクなしも受け付けるのは、
+ * リンクを貼らない項目があることと、
+ * リンク導入前に投稿された過去のレビューも復元できるようにするため。
+ */
+const linkedOrPlainValue: P.Parser<C.Char, string> = pipe(
+  markdownLinkText,
+  P.alt(() => restOfLine),
+);
+
 /** `- {label}: {value}\n`の1行をパースして value を返す。 */
 function labeledLine(label: string): P.Parser<C.Char, string> {
-  return pipe(S.string(`- ${label}: `), P.apSecond(restOfLine), P.apFirst(newline));
+  return pipe(
+    S.string(`- ${label}: `),
+    P.apSecond(linkedOrPlainValue),
+    P.apFirst(restOfLine),
+    P.apFirst(newline),
+  );
+}
+
+/**
+ * `#{number}`形式のテキストからPR番号を取り出す。
+ * 前後に余計な文字が付いている場合は数値化せずパース失敗として扱う。
+ */
+function toPrNumber(text: string): P.Parser<C.Char, number> {
+  const digits = text.startsWith("#") ? text.slice(1) : "";
+  const parsed = Number.parseInt(digits, 10);
+  return String(parsed) === digits ? P.succeed(parsed) : P.fail();
 }
 
 /** `- PR: #{number}\n`の値部分から数値を取り出す。 */
-const prLine: P.Parser<C.Char, number> = pipe(
-  S.string("- PR: #"),
-  P.apSecond(S.int),
-  P.apFirst(restOfLine),
-  P.apFirst(newline),
-);
+const prLine: P.Parser<C.Char, number> = pipe(labeledLine("PR"), P.chain(toPrNumber));
 
 interface ExecutionInfo {
   readonly execution: string;

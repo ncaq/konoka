@@ -7,6 +7,10 @@
  * 取得に失敗した値は行ごと消さず`unknown`として表示し、
  * 異変として目につきやすいようにしています。
  *
+ * 各項目には辿れる先があるならリンクを貼ります。
+ * リンクURLはメタデータそのものではなく表示の都合で導出する値なので、
+ * `MetadataSchema`には含めずレンダリング時のビューにだけ足します。
+ *
  * 各値の正規化(SHA形式の判定、SemVer形式の判定、空文字フォールバックなど)は、
  * 個別のヘルパー関数ではなく`Schema.transform`でスキーマ自体に組み込んでいます。
  * 不正値や未指定は`decodeUnknownSync`を通すだけで自動的に`"unknown"`に正規化されます。
@@ -19,6 +23,7 @@ import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
+import reviewMetadataLinkTemplate from "./review-metadata-link.mustache?raw";
 import {
   ExecutionSchema,
   NonEmptyStringOrUnknownSchema,
@@ -101,6 +106,90 @@ function lookupRunUrlString(): Option.Option<string> {
   );
 }
 
+/** URL文字列をパースします。形式が不正な場合は`Option.none`を返し、その項目はリンクなしで表示させます。 */
+const parseUrl = Option.liftThrowable((raw: string) => new URL(raw));
+
+/**
+ * GitHubのベースURLを取得します。
+ * GitHub Enterprise Serverでの実行も想定して`GITHUB_SERVER_URL`を優先し、
+ * ローカル実行などで設定されていない場合は公開GitHubにフォールバックします。
+ * 末尾スラッシュがあるとパスを連結した時にダブルスラッシュになるため落とします。
+ */
+function lookupServerUrl(): string {
+  const serverUrl = pickNonBlank(process.env["GITHUB_SERVER_URL"]) ?? "https://github.com";
+  return serverUrl.replace(/\/+$/, "");
+}
+
+/**
+ * SemVerのバージョンからGitHubリリースページのURLを組み立てます。
+ * リリースタグは`v`プレフィックス付きの規約に従います。
+ * バージョンを取得できず`unknown`になっている場合はリンク先が定まらないため`Option.none`を返します。
+ */
+function buildReleaseTagUrl(
+  repositoryUrl: string,
+  version: typeof SemVerOrUnknownSchema.Type,
+): Option.Option<URL> {
+  return version === "unknown"
+    ? Option.none()
+    : parseUrl(`${repositoryUrl}/releases/tag/v${version}`);
+}
+
+/** テンプレートへ渡すためにURLを文字列化します。URLが無い項目はリンクなしとして`undefined`のままにします。 */
+function toUrlString(url: Option.Option<URL>): string | undefined {
+  return Option.getOrUndefined(url)?.toString();
+}
+
+/**
+ * フッターに表示する1項目分の値。
+ * `url`があればMarkdownリンクとして、無ければプレーンテキストとしてレンダリングされます。
+ */
+interface LinkedValue {
+  readonly text: string;
+  readonly url: string | undefined;
+}
+
+/**
+ * フッターの各項目に対応するリンク付きの値を組み立てます。
+ * コミットとPRはレビュー対象リポジトリを指し、
+ * kyosei-actionとClaude Codeはそのバージョンのリリースページを指します。
+ * `owner`と`repo`はURLに現れるため、パスセグメントとしてエスケープしてから組み立てます。
+ *
+ * kyoseiバージョンとモデルにリンクを貼らないのは意図的です。
+ * kyoseiのプラグインバージョンに対応するGitタグはkonokaには存在せず(タグはマーケットプレイスバージョン)、
+ * モデル名にもバージョン固有の公式ページが存在しないため、
+ * バージョンと一致しないリンクを貼るよりリンクなしの方が正確です。
+ */
+function buildLinkedValues(
+  submission: typeof ReviewSubmissionSchema.Type,
+  view: typeof MetadataSchema.Type,
+): Record<"commit" | "pr" | "kyoseiAction" | "claudeCode", LinkedValue> {
+  const owner = encodeURIComponent(submission.owner);
+  const repo = encodeURIComponent(submission.repo);
+  const repositoryUrl = `${lookupServerUrl()}/${owner}/${repo}`;
+  return {
+    commit: {
+      text: view.commit,
+      url: toUrlString(parseUrl(`${repositoryUrl}/commit/${view.commit}`)),
+    },
+    pr: {
+      text: `#${view.pr}`,
+      url: toUrlString(parseUrl(`${repositoryUrl}/pull/${view.pr}`)),
+    },
+    kyoseiAction: {
+      text: view.kyoseiActionVersion,
+      url: toUrlString(
+        buildReleaseTagUrl("https://github.com/ncaq/kyosei-action", view.kyoseiActionVersion),
+      ),
+    },
+    claudeCode: {
+      text: view.claudeCodeVersion,
+      url: toUrlString(
+        buildReleaseTagUrl("https://github.com/anthropics/claude-code", view.claudeCodeVersion),
+      ),
+    },
+  };
+}
+
 /**
  * フッターレンダリング用のビューを構築します。
  * 各フィールドの正規化(SHA形式の判定、空文字の扱い、SemVer判定など)は`MetadataSchema`が担うため、
@@ -158,8 +247,12 @@ export function buildReviewBody(
     const renderInput = {
       ...view,
       runUrl: view.runUrl?.toString(),
+      ...buildLinkedValues(submission, view),
     };
-    const footer = mustache.render(reviewMetadataFooterTemplate, renderInput);
+    // 部分テンプレートは末尾の改行を落として、行の途中に差し込んでも改行が入らないようにします。
+    const footer = mustache.render(reviewMetadataFooterTemplate, renderInput, {
+      link: reviewMetadataLinkTemplate.trimEnd(),
+    });
     const internalErrorsSection = renderInternalErrorsSection(submission);
     return [submission.body, internalErrorsSection, footer]
       .filter((section) => section.length > 0)

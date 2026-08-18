@@ -1,11 +1,11 @@
 <details>
 <summary>Review metadata</summary>
 
-- Reviewed commit: {{commit}}
-- PR: #{{pr}}
+- Reviewed commit: {{#commit}}{{>link}}{{/commit}}
+- PR: {{#pr}}{{>link}}{{/pr}}
 - kyosei: {{kyoseiVersion}}
-- kyosei-action: {{kyoseiActionVersion}}
-- Claude Code: {{claudeCodeVersion}}
+- kyosei-action: {{#kyoseiAction}}{{>link}}{{/kyoseiAction}}
+- Claude Code: {{#claudeCode}}{{>link}}{{/claudeCode}}
 - Model: {{model}}
 - Execution: {{execution}}{{#runUrl}} ([run]({{&runUrl}})){{/runUrl}}
 
