@@ -30,6 +30,8 @@ beforeEach(() => {
   vi.stubEnv("KYOSEI_ACTION_VERSION", "");
   vi.stubEnv("GITHUB_ACTIONS", "");
   vi.stubEnv("GITHUB_SERVER_URL", "");
+  vi.stubEnv("GITHUB_API_URL", "");
+  vi.stubEnv("GH_HOST", "");
   vi.stubEnv("GITHUB_REPOSITORY", "");
   vi.stubEnv("GITHUB_RUN_ID", "");
   vi.stubEnv("CLAUDECODE", "");
@@ -215,6 +217,59 @@ describe("buildReviewBody", () => {
           `- Reviewed commit: [a214aef83b6ce8f](${enterpriseUrl}/commit/a214aef83b6ce8f)`,
         );
         expect(output).toContain(`- PR: [#178](${enterpriseUrl}/pull/178)`);
+      }),
+    );
+
+    it.effect("GITHUB_API_URLだけが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_API_URL", "https://github.example.com/api/v3");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "- PR: [#178](https://github.example.com/test-owner/test-repo/pull/178)",
+        );
+      }),
+    );
+
+    it.effect("GH_HOSTだけが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GH_HOST", "github.example.com");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "- PR: [#178](https://github.example.com/test-owner/test-repo/pull/178)",
+        );
+      }),
+    );
+
+    it.effect("ホストを解決できない値なら公開GitHubへフォールバックする", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_SERVER_URL", "not a url");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
+      }),
+    );
+
+    it.effect("run URLもGITHUB_SERVER_URLの末尾スラッシュを正規化する", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_ACTIONS", "true");
+        vi.stubEnv("GITHUB_SERVER_URL", "https://github.example.com/");
+        vi.stubEnv("GITHUB_REPOSITORY", "ncaq/konoka");
+        vi.stubEnv("GITHUB_RUN_ID", "123");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "([run](https://github.example.com/ncaq/konoka/actions/runs/123))",
+        );
       }),
     );
 
