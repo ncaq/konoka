@@ -10,6 +10,9 @@ const claudeFakeLayer = fakeCommandExecutor(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
+// `claude --version`がバージョンを返す環境を模倣します。
+const claudeVersionFakeLayer = fakeCommandExecutor(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+
 const baseInput = {
   owner: "test-owner",
   repo: "test-repo",
@@ -111,6 +114,29 @@ describe("parseFooterMetadata", () => {
         if (Option.isSome(restored)) {
           expect(restored.value.commit).toBe("a214aef83b6ce8f");
           expect(restored.value.pr).toBe(178);
+        }
+      }),
+    );
+  });
+
+  it.layer(claudeVersionFakeLayer)((it) => {
+    it.effect("リリースページリンク付きのフッターを往復で復元できる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("CLAUDECODE", "1");
+        vi.stubEnv("KYOSEI_ACTION_VERSION", "2.4.0");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const body = yield* buildReviewBody(submission);
+        const restored = parseFooterMetadata(body);
+
+        // レンダラとパーサの書式ずれはリンク付きの行で起きるため、
+        // リンクが付く条件を揃えた上で往復させます。
+        expect(body).toContain("- kyosei-action: [2.4.0](");
+        expect(body).toContain("- Claude Code: [2.1.234](");
+        expect(Option.isSome(restored)).toBe(true);
+        if (Option.isSome(restored)) {
+          expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+          expect(restored.value.claudeCodeVersion).toBe("2.1.234");
         }
       }),
     );

@@ -324,6 +324,20 @@ describe("buildReviewBody", () => {
       }),
     );
 
+    it.effect("kyoseiバージョンとModelには意図的にリンクを貼らない", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }),
+        );
+
+        const output = yield* buildReviewBody(submission);
+
+        // 対応するリンク先が存在しないため、値が取得できていてもリンクは貼りません。
+        expect(output).toMatch(/- kyosei: \d+\.\d+\.\d+\n/);
+        expect(output).toContain("- Model: claude-opus-4-7\n");
+      }),
+    );
+
     it.effect("GitHub Actions環境ではrun URLリンクが含まれる", () =>
       Effect.gen(function* () {
         vi.stubEnv("GITHUB_ACTIONS", "true");
