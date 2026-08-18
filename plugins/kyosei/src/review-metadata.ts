@@ -109,6 +109,12 @@ function lookupRunUrlString(serverUrl: string): Option.Option<string> {
   );
 }
 
+/** kyosei-actionの配布元。リリースページのリンク先に使います。 */
+const kyoseiActionRepositoryUrl = "https://github.com/ncaq/kyosei-action";
+
+/** Claude Codeの配布元。リリースページのリンク先に使います。 */
+const claudeCodeRepositoryUrl = "https://github.com/anthropics/claude-code";
+
 /** URL文字列をパースします。形式が不正な場合は`Option.none`を返し、その項目はリンクなしで表示させます。 */
 const parseUrl = Option.liftThrowable((raw: string) => new URL(raw));
 
@@ -189,6 +195,11 @@ function toSafeLinkUrl(url: Option.Option<URL>): string | undefined {
 /**
  * フッターに表示する1項目分の値。
  * `url`があればMarkdownリンクとして、無ければプレーンテキストとしてレンダリングされます。
+ *
+ * テンプレートへは`commitLink`のようにリンク用と分かるキーで渡します。
+ * `commit`のような元の値のキーを上書きしてしまうと、
+ * テンプレート側でスカラーとして参照した時に`[object Object]`が出力され、
+ * mustacheは何も警告してくれないためです。
  */
 interface LinkedValue {
   readonly text: string;
@@ -210,30 +221,26 @@ function buildLinkedValues(
   submission: typeof ReviewSubmissionSchema.Type,
   view: typeof MetadataSchema.Type,
   serverUrl: string,
-): Record<"commit" | "pr" | "kyoseiAction" | "claudeCode", LinkedValue> {
+): Record<"commitLink" | "prLink" | "kyoseiActionLink" | "claudeCodeLink", LinkedValue> {
   const owner = encodePathSegment(submission.owner);
   const repo = encodePathSegment(submission.repo);
   const repositoryUrl = `${serverUrl}/${owner}/${repo}`;
   return {
-    commit: {
+    commitLink: {
       text: view.commit,
       url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/commit/${view.commit}`)),
     },
-    pr: {
+    prLink: {
       text: `#${view.pr}`,
       url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/pull/${view.pr}`)),
     },
-    kyoseiAction: {
+    kyoseiActionLink: {
       text: view.kyoseiActionVersion,
-      url: toSafeLinkUrl(
-        buildReleaseTagUrl("https://github.com/ncaq/kyosei-action", view.kyoseiActionVersion),
-      ),
+      url: toSafeLinkUrl(buildReleaseTagUrl(kyoseiActionRepositoryUrl, view.kyoseiActionVersion)),
     },
-    claudeCode: {
+    claudeCodeLink: {
       text: view.claudeCodeVersion,
-      url: toSafeLinkUrl(
-        buildReleaseTagUrl("https://github.com/anthropics/claude-code", view.claudeCodeVersion),
-      ),
+      url: toSafeLinkUrl(buildReleaseTagUrl(claudeCodeRepositoryUrl, view.claudeCodeVersion)),
     },
   };
 }
