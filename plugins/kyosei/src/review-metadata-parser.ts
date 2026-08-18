@@ -30,35 +30,57 @@ const skipUntilDetails: P.Parser<C.Char, string> = pipe(
  * `[{text}]({url})`形式のMarkdownリンクから表示テキストだけを取り出す。
  * フッターはリンク付きで出力されるが、
  * 復元したいのはリンク先ではなく表示されている値そのもの。
+ * 1行ずつ切り出した文字列に対して使うため、走査に改行は含めない。
  */
 const markdownLinkText: P.Parser<C.Char, string> = pipe(
   C.char("["),
-  P.apSecond(P.manyTill(P.item<C.Char>(), C.char("]"))),
+  P.apSecond(P.manyTill(C.notChar("\n"), C.char("]"))),
   P.apFirst(C.char("(")),
-  P.apFirst(P.manyTill(P.item<C.Char>(), C.char(")"))),
+  P.apFirst(P.manyTill(C.notChar("\n"), C.char(")"))),
   P.map((chars) => chars.join("")),
 );
 
 /**
- * 値部分をパースする。
- * Markdownリンクならその表示テキストを、リンクでなければ行末までをそのまま値とする。
- * リンクなしも受け付けるのは、
- * リンクを貼らない項目があることと、
- * リンク導入前に投稿された過去のレビューも復元できるようにするため。
+ * 1行分の値にリンクパーサーを適用して、表示テキストと消費しきれなかった残りを返す。
+ * リンクとして閉じていなければ`Option.none`。
+ */
+function runMarkdownLink(line: string): Option.Option<{ text: string; rest: string }> {
+  const result = markdownLinkText(stream(line.split(""), 0));
+  if (!isRight(result)) {
+    return Option.none();
+  }
+  return Option.some({
+    text: result.right.value,
+    rest: line.slice(result.right.next.cursor),
+  });
+}
+
+/**
+ * 行末までの文字列を値として解釈する。
+ *
+ * - リンクとして閉じていて行がそこで終わっていれば、その表示テキストが値。
+ * - リンクとして閉じているのに後ろに文字が残っている行は壊れたフッターなのでパース失敗にする。
+ *   壊れた行を正常な値として復元するより、通常レビューへフォールバックする方が安全なため。
+ * - そもそもリンクとして閉じていなければ、行末までをそのままプレーンな値として扱う。
+ *   リンクを貼らない項目や、リンク導入前に投稿された過去のレビューがこの経路になる。
  */
 const linkedOrPlainValue: P.Parser<C.Char, string> = pipe(
-  markdownLinkText,
-  P.alt(() => restOfLine),
+  restOfLine,
+  P.chain((line) =>
+    Option.match(runMarkdownLink(line), {
+      onNone: () => P.succeed<C.Char, string>(line),
+      onSome: ({ text, rest }) =>
+        rest === "" ? P.succeed<C.Char, string>(text) : P.fail<C.Char, string>(),
+    }),
+  ),
 );
 
-/** `- {label}: {value}\n`の1行をパースして value を返す。 */
+/**
+ * `- {label}: {value}\n`の1行をパースして value を返す。
+ * 値が`[表示テキスト](URL)`形式のときは表示テキストを返す。
+ */
 function labeledLine(label: string): P.Parser<C.Char, string> {
-  return pipe(
-    S.string(`- ${label}: `),
-    P.apSecond(linkedOrPlainValue),
-    P.apFirst(restOfLine),
-    P.apFirst(newline),
-  );
+  return pipe(S.string(`- ${label}: `), P.apSecond(linkedOrPlainValue), P.apFirst(newline));
 }
 
 /**
