@@ -10,6 +10,12 @@ const claudeFakeLayer = fakeCommandExecutor(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
+// `claude --version`がバージョンを返す環境を模倣します。
+const claudeVersionFakeLayer = fakeCommandExecutor(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+
+// `baseInput`のリポジトリに対応するリンク先。
+const repositoryUrl = "https://github.com/test-owner/test-repo";
+
 const baseInput = {
   owner: "test-owner",
   repo: "test-repo",
@@ -24,6 +30,8 @@ beforeEach(() => {
   vi.stubEnv("KYOSEI_ACTION_VERSION", "");
   vi.stubEnv("GITHUB_ACTIONS", "");
   vi.stubEnv("GITHUB_SERVER_URL", "");
+  vi.stubEnv("GITHUB_API_URL", "");
+  vi.stubEnv("GH_HOST", "");
   vi.stubEnv("GITHUB_REPOSITORY", "");
   vi.stubEnv("GITHUB_RUN_ID", "");
   vi.stubEnv("CLAUDECODE", "");
@@ -125,7 +133,7 @@ describe("buildFooterView", () => {
           JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }),
         );
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.commit).toBe("a214aef83b6ce8f");
         expect(view.pr).toBe(178);
@@ -145,7 +153,7 @@ describe("buildFooterView", () => {
         vi.stubEnv("GITHUB_RUN_ID", "123");
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.execution).toBe("GitHub Actions");
         expect(view.runUrl).toEqual(new URL("https://github.com/ncaq/konoka/actions/runs/123"));
@@ -157,7 +165,7 @@ describe("buildFooterView", () => {
         vi.stubEnv("KYOSEI_ACTION_VERSION", "1.4.0");
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.kyoseiActionVersion).toBe("1.4.0");
       }),
@@ -167,7 +175,7 @@ describe("buildFooterView", () => {
       Effect.gen(function* () {
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.model).toBe("unknown");
       }),
@@ -187,10 +195,146 @@ describe("buildReviewBody", () => {
 
         expect(output).toContain("review body");
         expect(output).toContain("<details>\n<summary>Review metadata</summary>");
-        expect(output).toContain("- Reviewed commit: a214aef83b6ce8f");
-        expect(output).toContain("- PR: #178");
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${repositoryUrl}/commit/a214aef83b6ce8f)`,
+        );
+        expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
         expect(output).toContain("- Model: claude-opus-4-7");
         expect(output).toContain("</details>");
+      }),
+    );
+
+    it.effect("GITHUB_SERVER_URLが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        // 末尾スラッシュ付きでもダブルスラッシュにならないことを同時に確かめます。
+        vi.stubEnv("GITHUB_SERVER_URL", "https://github.example.com/");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const enterpriseUrl = "https://github.example.com/test-owner/test-repo";
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${enterpriseUrl}/commit/a214aef83b6ce8f)`,
+        );
+        expect(output).toContain(`- PR: [#178](${enterpriseUrl}/pull/178)`);
+      }),
+    );
+
+    it.effect("GITHUB_API_URLだけが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_API_URL", "https://github.example.com/api/v3");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "- PR: [#178](https://github.example.com/test-owner/test-repo/pull/178)",
+        );
+      }),
+    );
+
+    it.effect("GH_HOSTだけが設定されていればそのホストのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GH_HOST", "github.example.com");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "- PR: [#178](https://github.example.com/test-owner/test-repo/pull/178)",
+        );
+      }),
+    );
+
+    it.effect("ホストを解決できない値なら公開GitHubへフォールバックする", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_SERVER_URL", "not a url");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
+      }),
+    );
+
+    it.effect("run URLもGITHUB_SERVER_URLの末尾スラッシュを正規化する", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GITHUB_ACTIONS", "true");
+        vi.stubEnv("GITHUB_SERVER_URL", "https://github.example.com/");
+        vi.stubEnv("GITHUB_REPOSITORY", "ncaq/konoka");
+        vi.stubEnv("GITHUB_RUN_ID", "123");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain(
+          "([run](https://github.example.com/ncaq/konoka/actions/runs/123))",
+        );
+      }),
+    );
+
+    it.effect("ownerやrepoに記号が含まれてもリンクが壊れない", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, owner: "test)owner", repo: "test]repo" }),
+        );
+
+        const output = yield* buildReviewBody(submission);
+
+        const escapedUrl = "https://github.com/test%29owner/test%5Drepo";
+        expect(output).toContain(`- PR: [#178](${escapedUrl}/pull/178)`);
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${escapedUrl}/commit/a214aef83b6ce8f)`,
+        );
+      }),
+    );
+
+    it.effect("ホスト名に記号が含まれる場合はリンクを貼らない", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GH_HOST", "github.example.com)evil");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain("- Reviewed commit: a214aef83b6ce8f\n");
+        expect(output).toContain("- PR: #178\n");
+      }),
+    );
+
+    it.effect("バージョンを取得できた項目はリリースページへのリンクになる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("KYOSEI_ACTION_VERSION", "2.4.0");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const releaseUrl = "https://github.com/ncaq/kyosei-action/releases/tag/v2.4.0";
+        expect(output).toContain(`- kyosei-action: [2.4.0](${releaseUrl})`);
+      }),
+    );
+
+    it.effect("バージョンがunknownの項目はリンクなし", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain("- kyosei-action: unknown\n");
+        expect(output).toContain("- Claude Code: unknown\n");
+      }),
+    );
+
+    it.effect("kyoseiバージョンとModelには意図的にリンクを貼らない", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }),
+        );
+
+        const output = yield* buildReviewBody(submission);
+
+        // 対応するリンク先が存在しないため、値が取得できていてもリンクは貼りません。
+        expect(output).toMatch(/- kyosei: \d+\.\d+\.\d+\n/);
+        expect(output).toContain("- Model: claude-opus-4-7\n");
       }),
     );
 
@@ -306,6 +450,19 @@ describe("buildReviewBody", () => {
         expect(bodyIndex).toBeGreaterThanOrEqual(0);
         expect(errorsIndex).toBeGreaterThan(bodyIndex);
         expect(footerIndex).toBeGreaterThan(errorsIndex);
+      }),
+    );
+  });
+
+  it.layer(claudeVersionFakeLayer)((it) => {
+    it.effect("Claude Codeのバージョンはリリースページへのリンクになる", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        const releaseUrl = "https://github.com/anthropics/claude-code/releases/tag/v2.1.234";
+        expect(output).toContain(`- Claude Code: [2.1.234](${releaseUrl})`);
       }),
     );
   });

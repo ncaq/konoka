@@ -7,6 +7,10 @@
  * 取得に失敗した値は行ごと消さず`unknown`として表示し、
  * 異変として目につきやすいようにしています。
  *
+ * 各項目には辿れる先があるならリンクを貼ります。
+ * リンクURLはメタデータそのものではなく表示の都合で導出する値なので、
+ * `MetadataSchema`には含めずレンダリング時のビューにだけ足します。
+ *
  * 各値の正規化(SHA形式の判定、SemVer形式の判定、空文字フォールバックなど)は、
  * 個別のヘルパー関数ではなく`Schema.transform`でスキーマ自体に組み込んでいます。
  * 不正値や未指定は`decodeUnknownSync`を通すだけで自動的に`"unknown"`に正規化されます。
@@ -17,8 +21,10 @@ import { Command, type CommandExecutor } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
+import { getGitHubHostname } from "./github-host";
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
+import reviewMetadataLinkTemplate from "./review-metadata-link.mustache?raw";
 import {
   ExecutionSchema,
   NonEmptyStringOrUnknownSchema,
@@ -88,17 +94,155 @@ function lookupExecution(): typeof ExecutionSchema.Type {
   return "unknown";
 }
 
-/** GitHub Actions環境変数からRun URLの文字列を組み立てます。1つでも欠けていれば`Option.none`を返します。 */
-function lookupRunUrlString(): Option.Option<string> {
+/**
+ * GitHub Actions環境変数からRun URLの文字列を組み立てます。
+ * リポジトリと実行IDのどちらかが欠けていれば`Option.none`を返します。
+ * ホストは`lookupServerUrl`が解決したものを使い、
+ * リンクのホストと同じ正規化を通します。
+ */
+function lookupRunUrlString(serverUrl: string): Option.Option<string> {
   return Option.all({
-    serverUrl: Option.fromNullable(pickNonBlank(process.env["GITHUB_SERVER_URL"])),
     repository: Option.fromNullable(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
     runId: Option.fromNullable(pickNonBlank(process.env["GITHUB_RUN_ID"])),
   }).pipe(
-    Option.map(
-      ({ serverUrl, repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`,
+    Option.map(({ repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`),
+  );
+}
+
+/** kyosei-actionの配布元。リリースページのリンク先に使います。 */
+const kyoseiActionRepositoryUrl = "https://github.com/ncaq/kyosei-action";
+
+/** Claude Codeの配布元。リリースページのリンク先に使います。 */
+const claudeCodeRepositoryUrl = "https://github.com/anthropics/claude-code";
+
+/** URL文字列をパースします。形式が不正な場合は`Option.none`を返し、その項目はリンクなしで表示させます。 */
+const parseUrl = Option.liftThrowable((raw: string) => new URL(raw));
+
+/**
+ * GitHubのwebのベースURLを決定します。
+ * ホスト名の解決はAPIクライアントと同じ`getGitHubHostname`に委ねるため、
+ * GitHub Enterprise Serverで`GH_HOST`しか設定されていないような環境でも、
+ * レビューの投稿先とリンク先が食い違いません。
+ * 解決したホスト名だけを採用して`https`を明示的に組み立てるので、
+ * 環境変数に入っていた末尾スラッシュや`https`以外のスキームは持ち込まれません。
+ * 環境変数が壊れていてホストを解決できない場合は、
+ * 警告ログを残して公開GitHubへフォールバックします。
+ */
+function lookupServerUrl(): Effect.Effect<string> {
+  return getGitHubHostname().pipe(
+    Effect.map((hostname) => `https://${hostname}`),
+    Effect.catchAll((error) =>
+      Effect.logWarning(`failed to resolve GitHub hostname from ${error.name}`).pipe(
+        Effect.as("https://github.com"),
+      ),
     ),
   );
+}
+
+/**
+ * SemVerのバージョンからGitHubリリースページのURLを組み立てます。
+ * リリースタグは`v`プレフィックス付きの規約に従います。
+ * バージョンを取得できず`unknown`になっている場合はリンク先が定まらないため`Option.none`を返します。
+ */
+function buildReleaseTagUrl(
+  repositoryUrl: string,
+  version: typeof SemVerOrUnknownSchema.Type,
+): Option.Option<URL> {
+  return version === "unknown"
+    ? Option.none()
+    : parseUrl(`${repositoryUrl}/releases/tag/v${version}`);
+}
+
+/**
+ * URLのパスセグメントとしてエスケープします。
+ * `encodeURIComponent`は`!'()*~`をエスケープせずに残すため、
+ * それらを含む`owner`や`repo`はMarkdownリンクを途中で閉じさせてしまいます。
+ * 残る記号もパーセントエンコードして、リンクの構造を壊せないようにします。
+ */
+function encodePathSegment(segment: string): string {
+  return encodeURIComponent(segment).replace(
+    /[!'()*~]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+/**
+ * Markdownリンクとして埋め込めない文字。
+ * 空白と制御文字、リンクの構造に使う記号を対象にします。
+ */
+// eslint-disable-next-line no-control-regex
+const unsafeLinkPattern = /[\s()<>[\]\\\u0000-\u001f]/;
+
+/**
+ * テンプレートへ渡すためにURLを文字列化します。
+ * URLが無い項目はリンクなしとして`undefined`のままにします。
+ *
+ * 自分で組み立てた部分は`encodePathSegment`で防御していますが、
+ * ホスト名は環境変数由来で任意の記号を含み得ます。
+ * `https`以外のスキームや、
+ * Markdownリンクの構造を壊す記号や空白が残っている場合は、
+ * 壊れたリンクを出すよりプレーン表示に落とす方が安全なので`undefined`を返します。
+ */
+function toSafeLinkUrl(url: Option.Option<URL>): string | undefined {
+  return Option.getOrUndefined(
+    url.pipe(
+      Option.map((value) => value.toString()),
+      Option.filter((value) => value.startsWith("https://") && !unsafeLinkPattern.test(value)),
+    ),
+  );
+}
+
+/**
+ * フッターに表示する1項目分の値。
+ * `url`があればMarkdownリンクとして、無ければプレーンテキストとしてレンダリングされます。
+ *
+ * テンプレートへは`commitLink`のようにリンク用と分かるキーで渡します。
+ * `commit`のような元の値のキーを上書きしてしまうと、
+ * テンプレート側でスカラーとして参照した時に`[object Object]`が出力され、
+ * mustacheは何も警告してくれないためです。
+ */
+interface LinkedValue {
+  readonly text: string;
+  readonly url: string | undefined;
+}
+
+/**
+ * フッターの各項目に対応するリンク付きの値を組み立てます。
+ * コミットとPRはレビュー対象リポジトリを指し、
+ * kyosei-actionとClaude Codeはそのバージョンのリリースページを指します。
+ * `owner`と`repo`はURLに現れるため、`encodePathSegment`でエスケープしてから組み立てます。
+ *
+ * kyoseiバージョンとモデルにリンクを貼らないのは意図的です。
+ * kyoseiのプラグインバージョンに対応するGitタグはkonokaには存在せず(タグはマーケットプレイスバージョン)、
+ * モデル名にもバージョン固有の公式ページが存在しないため、
+ * バージョンと一致しないリンクを貼るよりリンクなしの方が正確です。
+ */
+function buildLinkedValues(
+  submission: typeof ReviewSubmissionSchema.Type,
+  view: typeof MetadataSchema.Type,
+  serverUrl: string,
+): Record<"commitLink" | "prLink" | "kyoseiActionLink" | "claudeCodeLink", LinkedValue> {
+  const owner = encodePathSegment(submission.owner);
+  const repo = encodePathSegment(submission.repo);
+  const repositoryUrl = `${serverUrl}/${owner}/${repo}`;
+  return {
+    commitLink: {
+      text: view.commit,
+      url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/commit/${view.commit}`)),
+    },
+    prLink: {
+      text: `#${view.pr}`,
+      url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/pull/${view.pr}`)),
+    },
+    kyoseiActionLink: {
+      text: view.kyoseiActionVersion,
+      url: toSafeLinkUrl(buildReleaseTagUrl(kyoseiActionRepositoryUrl, view.kyoseiActionVersion)),
+    },
+    claudeCodeLink: {
+      text: view.claudeCodeVersion,
+      url: toSafeLinkUrl(buildReleaseTagUrl(claudeCodeRepositoryUrl, view.claudeCodeVersion)),
+    },
+  };
 }
 
 /**
@@ -108,10 +252,11 @@ function lookupRunUrlString(): Option.Option<string> {
  */
 export function buildFooterView(
   submission: typeof ReviewSubmissionSchema.Type,
+  serverUrl: string,
 ): Effect.Effect<typeof MetadataSchema.Type, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     const claudeCodeVersion = yield* detectClaudeCodeVersion();
-    const runUrl = lookupRunUrlString();
+    const runUrl = lookupRunUrlString(serverUrl);
     // 不正値は`MetadataSchema`が`"unknown"`に正規化するため、
     // デコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
     return yield* Effect.orDie(
@@ -154,12 +299,17 @@ export function buildReviewBody(
   submission: typeof ReviewSubmissionSchema.Type,
 ): Effect.Effect<string, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const view = yield* buildFooterView(submission);
+    const serverUrl = yield* lookupServerUrl();
+    const view = yield* buildFooterView(submission, serverUrl);
     const renderInput = {
       ...view,
       runUrl: view.runUrl?.toString(),
+      ...buildLinkedValues(submission, view, serverUrl),
     };
-    const footer = mustache.render(reviewMetadataFooterTemplate, renderInput);
+    // 部分テンプレートは末尾の改行を落として、行の途中に差し込んでも改行が入らないようにします。
+    const footer = mustache.render(reviewMetadataFooterTemplate, renderInput, {
+      link: reviewMetadataLinkTemplate.trimEnd(),
+    });
     const internalErrorsSection = renderInternalErrorsSection(submission);
     return [submission.body, internalErrorsSection, footer]
       .filter((section) => section.length > 0)

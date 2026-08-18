@@ -10,6 +10,9 @@ const claudeFakeLayer = fakeCommandExecutor(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
+// `claude --version`がバージョンを返す環境を模倣します。
+const claudeVersionFakeLayer = fakeCommandExecutor(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+
 const baseInput = {
   owner: "test-owner",
   repo: "test-repo",
@@ -32,6 +35,24 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
 });
+
+/** PR行だけを差し替えられるフッターを組み立てます。 */
+function footerLines({ pr }: { pr: string }): string {
+  return [
+    "<details>",
+    "<summary>Review metadata</summary>",
+    "",
+    "- Reviewed commit: a214aef83b6ce8f",
+    pr,
+    "- kyosei: 3.3.0",
+    "- kyosei-action: unknown",
+    "- Claude Code: unknown",
+    "- Model: claude-opus-4-7",
+    "- Execution: Claude Code CLI",
+    "",
+    "</details>",
+  ].join("\n");
+}
 
 describe("parseFooterMetadata", () => {
   it.layer(claudeFakeLayer)((it) => {
@@ -78,6 +99,49 @@ describe("parseFooterMetadata", () => {
     );
   });
 
+  it.layer(claudeFakeLayer)((it) => {
+    it.effect("ownerやrepoに記号が含まれるフッターも往復で復元できる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("CLAUDECODE", "1");
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, owner: "test)owner", repo: "test]repo" }),
+        );
+
+        const body = yield* buildReviewBody(submission);
+        const restored = parseFooterMetadata(body);
+
+        expect(Option.isSome(restored)).toBe(true);
+        if (Option.isSome(restored)) {
+          expect(restored.value.commit).toBe("a214aef83b6ce8f");
+          expect(restored.value.pr).toBe(178);
+        }
+      }),
+    );
+  });
+
+  it.layer(claudeVersionFakeLayer)((it) => {
+    it.effect("リリースページリンク付きのフッターを往復で復元できる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("CLAUDECODE", "1");
+        vi.stubEnv("KYOSEI_ACTION_VERSION", "2.4.0");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const body = yield* buildReviewBody(submission);
+        const restored = parseFooterMetadata(body);
+
+        // レンダラとパーサの書式ずれはリンク付きの行で起きるため、
+        // リンクが付く条件を揃えた上で往復させます。
+        expect(body).toContain("- kyosei-action: [2.4.0](");
+        expect(body).toContain("- Claude Code: [2.1.234](");
+        expect(Option.isSome(restored)).toBe(true);
+        if (Option.isSome(restored)) {
+          expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+          expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+        }
+      }),
+    );
+  });
+
   test("メタデータブロックが存在しない場合はNone", () => {
     expect(parseFooterMetadata("just a body without metadata")).toEqual(Option.none());
   });
@@ -119,6 +183,133 @@ describe("parseFooterMetadata", () => {
       "",
       "</details>",
     ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("リンク付きのフッターから表示テキストの値を復元する", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: [a214aef83b6ce8f](https://github.com/ncaq/konoka/commit/a214aef83b6ce8f)",
+      "- PR: [#178](https://github.com/ncaq/konoka/pull/178)",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://github.com/ncaq/kyosei-action/releases/tag/v2.4.0)",
+      "- Claude Code: [2.1.234](https://github.com/anthropics/claude-code/releases/tag/v2.1.234)",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      expect(restored.value.commit).toBe("a214aef83b6ce8f");
+      expect(restored.value.pr).toBe(178);
+      expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("リンク導入前に投稿された形式のフッターも復元できる", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: 2.4.0",
+      "- Claude Code: 2.1.234",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      expect(restored.value.commit).toBe("a214aef83b6ce8f");
+      expect(restored.value.pr).toBe(178);
+      expect(restored.value.kyoseiActionVersion).toBe("2.4.0");
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("PR番号が数値でなければNone", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: [#one-seven-eight](https://github.com/ncaq/konoka/pull/178)",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: unknown",
+      "- Claude Code: unknown",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("閉じていないリンクは次の行を巻き込まない", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://example.com",
+      "- Claude Code: [2.1.234](https://github.com/anthropics/claude-code/releases/tag/v2.1.234)",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      // 閉じていないリンクは値として解釈できないため`unknown`になります。
+      expect(restored.value.kyoseiActionVersion).toBe("unknown");
+      // 次の行は巻き込まれずそのまま復元できます。
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("リンクの後ろに余計な文字がある行はNone", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://example.com/x) 余計な文字列",
+      "- Claude Code: unknown",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("PR番号に`#`が無ければNone", () => {
+    const body = footerLines({ pr: "- PR: 178" });
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("PR番号の後ろに文字が続けばNone", () => {
+    const body = footerLines({ pr: "- PR: #178 (draft)" });
     expect(parseFooterMetadata(body)).toEqual(Option.none());
   });
 
