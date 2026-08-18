@@ -214,6 +214,51 @@ describe("parseFooterMetadata", () => {
     expect(parseFooterMetadata(body)).toEqual(Option.none());
   });
 
+  test("閉じていないリンクは次の行を巻き込まない", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://example.com",
+      "- Claude Code: [2.1.234](https://github.com/anthropics/claude-code/releases/tag/v2.1.234)",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+
+    const restored = parseFooterMetadata(body);
+
+    expect(Option.isSome(restored)).toBe(true);
+    if (Option.isSome(restored)) {
+      // 閉じていないリンクは値として解釈できないため`unknown`になります。
+      expect(restored.value.kyoseiActionVersion).toBe("unknown");
+      // 次の行は巻き込まれずそのまま復元できます。
+      expect(restored.value.claudeCodeVersion).toBe("2.1.234");
+    }
+  });
+
+  test("リンクの後ろに余計な文字がある行はNone", () => {
+    const body = [
+      "<details>",
+      "<summary>Review metadata</summary>",
+      "",
+      "- Reviewed commit: a214aef83b6ce8f",
+      "- PR: #178",
+      "- kyosei: 3.3.0",
+      "- kyosei-action: [2.4.0](https://example.com/x) 余計な文字列",
+      "- Claude Code: unknown",
+      "- Model: claude-opus-4-7",
+      "- Execution: Claude Code CLI",
+      "",
+      "</details>",
+    ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
   test("kyoseiバージョンがSemVer形式でなければNone(将来のフォーマット変更時のフェイルセーフ)", () => {
     const body = [
       "<details>",
