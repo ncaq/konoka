@@ -85,7 +85,8 @@ function labeledLine(label: string): P.Parser<C.Char, string> {
 
 /**
  * `#{number}`形式のテキストからPR番号を取り出す。
- * 前後に余計な文字が付いている場合は数値化せずパース失敗として扱う。
+ * `#`が無い場合や前後に余計な文字が付いている場合は、
+ * 数値化せずパース失敗として扱う。
  */
 function toPrNumber(text: string): P.Parser<C.Char, number> {
   const digits = text.startsWith("#") ? text.slice(1) : "";
@@ -93,7 +94,11 @@ function toPrNumber(text: string): P.Parser<C.Char, number> {
   return String(parsed) === digits ? P.succeed(parsed) : P.fail();
 }
 
-/** `- PR: #{number}\n`の値部分から数値を取り出す。 */
+/**
+ * `- PR: #{number}\n`の1行から数値を取り出す。
+ * 値は`labeledLine`を通すため、リンク形式の`- PR: [#{number}](URL)`も受け付ける。
+ * 数値化できない値の場合はパース失敗になる。
+ */
 const prLine: P.Parser<C.Char, number> = pipe(labeledLine("PR"), P.chain(toPrNumber));
 
 interface ExecutionInfo {

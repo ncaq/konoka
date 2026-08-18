@@ -33,6 +33,24 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+/** PR行だけを差し替えられるフッターを組み立てます。 */
+function footerLines({ pr }: { pr: string }): string {
+  return [
+    "<details>",
+    "<summary>Review metadata</summary>",
+    "",
+    "- Reviewed commit: a214aef83b6ce8f",
+    pr,
+    "- kyosei: 3.3.0",
+    "- kyosei-action: unknown",
+    "- Claude Code: unknown",
+    "- Model: claude-opus-4-7",
+    "- Execution: Claude Code CLI",
+    "",
+    "</details>",
+  ].join("\n");
+}
+
 describe("parseFooterMetadata", () => {
   it.layer(claudeFakeLayer)((it) => {
     it.effect("ローカル実行で生成したフッターを往復で復元できる", () =>
@@ -256,6 +274,16 @@ describe("parseFooterMetadata", () => {
       "",
       "</details>",
     ].join("\n");
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("PR番号に`#`が無ければNone", () => {
+    const body = footerLines({ pr: "- PR: 178" });
+    expect(parseFooterMetadata(body)).toEqual(Option.none());
+  });
+
+  test("PR番号の後ろに文字が続けばNone", () => {
+    const body = footerLines({ pr: "- PR: #178 (draft)" });
     expect(parseFooterMetadata(body)).toEqual(Option.none());
   });
 
