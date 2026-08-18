@@ -273,6 +273,34 @@ describe("buildReviewBody", () => {
       }),
     );
 
+    it.effect("ownerやrepoに記号が含まれてもリンクが壊れない", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, owner: "test)owner", repo: "test]repo" }),
+        );
+
+        const output = yield* buildReviewBody(submission);
+
+        const escapedUrl = "https://github.com/test%29owner/test%5Drepo";
+        expect(output).toContain(`- PR: [#178](${escapedUrl}/pull/178)`);
+        expect(output).toContain(
+          `- Reviewed commit: [a214aef83b6ce8f](${escapedUrl}/commit/a214aef83b6ce8f)`,
+        );
+      }),
+    );
+
+    it.effect("ホスト名に記号が含まれる場合はリンクを貼らない", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("GH_HOST", "github.example.com)evil");
+        const submission = decodeReviewSubmission(JSON.stringify(baseInput));
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(output).toContain("- Reviewed commit: a214aef83b6ce8f\n");
+        expect(output).toContain("- PR: #178\n");
+      }),
+    );
+
     it.effect("バージョンを取得できた項目はリリースページへのリンクになる", () =>
       Effect.gen(function* () {
         vi.stubEnv("KYOSEI_ACTION_VERSION", "2.4.0");

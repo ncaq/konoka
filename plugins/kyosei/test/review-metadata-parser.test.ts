@@ -78,6 +78,26 @@ describe("parseFooterMetadata", () => {
     );
   });
 
+  it.layer(claudeFakeLayer)((it) => {
+    it.effect("ownerやrepoに記号が含まれるフッターも往復で復元できる", () =>
+      Effect.gen(function* () {
+        vi.stubEnv("CLAUDECODE", "1");
+        const submission = decodeReviewSubmission(
+          JSON.stringify({ ...baseInput, owner: "test)owner", repo: "test]repo" }),
+        );
+
+        const body = yield* buildReviewBody(submission);
+        const restored = parseFooterMetadata(body);
+
+        expect(Option.isSome(restored)).toBe(true);
+        if (Option.isSome(restored)) {
+          expect(restored.value.commit).toBe("a214aef83b6ce8f");
+          expect(restored.value.pr).toBe(178);
+        }
+      }),
+    );
+  });
+
   test("メタデータブロックが存在しない場合はNone", () => {
     expect(parseFooterMetadata("just a body without metadata")).toEqual(Option.none());
   });
