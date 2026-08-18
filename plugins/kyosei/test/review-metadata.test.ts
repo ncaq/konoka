@@ -133,7 +133,7 @@ describe("buildFooterView", () => {
           JSON.stringify({ ...baseInput, metadata: { model: "claude-opus-4-7" } }),
         );
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.commit).toBe("a214aef83b6ce8f");
         expect(view.pr).toBe(178);
@@ -153,7 +153,7 @@ describe("buildFooterView", () => {
         vi.stubEnv("GITHUB_RUN_ID", "123");
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.execution).toBe("GitHub Actions");
         expect(view.runUrl).toEqual(new URL("https://github.com/ncaq/konoka/actions/runs/123"));
@@ -165,7 +165,7 @@ describe("buildFooterView", () => {
         vi.stubEnv("KYOSEI_ACTION_VERSION", "1.4.0");
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.kyoseiActionVersion).toBe("1.4.0");
       }),
@@ -175,7 +175,7 @@ describe("buildFooterView", () => {
       Effect.gen(function* () {
         const submission = decodeReviewSubmission(JSON.stringify(baseInput));
 
-        const view = yield* buildFooterView(submission);
+        const view = yield* buildFooterView(submission, "https://github.com");
 
         expect(view.model).toBe("unknown");
       }),

@@ -21,6 +21,7 @@ import { Command, type CommandExecutor } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
 import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
+import { getGitHubHostname } from "./github-host";
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
 import reviewMetadataLinkTemplate from "./review-metadata-link.mustache?raw";
@@ -93,16 +94,18 @@ function lookupExecution(): typeof ExecutionSchema.Type {
   return "unknown";
 }
 
-/** GitHub Actions環境変数からRun URLの文字列を組み立てます。1つでも欠けていれば`Option.none`を返します。 */
-function lookupRunUrlString(): Option.Option<string> {
+/**
+ * GitHub Actions環境変数からRun URLの文字列を組み立てます。
+ * リポジトリと実行IDのどちらかが欠けていれば`Option.none`を返します。
+ * ホストは`lookupServerUrl`が解決したものを使い、
+ * リンクのホストと同じ正規化を通します。
+ */
+function lookupRunUrlString(serverUrl: string): Option.Option<string> {
   return Option.all({
-    serverUrl: Option.fromNullable(pickNonBlank(process.env["GITHUB_SERVER_URL"])),
     repository: Option.fromNullable(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
     runId: Option.fromNullable(pickNonBlank(process.env["GITHUB_RUN_ID"])),
   }).pipe(
-    Option.map(
-      ({ serverUrl, repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`,
-    ),
+    Option.map(({ repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`),
   );
 }
 
@@ -110,14 +113,24 @@ function lookupRunUrlString(): Option.Option<string> {
 const parseUrl = Option.liftThrowable((raw: string) => new URL(raw));
 
 /**
- * GitHubのベースURLを取得します。
- * GitHub Enterprise Serverでの実行も想定して`GITHUB_SERVER_URL`を優先し、
- * ローカル実行などで設定されていない場合は公開GitHubにフォールバックします。
- * 末尾スラッシュがあるとパスを連結した時にダブルスラッシュになるため落とします。
+ * GitHubのwebのベースURLを決定します。
+ * ホスト名の解決はAPIクライアントと同じ`getGitHubHostname`に委ねるため、
+ * GitHub Enterprise Serverで`GH_HOST`しか設定されていないような環境でも、
+ * レビューの投稿先とリンク先が食い違いません。
+ * 解決したホスト名だけを採用して`https`を明示的に組み立てるので、
+ * 環境変数に入っていた末尾スラッシュや`https`以外のスキームは持ち込まれません。
+ * 環境変数が壊れていてホストを解決できない場合は、
+ * 警告ログを残して公開GitHubへフォールバックします。
  */
-function lookupServerUrl(): string {
-  const serverUrl = pickNonBlank(process.env["GITHUB_SERVER_URL"]) ?? "https://github.com";
-  return serverUrl.replace(/\/+$/, "");
+function lookupServerUrl(): Effect.Effect<string> {
+  return getGitHubHostname().pipe(
+    Effect.map((hostname) => `https://${hostname}`),
+    Effect.catchAll((error) =>
+      Effect.logWarning(`failed to resolve GitHub hostname from ${error.name}`).pipe(
+        Effect.as("https://github.com"),
+      ),
+    ),
+  );
 }
 
 /**
@@ -162,10 +175,11 @@ interface LinkedValue {
 function buildLinkedValues(
   submission: typeof ReviewSubmissionSchema.Type,
   view: typeof MetadataSchema.Type,
+  serverUrl: string,
 ): Record<"commit" | "pr" | "kyoseiAction" | "claudeCode", LinkedValue> {
   const owner = encodeURIComponent(submission.owner);
   const repo = encodeURIComponent(submission.repo);
-  const repositoryUrl = `${lookupServerUrl()}/${owner}/${repo}`;
+  const repositoryUrl = `${serverUrl}/${owner}/${repo}`;
   return {
     commit: {
       text: view.commit,
@@ -197,10 +211,11 @@ function buildLinkedValues(
  */
 export function buildFooterView(
   submission: typeof ReviewSubmissionSchema.Type,
+  serverUrl: string,
 ): Effect.Effect<typeof MetadataSchema.Type, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
     const claudeCodeVersion = yield* detectClaudeCodeVersion();
-    const runUrl = lookupRunUrlString();
+    const runUrl = lookupRunUrlString(serverUrl);
     // 不正値は`MetadataSchema`が`"unknown"`に正規化するため、
     // デコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
     return yield* Effect.orDie(
@@ -243,11 +258,12 @@ export function buildReviewBody(
   submission: typeof ReviewSubmissionSchema.Type,
 ): Effect.Effect<string, never, CommandExecutor.CommandExecutor> {
   return Effect.gen(function* () {
-    const view = yield* buildFooterView(submission);
+    const serverUrl = yield* lookupServerUrl();
+    const view = yield* buildFooterView(submission, serverUrl);
     const renderInput = {
       ...view,
       runUrl: view.runUrl?.toString(),
-      ...buildLinkedValues(submission, view),
+      ...buildLinkedValues(submission, view, serverUrl),
     };
     // 部分テンプレートは末尾の改行を落として、行の途中に差し込んでも改行が入らないようにします。
     const footer = mustache.render(reviewMetadataFooterTemplate, renderInput, {
