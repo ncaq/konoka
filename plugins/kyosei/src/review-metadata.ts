@@ -147,9 +147,43 @@ function buildReleaseTagUrl(
     : parseUrl(`${repositoryUrl}/releases/tag/v${version}`);
 }
 
-/** テンプレートへ渡すためにURLを文字列化します。URLが無い項目はリンクなしとして`undefined`のままにします。 */
-function toUrlString(url: Option.Option<URL>): string | undefined {
-  return Option.getOrUndefined(url)?.toString();
+/**
+ * URLのパスセグメントとしてエスケープします。
+ * `encodeURIComponent`は`!'()*~`をエスケープせずに残すため、
+ * それらを含む`owner`や`repo`はMarkdownリンクを途中で閉じさせてしまいます。
+ * 残る記号もパーセントエンコードして、リンクの構造を壊せないようにします。
+ */
+function encodePathSegment(segment: string): string {
+  return encodeURIComponent(segment).replace(
+    /[!'()*~]/g,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+/**
+ * Markdownリンクとして埋め込めない文字。
+ * 空白と制御文字、リンクの構造に使う記号を対象にします。
+ */
+// eslint-disable-next-line no-control-regex
+const unsafeLinkPattern = /[\s()<>[\]\\\u0000-\u001f]/;
+
+/**
+ * テンプレートへ渡すためにURLを文字列化します。
+ * URLが無い項目はリンクなしとして`undefined`のままにします。
+ *
+ * 自分で組み立てた部分は`encodePathSegment`で防御していますが、
+ * ホスト名は環境変数由来で任意の記号を含み得ます。
+ * `https`以外のスキームや、
+ * Markdownリンクの構造を壊す記号や空白が残っている場合は、
+ * 壊れたリンクを出すよりプレーン表示に落とす方が安全なので`undefined`を返します。
+ */
+function toSafeLinkUrl(url: Option.Option<URL>): string | undefined {
+  return Option.getOrUndefined(
+    url.pipe(
+      Option.map((value) => value.toString()),
+      Option.filter((value) => value.startsWith("https://") && !unsafeLinkPattern.test(value)),
+    ),
+  );
 }
 
 /**
@@ -165,7 +199,7 @@ interface LinkedValue {
  * フッターの各項目に対応するリンク付きの値を組み立てます。
  * コミットとPRはレビュー対象リポジトリを指し、
  * kyosei-actionとClaude Codeはそのバージョンのリリースページを指します。
- * `owner`と`repo`はURLに現れるため、パスセグメントとしてエスケープしてから組み立てます。
+ * `owner`と`repo`はURLに現れるため、`encodePathSegment`でエスケープしてから組み立てます。
  *
  * kyoseiバージョンとモデルにリンクを貼らないのは意図的です。
  * kyoseiのプラグインバージョンに対応するGitタグはkonokaには存在せず(タグはマーケットプレイスバージョン)、
@@ -177,27 +211,27 @@ function buildLinkedValues(
   view: typeof MetadataSchema.Type,
   serverUrl: string,
 ): Record<"commit" | "pr" | "kyoseiAction" | "claudeCode", LinkedValue> {
-  const owner = encodeURIComponent(submission.owner);
-  const repo = encodeURIComponent(submission.repo);
+  const owner = encodePathSegment(submission.owner);
+  const repo = encodePathSegment(submission.repo);
   const repositoryUrl = `${serverUrl}/${owner}/${repo}`;
   return {
     commit: {
       text: view.commit,
-      url: toUrlString(parseUrl(`${repositoryUrl}/commit/${view.commit}`)),
+      url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/commit/${view.commit}`)),
     },
     pr: {
       text: `#${view.pr}`,
-      url: toUrlString(parseUrl(`${repositoryUrl}/pull/${view.pr}`)),
+      url: toSafeLinkUrl(parseUrl(`${repositoryUrl}/pull/${view.pr}`)),
     },
     kyoseiAction: {
       text: view.kyoseiActionVersion,
-      url: toUrlString(
+      url: toSafeLinkUrl(
         buildReleaseTagUrl("https://github.com/ncaq/kyosei-action", view.kyoseiActionVersion),
       ),
     },
     claudeCode: {
       text: view.claudeCodeVersion,
-      url: toUrlString(
+      url: toSafeLinkUrl(
         buildReleaseTagUrl("https://github.com/anthropics/claude-code", view.claudeCodeVersion),
       ),
     },
