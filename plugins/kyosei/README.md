@@ -159,8 +159,8 @@ GitHub PRに投稿される本体コメントの末尾には、
 - レビュー対象コミット(コミットページへのリンク付き)
 - PR番号(PRページへのリンク付き)
 - kyoseiバージョン
-- kyosei-actionバージョン(環境変数`KYOSEI_ACTION_VERSION`が設定されているとき、リリースページへのリンク付き)
-- Claude Codeバージョン(リリースページへのリンク付き)
+- kyosei-actionバージョン(`KYOSEI_ACTION_VERSION`から取得。取得できたときはリリースページへのリンク付き)
+- Claude Codeバージョン(取得できたときはリリースページへのリンク付き)
 - モデル
 - 実行環境(GitHub Actions / Claude Code CLI / unknown)とRun URL
 
@@ -172,8 +172,16 @@ kyoseiのプラグインバージョンに対応するGitタグはkonokaに存�
 モデルにもバージョン固有の公式ページが存在しないため、
 バージョンと一致しないリンクを貼るよりリンクなしの方が正確だからです。
 
-コミットとPRのリンクは`GITHUB_SERVER_URL`があればそのホストを使い、
-無い場合は公開GitHubを既定にします。
+コミットとPRのリンクのホストは、
+APIクライアントと同じ解決順で決まります。
+`GITHUB_SERVER_URL`・`GITHUB_API_URL`・`GH_HOST`の順に見て、
+どれも設定されていなければ公開GitHubを既定にします。
+これによりGitHub Enterprise Serverでも、
+レビューの投稿先とリンク先が一致します。
+
+kyosei-actionとClaude Codeのリリースページへのリンクは、
+これらの設定に関わらず常に公開GitHubを指します。
+どちらもそこで配布されているためです。
 
 ## レビュースキル
 
