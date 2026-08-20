@@ -1,0 +1,21 @@
+{
+  "fsharp": {
+    "command": "fsautocomplete",
+    "extensionToLanguage": {
+      ".fs": "fsharp",
+      ".fsx": "fsharp",
+      ".fsi": "fsharp",
+      ".fsscript": "fsharp"
+    },
+    "initializationOptions": {
+      "AutomaticWorkspaceInit": true
+    },
+    "settings": {
+      "FSharp": {
+        "UnusedOpensAnalyzer": true,
+        "UnusedDeclarationsAnalyzer": true,
+        "SimplifyNameAnalyzer": true
+      }
+    }
+  }
+}
