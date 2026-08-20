@@ -16,6 +16,10 @@
       "source": "./plugins/commit"
     },
     {
+      "name": "fsharp-lsp",
+      "source": "./plugins/fsharp-lsp"
+    },
+    {
       "name": "haskell-tasuke",
       "source": "./plugins/haskell-tasuke"
     },
