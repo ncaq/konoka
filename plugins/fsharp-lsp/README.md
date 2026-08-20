@@ -48,9 +48,6 @@ Claude Codeで以下を実行します。
 
 ## 設定内容
 
-- `--adaptive-lsp-server-enabled`:
-  FSharp.Data.Adaptiveベースの新しいサーバ実装を使います。
-  nvim-lspconfigの既定と同じです
 - `AutomaticWorkspaceInit`:
   ワークスペース(fsprojの探索とロード)を接続時に自動で初期化します。
   汎用LSPクライアントはFSAC固有の`fsharp/workspaceLoad`を送らないため、

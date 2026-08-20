@@ -1,7 +1,6 @@
 {
   "fsharp": {
     "command": "fsautocomplete",
-    "args": ["--adaptive-lsp-server-enabled"],
     "extensionToLanguage": {
       ".fs": "fsharp",
       ".fsx": "fsharp",
