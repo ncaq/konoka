@@ -95,6 +95,7 @@ yq eval-all '. as $item ireduce ({}; . * $item)' base.yaml override.yaml
 - 出力形式も既定では`auto`で、入力に合わせた形式になります。JSONが欲しい時は`-o=json`を付けます。
 - スカラーの展開は出力形式によって変わります。YAML出力では既定でクォートなしに展開されますが、`-o=json`では`"a"`のようにクォートが付きます。生の値が欲しい時は`--unwrapScalar`の短縮形である`-r`を明示してください。
 - 環境変数は`--arg`ではなく`env(NAME)`と`strenv(NAME)`で参照します。
+- `-s`はjqのslurpではなく`--split-exp`で、式の評価結果を名前にしたファイルを生成します。入力をまとめたい時は`eval-all`や`[...]`を使ってください。
 
 ## ファイルの書き換え
 
