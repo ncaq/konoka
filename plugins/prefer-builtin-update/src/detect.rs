@@ -425,6 +425,28 @@ mod tests {
     }
 
     #[test]
+    fn detects_combined_flag_containing_i_as_false_positive() {
+        // `i`を含む結合フラグは読み取り専用でも誤検知として検出される。
+        // READMEの「位置づけと限界」で許容と明記した挙動を固定する。
+        assert!(detect("perl -Mstrict -e 'print 1'").is_some());
+    }
+
+    #[test]
+    fn detects_filename_matching_mode_letter_as_false_positive() {
+        // ファイル名がモード文字そのものの場合は読み取りでも誤検知として検出される。
+        // READMEの「位置づけと限界」で許容と明記した挙動を固定する。
+        assert!(detect("python3 -c \"print(open('a').read())\"").is_some());
+    }
+
+    #[test]
+    fn detects_write_pattern_in_other_command_as_false_positive() {
+        // 書き込みパターンの探索はコマンド文字列全体に対して行うため、
+        // 別コマンド側の文字列でも誤検知として検出される。
+        // READMEの「位置づけと限界」で許容と明記した挙動を固定する。
+        assert!(detect("rg 'File.write' src/ && ruby -e 'puts 1'").is_some());
+    }
+
+    #[test]
     fn skips_unrelated_command() {
         assert!(detect("ls -la").is_none());
     }
