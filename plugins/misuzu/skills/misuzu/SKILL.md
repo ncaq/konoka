@@ -1,13 +1,35 @@
 ---
 name: misuzu
 description: Respond to PR review comments semi-automatically. Fetches all review threads and comments, splits them into logical units, fixes and commits one unit at a time, then replies and resolves review threads. Use when the user wants to address PR review feedback or respond to review comments.
-argument-hint: "[pr-or-review-url]"
+argument-hint: "[manual|auto] [pr-or-review-url]"
 allowed-tools: AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, TodoWrite, Write
 ---
 
+# モードの決定
+
+`$ARGUMENTS`に`manual`か`auto`が含まれていればモード指定として解釈し、
+残りの部分をPRやレビューのURLとして扱ってください。
+
+- `manual`: コミットと投稿のたびにユーザに確認を取ります。
+- `auto`: 確認を省略して、コミットも投稿もpushも自動で行います。
+
+モード指定が無い場合は`auto`として扱ってください。
+このスキルは対応の計画をplanモードで承認してもらってから作業を始めるため、
+承認済みの計画を進める各ステップで個別に確認を取ると手数が過剰になるからです。
+
+どちらのモードでも`計画の承認`のplanモードによる承認は必ず行ってください。
+何をどう直すかの判断はモードに関わらずユーザのものです。
+`auto`が省略するのは、
+承認された計画を実行に移す段階の確認だけです。
+
+以降の手順のうち、
+対象のモードが明記されているセクションは、
+決定したモードに対応するものだけを実行してください。
+明記のないセクションはどちらのモードでも実行してください。
+
 # get-respond-infoでの情報の取得
 
-このスキルが呼び出されたら、
+モードを決定したら、
 他の何よりも先に毎回`get-respond-info`を実行してください。
 
 同じセッションで既に実行済みであっても再実行してください。
@@ -24,12 +46,17 @@ allowed-tools: AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, G
 用途別のファイルに書き出します。
 
 ```bash
-get-respond-info $ARGUMENTS
+get-respond-info <URLの値>
 ```
 
 引数には対象のPRのURLを指定できます。
 レビューやレビューコメントのURL(`#pullrequestreview-<id>`等のフラグメント付きURL)でも構いません。
 引数を省略するとカレントブランチからPRを推定します。
+
+`$ARGUMENTS`からモード指定を取り除いた残りをそのまま渡してください。
+URLが指定されていない場合は引数無しで実行してください。
+`manual`や`auto`をそのまま渡してはいけません。
+URLとして解釈されて失敗します。
 
 標準出力にはレビュー情報自体ではなく、
 書き出したファイルの絶対パスを持つJSONが1行だけ返されます。
@@ -222,6 +249,13 @@ GitHubモードでは以下の優先順位で対応対象を抽出します。
 プラグインから提供されるスキルは`<plugin-name>:<skill-name>`の形式で登録されているため、
 prefixを省略すると見つからない旨のエラーになります。
 
+`Skill`ツールの`args`には、
+このスキルが決定したモードをそのまま渡してください。
+`commit:commit`も同じモード引数を取るため、
+`auto`で起動した場合はコミットメッセージの確認も省略されます。
+どこかで確認が挟まると自動で進む意味が薄れるので、
+モードは呼び出し先まで伝播させます。
+
 ## テストファーストの単位
 
 テストの追加とバグ修正を同時に行う単位は、
@@ -252,8 +286,10 @@ GitHubモードでは全ての対応が完了した後、
 pushされるまでコミットへのリンクは404になりますが、
 それは許容されています。
 
-pushを行うかどうかは後述の「投稿の確認」でユーザに選ばせます。
-確認なしにpushしてはいけません。
+`manual`モードではpushを行うかどうかを後述の「投稿の確認」でユーザに選ばせます。
+そのモードで確認なしにpushしてはいけません。
+
+`auto`モードでは確認を取らずに投稿とpushまで行います。
 
 ## 返信内容の組み立て
 
@@ -302,6 +338,9 @@ issueやPRを参照する時には常に完全なURL形式を使ってくださ�
 
 ## 投稿の確認
 
+`manual`モードのみのステップです。
+`auto`モードでは`投稿内容の提示`へ進んでください。
+
 投稿前に組み立てたJSON全文をテキストとして提示し、
 `AskUserQuestion`でどう処理するかユーザに確認してください。
 
@@ -313,6 +352,22 @@ issueやPRを参照する時には常に完全なURL形式を使ってくださ�
 
 返信の後にはpushまで行いたい場合が大半なので、
 pushする選択肢を先頭に置いてください。
+
+## 投稿内容の提示
+
+`auto`モードのみのステップです。
+`manual`モードでは`注意事項`へ進んでください。
+
+組み立てたJSON全文をテキストとして提示してから、
+返信とresolveの投稿に進んでください。
+
+`AskUserQuestion`ツールは呼び出さず、
+ユーザの応答も待ちません。
+
+確認は取らないのに内容を提示するのは、
+`manual`モードと同じタイミングで内容が目に入るようにするためです。
+投稿は取り消せないため、
+何を投稿したのかを後から追える形で残しておく必要があります。
 
 ## 注意事項
 
@@ -360,8 +415,13 @@ reply-and-resolve <reply-submission.jsonのパス> <context.jsonのパス>
 
 ## 投稿後のpush
 
-投稿の確認でpushする選択肢が選ばれた場合のみ、
+以下の場合に、
 投稿と再試行が終わった後にpushします。
+
+- `manual`モードで投稿の確認でpushする選択肢が選ばれた場合
+- `auto`モードの場合
+
+`manual`モードで返信だけの選択肢が選ばれた場合はpushしません。
 
 pushを先に済ませればコミットへのリンクが404になる時間は無くなりますが、
 この順序は意図的なものなので入れ替えてはいけません。
