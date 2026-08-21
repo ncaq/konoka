@@ -117,6 +117,28 @@ fn open_args_have_write_mode(args: &str) -> bool {
     })
 }
 
+/// `open(`の後ろから対応する閉じ括弧までの引数部分を取り出す。
+///
+/// 引数に`os.path.expanduser('~/a')`のような関数呼び出しが入れ子になっていても、
+/// 括弧の深さを数えて対応する`)`までを引数として扱う。
+/// 対応する`)`が無い場合は末尾までを引数とみなす。
+fn open_call_args(rest: &str) -> &str {
+    let mut depth: usize = 0;
+    for (i, c) in rest.char_indices() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                if depth == 0 {
+                    return &rest[..i];
+                }
+                depth -= 1;
+            }
+            _ => {}
+        }
+    }
+    rest
+}
+
 /// コマンド文字列全体にファイル書き込みを示すパターンがあるか。
 ///
 /// `-c`や`-e`のワンライナーに限らずヒアドキュメントで渡されたコードも、
@@ -145,10 +167,7 @@ fn has_write_pattern(command: &str) -> bool {
     }
     // `open(`の引数に書き込みモードがあるか。
     command.match_indices("open(").any(|(i, matched)| {
-        match command[i + matched.len()..].split_once(')') {
-            Some((args, _)) => open_args_have_write_mode(args),
-            None => open_args_have_write_mode(&command[i + matched.len()..]),
-        }
+        open_args_have_write_mode(open_call_args(&command[i + matched.len()..]))
     })
 }
 
