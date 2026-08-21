@@ -39,6 +39,18 @@ fn denies_detected_command() {
 }
 
 #[test]
+fn denies_write_one_liner() {
+    let output = run_with_stdin(
+        r#"{"tool_input": {"command": "python3 -c \"open('a.txt', 'w').write('x')\""}}"#,
+    );
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    let value: serde_json::Value =
+        serde_json::from_str(stdout.trim_end()).expect("stdout should be valid JSON");
+    assert_eq!(value["hookSpecificOutput"]["permissionDecision"], "deny");
+}
+
+#[test]
 fn stays_silent_for_undetected_command() {
     let output = run_with_stdin(r#"{"tool_input": {"command": "ls -la"}}"#);
     assert!(output.status.success());
@@ -50,4 +62,6 @@ fn fails_on_invalid_json() {
     let output = run_with_stdin("not json");
     assert!(!output.status.success(), "exit status should be non-zero");
     assert!(output.stdout.is_empty(), "stdout should be empty");
+    // パニックメッセージがユーザにとって原因を知る唯一の手掛かりになる。
+    assert!(!output.stderr.is_empty(), "stderr should explain the error");
 }
