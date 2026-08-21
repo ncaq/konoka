@@ -26,13 +26,17 @@ fn run_with_stdin(input: &str) -> std::process::Output {
         .expect("binary should run to completion")
 }
 
-#[test]
-fn denies_detected_command() {
-    let output = run_with_stdin(r#"{"tool_input": {"command": "sed -i s/a/b/ foo.txt"}}"#);
+/// 拒否を期待する入力を実行し、stdoutのJSONを返す。
+fn deny_json(input: &str) -> serde_json::Value {
+    let output = run_with_stdin(input);
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    let value: serde_json::Value =
-        serde_json::from_str(stdout.trim_end()).expect("stdout should be valid JSON");
+    serde_json::from_str(stdout.trim_end()).expect("stdout should be valid JSON")
+}
+
+#[test]
+fn denies_detected_command() {
+    let value = deny_json(r#"{"tool_input": {"command": "sed -i s/a/b/ foo.txt"}}"#);
     let specific = &value["hookSpecificOutput"];
     assert_eq!(specific["hookEventName"], "PreToolUse");
     assert_eq!(specific["permissionDecision"], "deny");
@@ -40,13 +44,8 @@ fn denies_detected_command() {
 
 #[test]
 fn denies_write_one_liner() {
-    let output = run_with_stdin(
-        r#"{"tool_input": {"command": "python3 -c \"open('a.txt', 'w').write('x')\""}}"#,
-    );
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    let value: serde_json::Value =
-        serde_json::from_str(stdout.trim_end()).expect("stdout should be valid JSON");
+    let value =
+        deny_json(r#"{"tool_input": {"command": "python3 -c \"open('a.txt', 'w').write('x')\""}}"#);
     assert_eq!(value["hookSpecificOutput"]["permissionDecision"], "deny");
 }
 
@@ -55,6 +54,8 @@ fn stays_silent_for_undetected_command() {
     let output = run_with_stdin(r#"{"tool_input": {"command": "ls -la"}}"#);
     assert!(output.status.success());
     assert!(output.stdout.is_empty(), "stdout should be empty");
+    // 警告などが紛れ込んで通常の承認フローを汚さないことも固定する。
+    assert!(output.stderr.is_empty(), "stderr should be empty");
 }
 
 #[test]
