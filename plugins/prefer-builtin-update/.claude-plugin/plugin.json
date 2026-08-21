@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "prefer-builtin-update",
+  "version": "1.0.0",
+  "description": "Steers file modifications to the builtin Edit tool instead of sed/perl/Python one-liners, with a skill and a PreToolUse hook.",
+  "author": {
+    "name": "ncaq",
+    "email": "ncaq@ncaq.net",
+    "url": "https://github.com/ncaq"
+  },
+  "homepage": "https://github.com/ncaq/konoka/tree/master/plugins/prefer-builtin-update",
+  "repository": "https://github.com/ncaq/konoka",
+  "license": "Apache-2.0",
+  "keywords": ["edit", "sed", "diff", "hook"]
+}

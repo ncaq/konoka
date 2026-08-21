@@ -44,6 +44,10 @@
       "source": "./plugins/pr"
     },
     {
+      "name": "prefer-builtin-update",
+      "source": "./plugins/prefer-builtin-update"
+    },
+    {
       "name": "programming-tasuke",
       "source": "./plugins/programming-tasuke"
     },

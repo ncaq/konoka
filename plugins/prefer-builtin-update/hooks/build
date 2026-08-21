@@ -4,18 +4,18 @@ set -euo pipefail
 # ビルド済みなら何もせず即座に終了します。
 # プラグイン更新時は`CLAUDE_PLUGIN_ROOT`ごと入れ替わりビルドしたファイルも消えるため、
 # 初回・更新後の両方でビルドされていないことを検知できます。
-[ -x "${CLAUDE_PLUGIN_ROOT}/target/release/rm-to-trash" ] && exit 0
+[ -x "${CLAUDE_PLUGIN_ROOT}/target/release/prefer-builtin-update" ] && exit 0
 
 # 競合防止のためにロックを取得します。
 exec 9>"${CLAUDE_PLUGIN_ROOT}/.build.lock"
 flock --wait 250 9
 
 # ロックしている間に他のプロセスがビルドしていたら終了します。
-[ -x "${CLAUDE_PLUGIN_ROOT}/target/release/rm-to-trash" ] && exit 0
+[ -x "${CLAUDE_PLUGIN_ROOT}/target/release/prefer-builtin-update" ] && exit 0
 
 # 必要なコマンドが存在するか簡易検証します。
 if ! command -v cargo &>/dev/null; then
-  echo "Error: cargo is not found. Install the Rust toolchain to use rm-to-trash." >&2
+  echo "Error: cargo is not found. Install the Rust toolchain to use prefer-builtin-update." >&2
   exit 1
 fi
 
