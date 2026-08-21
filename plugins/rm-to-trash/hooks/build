@@ -22,4 +22,6 @@ fi
 # ディレクトリを固定します。
 cd "${CLAUDE_PLUGIN_ROOT}"
 # ビルドします。
-cargo build --release
+# コミット済みのCargo.lockと不整合な場合は、
+# 依存を黙って再解決せずにエラーで気付けるように--lockedを付けます。
+cargo build --locked --release
