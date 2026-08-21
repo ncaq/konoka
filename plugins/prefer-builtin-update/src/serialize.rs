@@ -41,7 +41,8 @@ const GUIDANCE: &str = concat!(
     "(or the Write tool to create or fully rewrite a file). ",
     "Edit produces reviewable diffs and avoids shell quoting problems. ",
     "If this is a huge mechanical replacement that is impractical with Edit, ",
-    "write the replacement logic to a script file with the Write tool, ",
+    "write the replacement logic to a script file with the Write tool ",
+    "so the user can inspect it before it runs, ",
     "explain to the user what it does, and run that file instead of a one-liner.",
 );
 
