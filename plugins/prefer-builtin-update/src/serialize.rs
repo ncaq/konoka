@@ -31,12 +31,18 @@ pub fn decode_hook_input(input: &str) -> serde_json::Result<HookInput> {
 }
 
 /// 拒否理由に添える`Edit`ツールへの誘導文。
+///
+/// このフックは無条件に拒否するため、
+/// 同じコマンドをリトライさせる案内をしてはいけない。
+/// 大量置換の逃げ道としてこのフックの検出対象外である、
+/// スクリプトファイルの書き出しと実行を案内する。
 const GUIDANCE: &str = concat!(
     "Use the builtin Edit tool to modify files ",
     "(or the Write tool to create or fully rewrite a file). ",
     "Edit produces reviewable diffs and avoids shell quoting problems. ",
     "If this is a huge mechanical replacement that is impractical with Edit, ",
-    "explain the plan to the user and get approval before retrying.",
+    "write the replacement logic to a script file with the Write tool, ",
+    "explain to the user what it does, and run that file instead of a one-liner.",
 );
 
 /// 検出内容の説明文から拒否用のフック出力を組み立てる。
