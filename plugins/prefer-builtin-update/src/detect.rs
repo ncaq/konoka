@@ -96,6 +96,8 @@ fn has_inplace_flag(after: &[Tok]) -> bool {
 ///
 /// `open('albums.json')`のようなファイル名を誤検出しないように、
 /// 引用符で閉じた完全なモード文字列のみを対象にする。
+/// ただし`open('a')`のようにファイル名がモード文字そのものの場合は誤検出する。
+/// 誤検知を厳密に潰すよりワンライナー抑止側へ倒す方針なので許容している。
 const WRITE_OPEN_MODES: [&str; 11] = [
     "w", "a", "wb", "ab", "wt", "at", "w+", "a+", "r+", "w+b", "a+b",
 ];
@@ -104,6 +106,8 @@ const WRITE_OPEN_MODES: [&str; 11] = [
 ///
 /// PythonやRubyの`open("file", "w")`形式と、
 /// Perlの`open($fh, '>', "file")`形式を対象にする。
+/// Perl形式の判定は開き引用符と`>`の並びだけを見て閉じ引用符を要求しないため、
+/// `">"`との比較式のような無関係な並びにも一致する限界がある。
 fn open_args_have_write_mode(args: &str) -> bool {
     ['\'', '"'].iter().any(|q| {
         WRITE_OPEN_MODES
