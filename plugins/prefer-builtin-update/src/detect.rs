@@ -287,6 +287,11 @@ mod tests {
     }
 
     #[test]
+    fn detects_python_open_reversed_binary_update_mode() {
+        assert!(detect("python3 -c \"open('a.bin', 'rb+').write(b'x')\"").is_some());
+    }
+
+    #[test]
     fn detects_python_pathlib_write() {
         assert!(
             detect("python3 -c 'from pathlib import Path; Path(\"a.txt\").write_text(\"x\")'")
