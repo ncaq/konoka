@@ -101,4 +101,4 @@ jqは入力ファイルを直接書き換えないため、
 例外に当たる場合でも、
 JSONを抽出する部分だけをjqへ切り出せるなら切り出してください。
 
-YAMLやXMLやTOMLについては`programming-tasuke:prefer-yq`スキルを参照してください。
+YAMLやXMLやTOMLやCSVについては`programming-tasuke:prefer-yq`スキルを参照してください。
