@@ -328,6 +328,13 @@ mod tests {
     }
 
     #[test]
+    fn skips_command_name_inside_quotes() {
+        // 引用符はコマンド名と同じ単語にくっつくため、
+        // クォート内のコマンド名は検出対象にならない。
+        assert!(detect("echo \"sed -i\"").is_none());
+    }
+
+    #[test]
     fn skips_unrelated_command() {
         assert!(detect("ls -la").is_none());
     }
