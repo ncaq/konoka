@@ -51,7 +51,7 @@ Claudeが関連するコンテキストを検出すると自動的に参照す�
 | `github`              | GitHubの情報取得・操作で直接URLを叩かずMCPや`gh` CLIを推奨          |
 | `naming-rule`         | `common`や`util`など意味のない単語の禁止、原形単数の推奨            |
 | `prefer-jq`           | JSONの読み取りや変換にPythonなどではなく`jq`を使う                  |
-| `prefer-yq`           | YAMLやXMLやTOMLの読み取りや変換に`yq`を使う                         |
+| `prefer-yq`           | YAMLやXMLやTOMLやCSVの読み取りや変換に`yq`を使う                    |
 | `test`                | テストコードを安易に変更しない、テストデータに依存した実装をしない  |
 | `use-error-info`      | catchやcaseで受け取ったエラーデータをログ等に活用し、安易に捨てない |
 
