@@ -1,6 +1,7 @@
 ---
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
+argument-hint: "[manual|auto]"
 allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
 model: opus
 effort: low
@@ -9,6 +10,26 @@ effort: low
 Gitリポジトリの変更をコミットします。
 AIがコミットメッセージを生成し、
 ユーザが確認してからコミットします。
+
+# モードの決定
+
+`$ARGUMENTS`をモードとして解釈してください。
+
+- `manual`: ユーザに差分とコミットメッセージを提示し、
+  確認を取ってからコミットします。
+- `auto`: 差分の表示と確認のステップを省略して、
+  生成したコミットメッセージでそのままコミットします。
+
+引数が省略された場合は`manual`として扱ってください。
+
+`manual`とも`auto`とも解釈できない値が渡された場合は、
+`manual`として扱った上で、
+解釈できなかった値を完了報告で伝えてください。
+勝手に`auto`とみなして確認を省略してはいけません。
+
+以降の手順のうち、
+モードによって扱いが変わるステップにはその旨を明記しています。
+明記のないステップはどちらのモードでも実行してください。
 
 # スタイルガイドラインの適用
 
@@ -65,6 +86,11 @@ run-commit-msg-hook <editmsgPathの値>
 
 # ステージされた差分の表示
 
+このステップは`manual`モードのみで実行します。
+`auto`モードでは差分を表示せずに`コミットの実行`へ進んでください。
+差分は人間が確認するためのものであり、
+確認を行わない`auto`モードでは表示する意味がないからです。
+
 `AskUserQuestion`ツールを呼び出す直前に、
 以下のコマンドでステージされた差分をユーザに表示してください。
 
@@ -92,6 +118,9 @@ show-staged-patch <patchPathの値>
 commitlintを混乱させないためです。
 
 # コミットメッセージの確認
+
+このステップは`manual`モードのみで実行します。
+`auto`モードでは確認を取らずに`コミットの実行`へ進んでください。
 
 `AskUserQuestion`ツールを使って、
 生成したコミットメッセージの扱いをユーザに確認してください。
@@ -166,3 +195,6 @@ git commit -F <editmsgPathの値>
 # 完了報告
 
 コミットが完了したら報告してください。
+
+`auto`モードの場合はユーザがコミットメッセージを事前に見ていないため、
+報告にコミットしたメッセージの全文を含めてください。
