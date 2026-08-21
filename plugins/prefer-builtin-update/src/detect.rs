@@ -151,6 +151,10 @@ fn open_call_args(rest: &str) -> &str {
 }
 
 /// コマンド文字列のどこかに現れたら書き込みとみなすメソッド名や関数名。
+///
+/// `(`を付けていないパターンは、
+/// `writeFileSync`や`File.binwrite`のような同期版・非同期版などの派生形を、
+/// 前方一致で拾うための意図的な形。
 #[rustfmt::skip]
 const WRITE_CALL_PATTERNS: [&str; 9] = [
     // pathlibなどの書き込みメソッド。
@@ -165,6 +169,10 @@ const WRITE_CALL_PATTERNS: [&str; 9] = [
 ///
 /// `-c`や`-e`のワンライナーに限らずヒアドキュメントで渡されたコードも、
 /// コマンド文字列全体を見ることで同時にカバーする。
+///
+/// パターンごとの`contains`による素朴な線形走査を繰り返す。
+/// 入力は1回のBashツール呼び出しのコマンド文字列で高々数KB程度という前提で、
+/// この規模なら走査回数を最適化しても差は観測できない。
 fn has_write_pattern(command: &str) -> bool {
     WRITE_CALL_PATTERNS.iter().any(|p| command.contains(p))
         // `open(`の引数に書き込みモードがあるか。
