@@ -187,8 +187,10 @@
                       (pluginDir + "/Cargo.lock")
                       (pluginDir + "/Cargo.toml")
                       (pluginDir + "/src")
-                      # インテグレーションテストとフォーマット設定はプラグインによっては無い。
+                      # testsディレクトリはrm-to-trashのように持たないプラグインがある。
                       (lib.fileset.maybeMissing (pluginDir + "/tests"))
+                      # rustfmt.tomlは現状全プラグインが持つが、
+                      # 将来のプラグインで欠けても評価が壊れないように防御的に包む。
                       (lib.fileset.maybeMissing (pluginDir + "/rustfmt.toml"))
                     ];
                   };
