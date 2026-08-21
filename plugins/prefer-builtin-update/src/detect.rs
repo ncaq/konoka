@@ -281,6 +281,11 @@ mod tests {
     }
 
     #[test]
+    fn detects_python_open_exclusive_create_mode() {
+        assert!(detect("python3 -c \"open('out.txt', 'x').write('data')\"").is_some());
+    }
+
+    #[test]
     fn detects_python_pathlib_write() {
         assert!(
             detect("python3 -c 'from pathlib import Path; Path(\"a.txt\").write_text(\"x\")'")
