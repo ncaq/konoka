@@ -147,36 +147,27 @@ fn open_call_args(rest: &str) -> &str {
     rest
 }
 
+/// コマンド文字列のどこかに現れたら書き込みとみなすメソッド名や関数名。
+#[rustfmt::skip]
+const WRITE_CALL_PATTERNS: [&str; 9] = [
+    // pathlibなどの書き込みメソッド。
+    "write_text(", "write_bytes(",
+    // Node.jsのfsモジュールの書き込み関数。
+    "writeFile", "appendFile", "createWriteStream",
+    // Rubyの書き込みメソッド。
+    "File.write", "File.binwrite", "IO.write", "IO.binwrite",
+];
+
 /// コマンド文字列全体にファイル書き込みを示すパターンがあるか。
 ///
 /// `-c`や`-e`のワンライナーに限らずヒアドキュメントで渡されたコードも、
 /// コマンド文字列全体を見ることで同時にカバーする。
 fn has_write_pattern(command: &str) -> bool {
-    // pathlibなどの書き込みメソッド。
-    if ["write_text(", "write_bytes("]
-        .iter()
-        .any(|p| command.contains(p))
-    {
-        return true;
-    }
-    // Node.jsのfsモジュールの書き込み関数。
-    if ["writeFile", "appendFile", "createWriteStream"]
-        .iter()
-        .any(|p| command.contains(p))
-    {
-        return true;
-    }
-    // Rubyの書き込みメソッド。
-    if ["File.write", "File.binwrite", "IO.write", "IO.binwrite"]
-        .iter()
-        .any(|p| command.contains(p))
-    {
-        return true;
-    }
-    // `open(`の引数に書き込みモードがあるか。
-    command.match_indices("open(").any(|(i, matched)| {
-        open_args_have_write_mode(open_call_args(&command[i + matched.len()..]))
-    })
+    WRITE_CALL_PATTERNS.iter().any(|p| command.contains(p))
+        // `open(`の引数に書き込みモードがあるか。
+        || command.match_indices("open(").any(|(i, matched)| {
+            open_args_have_write_mode(open_call_args(&command[i + matched.len()..]))
+        })
 }
 
 /// 与えられたコマンド文字列からファイル書き換えを検出する。
@@ -322,6 +313,28 @@ mod tests {
     #[test]
     fn detects_perl_open_write() {
         assert!(detect("perl -e 'open(my $fh, \">\", \"a.txt\"); print $fh \"x\"'").is_some());
+    }
+
+    #[test]
+    fn detects_every_write_call_pattern() {
+        for pattern in WRITE_CALL_PATTERNS {
+            let command = format!("python3 -c \"{pattern}\"");
+            assert!(
+                detect(&command).is_some(),
+                "pattern {pattern} should be detected",
+            );
+        }
+    }
+
+    #[test]
+    fn detects_every_write_open_pattern() {
+        for pattern in WRITE_OPEN_PATTERNS {
+            let command = format!("python3 -c \"open('file', {pattern})\"");
+            assert!(
+                detect(&command).is_some(),
+                "pattern {pattern} should be detected",
+            );
+        }
     }
 
     #[test]
