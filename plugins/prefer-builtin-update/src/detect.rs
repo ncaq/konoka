@@ -372,8 +372,15 @@ mod tests {
     #[test]
     fn skips_command_name_inside_quotes() {
         // 引用符はコマンド名と同じ単語にくっつくため、
-        // クォート内のコマンド名は検出対象にならない。
+        // 引用符が直接接するコマンド名は検出対象にならない。
         assert!(detect("echo \"sed -i\"").is_none());
+    }
+
+    #[test]
+    fn detects_command_name_after_separator_inside_quotes() {
+        // クォート内でも`;`の後のコマンド名はトークン境界で裸のWordになるため、
+        // 誤検知として検出される。ワンライナー抑止側へ倒す方針として許容している。
+        assert!(detect("echo \"a; sed -i x\"").is_some());
     }
 
     #[test]
