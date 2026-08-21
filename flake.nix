@@ -187,6 +187,9 @@
                       (pluginDir + "/Cargo.lock")
                       (pluginDir + "/Cargo.toml")
                       (pluginDir + "/src")
+                      # インテグレーションテストとフォーマット設定はプラグインによっては無い。
+                      (lib.fileset.maybeMissing (pluginDir + "/tests"))
+                      (lib.fileset.maybeMissing (pluginDir + "/rustfmt.toml"))
                     ];
                   };
                   cargoDeps = pkgs.rustPlatform.importCargoLock {
