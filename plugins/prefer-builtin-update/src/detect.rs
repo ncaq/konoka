@@ -236,7 +236,12 @@ mod tests {
 
     #[test]
     fn detects_perl_inplace() {
-        assert!(detect("perl -i -pe 's/foo/bar/' README.md").is_some());
+        // 理由文はユーザとモデルに提示されるため、
+        // コマンド名の取り違えが起きないことを完全比較で固定する。
+        assert_eq!(
+            detect("perl -i -pe 's/foo/bar/' README.md").as_deref(),
+            Some("`perl -i` style in-place file editing"),
+        );
     }
 
     #[test]
@@ -246,7 +251,10 @@ mod tests {
 
     #[test]
     fn detects_ruby_inplace() {
-        assert!(detect("ruby -i -pe 'gsub(/foo/, \"bar\")' README.md").is_some());
+        assert_eq!(
+            detect("ruby -i -pe 'gsub(/foo/, \"bar\")' README.md").as_deref(),
+            Some("`ruby -i` style in-place file editing"),
+        );
     }
 
     #[test]
@@ -256,7 +264,11 @@ mod tests {
 
     #[test]
     fn detects_inplace_with_path_prefix() {
-        assert!(detect("/usr/bin/sed -i 's/foo/bar/' main.rs").is_some());
+        // パス付きでも理由文にはコマンド名本体だけが載る。
+        assert_eq!(
+            detect("/usr/bin/sed -i 's/foo/bar/' main.rs").as_deref(),
+            Some("`sed -i` style in-place file editing"),
+        );
     }
 
     #[test]
@@ -315,7 +327,10 @@ mod tests {
 
     #[test]
     fn detects_node_write_file() {
-        assert!(detect("node -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'").is_some());
+        assert_eq!(
+            detect("node -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'").as_deref(),
+            Some("a `node` one-liner that writes to files"),
+        );
     }
 
     #[test]
