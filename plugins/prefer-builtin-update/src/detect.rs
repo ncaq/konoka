@@ -248,6 +248,21 @@ mod tests {
     }
 
     #[test]
+    fn detects_python_open_write_with_nested_call() {
+        assert!(detect("python3 -c \"open(os.path.expanduser('~/a'), 'w').write(x)\"").is_some());
+    }
+
+    #[test]
+    fn detects_python_open_write_without_closing_paren() {
+        assert!(detect("python3 -c \"f = open('a.txt', 'w'\"").is_some());
+    }
+
+    #[test]
+    fn detects_perl_open_append_mode() {
+        assert!(detect("perl -e 'open($fh, \">>\", \"a.txt\"); print $fh \"x\"'").is_some());
+    }
+
+    #[test]
     fn detects_python_pathlib_write() {
         assert!(
             detect("python3 -c 'from pathlib import Path; Path(\"a.txt\").write_text(\"x\")'")
