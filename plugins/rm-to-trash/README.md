@@ -45,7 +45,7 @@ trash-cliが受理しないフラグ(`-I`, `--one-file-system`, `--no-preserve-r
 フック本体はRustバイナリ`rm-to-trash`です。
 Bashツール毎に呼ばれるため起動コストを抑える目的で、
 シェルスクリプト+`jq`/`sed`のような実装を避けてネイティブバイナリで実装しています。
-SessionStartフックの`hooks/build`が初回セッションで`cargo build --release`を走らせ、
+SessionStartフックの`hooks/build`が初回セッションで`cargo build --locked --release`を走らせ、
 `target/release/rm-to-trash`を生成します。
 ビルド成果物はGitで追跡せず、
 プラグイン更新時は再ビルドされます。

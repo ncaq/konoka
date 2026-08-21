@@ -82,7 +82,7 @@ Bashツール毎に呼ばれるため起動コストを抑える目的で、
 複合コマンド(`cd foo && sed -i ...`)やヒアドキュメントも検査対象にするため、
 コマンドのprefixによる絞り込みはせずに全てのBashツール呼び出しで起動します。
 
-SessionStartフックの`hooks/build`が初回セッションで`cargo build --release`を走らせ、
+SessionStartフックの`hooks/build`が初回セッションで`cargo build --locked --release`を走らせ、
 `target/release/prefer-builtin-update`を生成します。
 ビルド成果物はGitで追跡せず、
 プラグイン更新時は再ビルドされます。
