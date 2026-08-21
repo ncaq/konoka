@@ -43,9 +43,14 @@ fn token<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
     alt((whitespace, punctuation, word)).parse_next(input)
 }
 
-fn tokenize(input: &str) -> Option<Vec<Tok<'_>>> {
-    let result: Result<Vec<Tok<'_>>, _> = repeat(0.., token).parse(input);
-    result.ok()
+/// コマンド文字列をトークン列に分割する。
+///
+/// 任意の文字は空白・シェルメタ文字・その他のいずれかとして必ず消費されるため、
+/// このパースは失敗しない。
+fn tokenize(input: &str) -> Vec<Tok<'_>> {
+    repeat(0.., token)
+        .parse(input)
+        .expect("every character should be consumed as whitespace, punctuation, or word")
 }
 
 /// パス付きで書かれたコマンド名からコマンド名本体を取り出す。
@@ -178,7 +183,7 @@ fn has_write_pattern(command: &str) -> bool {
 /// 検出した場合は内容の英語説明文を返し、
 /// 検出しなければ`None`を返す。
 pub fn detect(command: &str) -> Option<String> {
-    let tokens = tokenize(command)?;
+    let tokens = tokenize(command);
 
     // sed/perl/rubyのin-place編集フラグ。
     let inplace = tokens.iter().enumerate().find_map(|(i, t)| match t {
