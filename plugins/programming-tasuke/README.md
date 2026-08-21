@@ -10,6 +10,7 @@ General-purpose programming guidance for AI coding assistants.
 - GitHubアクセス方法
 - エラー処理
 - テスト方針
+- JSONやYAMLの処理
 
 など、
 おおよその開発環境で共通して役立つ知識を扱います。
@@ -49,6 +50,8 @@ Claudeが関連するコンテキストを検出すると自動的に参照す�
 | `comparison-operator` | 比較は`<`や`<=`を優先し、左から右へ値が大きくなるように書く         |
 | `github`              | GitHubの情報取得・操作で直接URLを叩かずMCPや`gh` CLIを推奨          |
 | `naming-rule`         | `common`や`util`など意味のない単語の禁止、原形単数の推奨            |
+| `prefer-jq`           | JSONの読み取りや変換にPythonなどではなく`jq`を使う                  |
+| `prefer-yq`           | YAMLやXMLやTOMLの読み取りや変換に`yq`を使う                         |
 | `test`                | テストコードを安易に変更しない、テストデータに依存した実装をしない  |
 | `use-error-info`      | catchやcaseで受け取ったエラーデータをログ等に活用し、安易に捨てない |
 
