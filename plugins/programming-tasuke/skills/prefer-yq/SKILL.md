@@ -77,8 +77,15 @@ yq -o=json '.' compose.yaml
 `auto`, `yaml`, `kyaml`, `json`, `props`, `csv`, `tsv`, `xml`, `base64`, `uri`, `toml`, `hcl`, `lua`, `ini`をサポートします。
 
 ```console
-yq -p=xml '.root.item' response.txt
+yq -p=xml -o=yaml '.root.item' response.txt
 ```
+
+出力形式も`-o`で明示してください。
+出力形式の既定も`auto`ですが、
+こちらが見ているのは入力形式ではなく入力ファイルの拡張子で、
+`-p`を付けても連動しません。
+拡張子から判別できないままだと、
+YAMLへ倒した旨の警告が出力されます。
 
 リモートから取得したデータを`curl`からyqへ直接パイプするのは避けてください。
 一度ファイルへ保存して中身を確認してから処理してください。
@@ -101,7 +108,7 @@ yq eval-all '. as $item ireduce ({}; . * $item)' base.yaml override.yaml
 
 ## jqとの違いで戸惑いやすい点
 
-- 出力形式も既定では`auto`で、入力に合わせた形式になります。JSONが欲しい時は`-o=json`を付けます。
+- 出力形式の既定も`auto`ですが、入力形式ではなく入力ファイルの拡張子から決まります。拡張子から判別できない場合はYAMLになります。JSONが欲しい時は`-o=json`を付けます。
 - スカラーの展開は出力形式によって変わります。YAML出力では既定でクォートなしに展開されますが、`-o=json`では`"a"`のようにクォートが付きます。生の値が欲しい時は`--unwrapScalar`の短縮形である`-r`を明示してください。
 - 環境変数は`--arg`ではなく`env(NAME)`と`strenv(NAME)`で参照します。
 - `-s`はjqのslurpではなく`--split-exp`で、式の評価結果を名前にしたファイルを生成します。入力をまとめたい時は`eval-all`や`[...]`を使ってください。
