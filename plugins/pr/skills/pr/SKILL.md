@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
+description: Generate a GitHub pull request title and body from the current branch, then let the user review before creation in manual mode or create it without confirmation in auto mode. Use when the user wants to create a pull request.
 argument-hint: "[manual|auto]"
 allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
 model: opus
@@ -9,7 +9,8 @@ effort: low
 
 GitHubのpull requestを作成します。
 AIがタイトルと本文を生成し、
-ユーザが確認してから作成します。
+`manual`確認モードではユーザが確認してから作成します。
+`auto`確認モードでは確認を省略してそのまま作成します。
 このスキルは新規作成のみを扱います。
 既存PRの更新は対象外です。
 
