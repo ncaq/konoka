@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
+description: Generate a commit message from staged changes, then let the user review before committing in manual mode or commit without confirmation in auto mode. Use when the user wants to commit changes or create a git commit.
 argument-hint: "[manual|auto]"
 allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(git diff:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
 model: opus
@@ -9,7 +9,8 @@ effort: low
 
 Gitリポジトリの変更をコミットします。
 AIがコミットメッセージを生成し、
-ユーザが確認してからコミットします。
+`manual`確認モードではユーザが確認してからコミットします。
+`auto`確認モードでは確認を省略してそのままコミットします。
 
 # 確認モードの決定
 
