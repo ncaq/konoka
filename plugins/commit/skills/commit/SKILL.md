@@ -2,7 +2,7 @@
 name: commit
 description: Generate a commit message from staged changes and let the user review before committing. Use when the user wants to commit changes or create a git commit.
 argument-hint: "[manual|auto]"
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
+allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(git diff:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
 model: opus
 effort: low
 ---
@@ -187,19 +187,31 @@ konoka-commit-editor <editmsgPathの値> <patchPathの値>
 `auto`確認モードのみのステップです。
 `manual`確認モードでは`コミットの実行`へ進んでください。
 
-生成したコミットメッセージの全文をテキストメッセージとして出力してください。
+まず以下のコマンドでコミット対象のファイル一覧を表示してください。
+
+```bash
+git diff --cached --stat
+```
+
+続けて生成したコミットメッセージの全文をテキストメッセージとして出力してください。
 要約や省略をせず、
 そのまま全文を出力してください。
 
 `AskUserQuestion`ツールは呼び出さず、
 ユーザの応答も待たずにコミットの実行に進んでください。
 
-確認は取らないのにメッセージを提示するのは、
+確認は取らないのに内容を提示するのは、
 `manual`確認モードと同じタイミングで内容が目に入るようにするためです。
 コミットの後に報告されるより、
 コミットの直前に流れているほうが読み手の追いやすさで一貫します。
 
-ステージされた差分は表示しません。
+ファイル一覧を出すのは、
+コミットメッセージがAIの生成した要約であり、
+実際にステージされている内容を反映している保証が無いからです。
+意図せずステージされたファイルがあれば、
+一覧を見れば後から気付けます。
+
+差分の全文は表示しません。
 差分は確認して判断するためのものであり、
 判断を求めない`auto`確認モードでは表示する意味がないからです。
 
