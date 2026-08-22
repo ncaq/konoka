@@ -1,6 +1,7 @@
 ---
 name: pr
-description: Generate a GitHub pull request title and body from the current branch and let the user review before creation. Use when the user wants to create a pull request.
+description: Generate a GitHub pull request title and body from the current branch, then let the user review before creation in manual mode or create it without confirmation in auto mode. Use when the user wants to create a pull request.
+argument-hint: "[manual|auto]"
 allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
 model: opus
 effort: low
@@ -8,9 +9,32 @@ effort: low
 
 GitHubのpull requestを作成します。
 AIがタイトルと本文を生成し、
-ユーザが確認してから作成します。
+`manual`確認モードではユーザが確認してから作成します。
+`auto`確認モードでは確認を省略してそのまま作成します。
 このスキルは新規作成のみを扱います。
 既存PRの更新は対象外です。
+
+# 確認モードの決定
+
+`$ARGUMENTS`を確認モードとして解釈してください。
+
+- `manual`: ユーザにタイトルと本文を提示し、
+  確認を取ってから作成します。
+- `auto`: 確認を省略して、
+  生成した内容でそのまま作成します。
+  内容自体は`manual`と同じタイミングで提示します。
+
+引数が省略された場合は`manual`として扱ってください。
+
+`manual`とも`auto`とも解釈できない値が渡された場合は、
+`manual`として扱った上で、
+解釈できなかった値を完了報告で伝えてください。
+勝手に`auto`とみなして確認を省略してはいけません。
+
+以降の手順のうち、
+対象の確認モードが明記されているセクションは、
+決定した確認モードに対応するものだけを実行してください。
+明記のないセクションはどちらの確認モードでも実行してください。
 
 # スタイルガイドラインの適用
 
@@ -140,6 +164,9 @@ PRとして必要な内容を壊さないと直せない指摘もあります。
 
 # ユーザによる確認
 
+`manual`確認モードのみのステップです。
+`auto`確認モードでは`PR内容の提示`へ進んでください。
+
 `AskUserQuestion`ツールを使って、
 生成したタイトル、本文、アサイン、ラベルの扱いをユーザに確認してください。
 
@@ -183,6 +210,24 @@ PR作成に進んでください。
 
 ユーザがPR作成をキャンセルしたいという意思表示であると解釈して、
 作業をキャンセルしてください。
+
+# PR内容の提示
+
+`auto`確認モードのみのステップです。
+`manual`確認モードでは`PRの作成`へ進んでください。
+
+生成したタイトルと本文の全文に加えて、
+アサインするユーザと付与するラベルをテキストメッセージとして出力してください。
+本文が長い場合でも要約や省略をせず、
+そのまま全文を出力してください。
+
+`AskUserQuestion`ツールは呼び出さず、
+ユーザの応答も待たずにPRの作成に進んでください。
+
+確認は取らないのに内容を提示するのは、
+`manual`確認モードと同じタイミングで内容が目に入るようにするためです。
+PRの作成後に報告されるより、
+作成の直前に流れているほうが読み手の追いやすさで一貫します。
 
 # PRの作成
 
@@ -241,3 +286,6 @@ PR自体は作成されたことを報告してください。
 # 完了報告
 
 PRのURL、アサインしたユーザ、付与したラベルを含めて完了報告してください。
+
+`auto`確認モードでも作成の直前にタイトルと本文を出力しているため、
+報告で全文を繰り返す必要はありません。
