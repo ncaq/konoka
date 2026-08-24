@@ -50,7 +50,7 @@ Nixのメタデータで正確なストアパスを1つ特定してから、
 | 依存クロージャを列挙する           | `nix path-info -r /nix/store/<path>`                     |
 | 依存している理由を調べる           | `nix why-depends /nix/store/<from> /nix/store/<to>`      |
 | ストア直下を名前で探す             | `fd --max-depth 1 --max-results 20 'pattern' /nix/store` |
-| 特定ストアパス内のファイル一覧     | `nix store ls --recursive /nix/store/<path>`             |
+| 特定ストアパス直下のファイル一覧   | `nix store ls /nix/store/<path>`                         |
 | 特定ストアパス内をパターンで探す   | `fd 'pattern' /nix/store/<path>`                         |
 | ファイル内容を検索する             | `rg 'pattern' /nix/store/<path>`                         |
 | ファイルを提供するパッケージを探す | `nix-locate 'bin/hello'`([nix-index]が必要)              |
