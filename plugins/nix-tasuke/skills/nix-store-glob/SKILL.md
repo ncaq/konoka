@@ -1,6 +1,6 @@
 ---
 name: nix-store-glob
-description: Never use shell wildcard/glob expansion or recursive search against /nix/store as a whole, because it contains hundreds of thousands of entries and can crash the agent process via OOM. Resolve the exact store path with nix commands first, then use fd or rg scoped to that single path. Use when searching, listing, or accessing files under /nix/store.
+description: Never scan /nix/store without limits, such as shell wildcard/glob expansion or recursive search over the whole store, because it contains hundreds of thousands of entries and can crash the agent process via OOM. Resolve the exact store path with nix commands first and operate scoped to that single path, or cap depth and result count like fd --max-depth 1 --max-results. Use when searching, listing, or accessing files under /nix/store.
 user-invocable: false
 ---
 
@@ -35,10 +35,11 @@ user-invocable: false
 
 ## 原則
 
+ストア全体を無制限に走査しないことが原則です。
 Nixのメタデータで正確なストアパスを1つ特定してから、
-そのパスに限定して操作します。
-ストア全体を検索対象にしない限り、
-どのツールを使っても安全です。
+そのパスに限定して操作するのが基本形です。
+ストア全体を対象にする場合は、
+深さと件数の上限を必ず付けてください。
 
 ## タスク別の代替手段
 
