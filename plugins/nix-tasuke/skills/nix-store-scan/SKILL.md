@@ -15,7 +15,9 @@ user-invocable: false
 - シェルのglob展開: `ls /nix/store/*ghc*`, `du -sh /nix/store/*`, `echo /nix/store/**/*.so`
 - Claude CodeのGlobツールやGrepツールを`/nix/store`全体に向けること
 - `rg`や`grep -r`を`/nix/store`全体に再帰させること
-- `ls /nix/store`や`nix path-info --all`のような全件列挙を上限なしで実行すること
+- `ls /nix/store`や`nix path-info --all`のような全件列挙。
+  これらは全件を読み終えてから出力するため、
+  `head`などで出力を絞っても走査自体は打ち切れず禁止です
 
 ## なぜ危険か
 
