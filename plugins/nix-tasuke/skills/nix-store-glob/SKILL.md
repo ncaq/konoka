@@ -4,9 +4,11 @@ description: Never scan /nix/store without limits, such as shell wildcard/glob e
 user-invocable: false
 ---
 
-# /nix/storeへのワイルドカード展開禁止
+# /nix/storeの無制限な走査の禁止
 
-`/nix/store`全体を対象とするワイルドカード展開や再帰検索は禁止です。
+`/nix/store`全体を無制限に走査する操作は禁止です。
+ワイルドカード展開はその代表例ですが、
+再帰検索や上限なしの全件列挙も同様に禁止です。
 
 ## 禁止される操作
 
