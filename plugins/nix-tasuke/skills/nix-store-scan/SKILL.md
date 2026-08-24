@@ -1,5 +1,5 @@
 ---
-name: nix-store-glob
+name: nix-store-scan
 description: Never scan /nix/store without limits, such as shell wildcard/glob expansion or recursive search over the whole store, because it contains hundreds of thousands of entries and can crash the agent process via OOM. Resolve the exact store path with nix commands first and operate scoped to that single path, or cap depth and result count like fd --max-depth 1 --max-results. Use when searching, listing, or accessing files under /nix/store.
 user-invocable: false
 ---
