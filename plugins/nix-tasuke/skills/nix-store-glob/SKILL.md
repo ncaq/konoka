@@ -1,0 +1,64 @@
+---
+name: nix-store-glob
+description: Never use shell wildcard/glob expansion or recursive search against /nix/store as a whole, because it contains hundreds of thousands of entries and can crash the agent process via OOM. Resolve the exact store path with nix commands first, then use fd or rg scoped to that single path. Use when searching, listing, or accessing files under /nix/store.
+user-invocable: false
+---
+
+# /nix/storeへのワイルドカード展開禁止
+
+`/nix/store`全体を対象とするワイルドカード展開や再帰検索は禁止です。
+
+## 禁止される操作
+
+- シェルのglob展開: `ls /nix/store/*ghc*`, `du -sh /nix/store/*`, `echo /nix/store/**/*.so`
+- Claude CodeのGlobツールやGrepツールを`/nix/store`全体に向けること
+- `rg`や`grep -r`を`/nix/store`全体に再帰させること
+- `ls /nix/store`や`nix path-info --all`のような全件列挙を上限なしで実行すること
+
+## なぜ危険か
+
+- `/nix/store`直下だけで数十万エントリに達することが珍しくありません。
+  glob展開はシェルが全エントリ名をメモリ上に構築・ソートするため、
+  展開結果は数十MBに達し、
+  `ARG_MAX`(通常2MiB)を超えて`E2BIG`で失敗します。
+  つまり成功すらしません。
+- `**`による再帰globはストア全体の数百万から数億のファイルを走査し、
+  時間とメモリを大量に消費します。
+- Claude Codeのツール経由で実行した場合、
+  巨大な結果をClaude Code本体のプロセスが蓄積するため、
+  シェルの子プロセスではなくClaude Code自身がOOM Killerに殺されます。
+- 仮に完走しても巨大な出力がコンテキストを圧迫します。
+
+## 原則
+
+Nixのメタデータで正確なストアパスを1つ特定してから、
+そのパスに限定して操作します。
+ストア全体を検索対象にしない限り、
+どのツールを使っても安全です。
+
+## タスク別の代替手段
+
+| やりたいこと                       | 使うコマンド                                                    |
+| ---------------------------------- | --------------------------------------------------------------- |
+| パッケージのストアパスを知る       | `nix path-info 'nixpkgs#hello'` / `nix build --print-out-paths` |
+| PATH上のコマンドの実体を知る       | `readlink -f "$(command -v hello)"`                             |
+| 依存クロージャを列挙する           | `nix path-info -r /nix/store/<path>`                            |
+| 依存している理由を調べる           | `nix why-depends`                                               |
+| ストア直下を名前で探す             | `fd --max-depth 1 --max-results 20 'pattern' /nix/store`        |
+| 特定ストアパス内のファイル一覧     | `nix store ls --recursive /nix/store/<path>`                    |
+| 特定ストアパス内をパターンで探す   | `fd 'pattern' /nix/store/<path>`                                |
+| ファイル内容を検索する             | `rg 'pattern' /nix/store/<path>`                                |
+| ファイルを提供するパッケージを探す | `nix-locate 'bin/hello'`([nix-index]が必要)                     |
+
+[nix-index]: https://github.com/nix-community/nix-index
+
+## fdとrgが安全な理由と注意点
+
+`fd`と`rg`は引数リストを構築せずにストリーミングで走査するため、
+glob展開のようにメモリを一気に消費しません。
+
+ただしストリーミングでも`/nix/store`全体の再帰走査は時間と出力量の問題が残るため、
+必ず範囲か件数を絞ってください。
+
+- `fd`: `--max-depth 1`で直下のみに限定し、`--max-results`で件数上限を付ける
+- `rg`: 検索対象を特定のストアパスに限定する。全体への再帰は絞っても禁止
