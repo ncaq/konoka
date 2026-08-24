@@ -47,7 +47,8 @@ Nixのメタデータで正確なストアパスを1つ特定してから、
 
 | やりたいこと                       | 使うコマンド                                             |
 | ---------------------------------- | -------------------------------------------------------- |
-| パッケージのストアパスを知る       | `nix build --no-link --print-out-paths 'nixpkgs#hello'`  |
+| パッケージのストアパスを知る       | `nix eval --raw 'nixpkgs#hello.outPath'`                 |
+| 中身を見るためにrealiseする        | `nix build --no-link --print-out-paths 'nixpkgs#hello'`  |
 | PATH上のコマンドの実体を知る       | `readlink -f "$(command -v hello)"`                      |
 | 依存クロージャを列挙する           | `nix path-info -r /nix/store/<path>`                     |
 | 依存している理由を調べる           | `nix why-depends /nix/store/<from> /nix/store/<to>`      |
@@ -58,6 +59,12 @@ Nixのメタデータで正確なストアパスを1つ特定してから、
 | ファイルを提供するパッケージを探す | `nix-locate 'bin/hello'`([nix-index]が必要)              |
 
 [nix-index]: https://github.com/nix-community/nix-index
+
+`nix eval --raw`は評価だけで即座に返り、
+ビルドもダウンロードも発生しません。
+パス文字列を知りたいだけならこちらを使ってください。
+`fd`や`rg`でパスの中身を見るには実体が必要なので、
+その場合に限って`nix build`でrealiseしてください。
 
 ## fdとrgが安全な理由と注意点
 
