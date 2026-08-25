@@ -2,7 +2,7 @@
 name: misuzu
 description: Respond to PR review comments semi-automatically. Fetches all review threads and comments, splits them into logical units, fixes and commits one unit at a time, then replies and resolves review threads. Use when the user wants to address PR review feedback or respond to review comments.
 argument-hint: "[manual|auto] [pr-or-review-url]"
-allowed-tools: AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, Read, Skill, TodoWrite, Write
+allowed-tools: Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, LSP, Monitor, NotebookEdit, Read, Skill, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop, TaskUpdate, TodoWrite, ToolSearch, WebFetch, WebSearch, Write
 ---
 
 # 確認モードの決定
@@ -254,7 +254,7 @@ GitHub取得モードのみの手順です。
 
 # 単位ごとの修正とコミット
 
-承認された論理単位を`TodoWrite`で管理し、
+承認された論理単位をタスク管理ツール(`TaskCreate`と`TaskUpdate`、無い環境では`TodoWrite`)で管理し、
 必ず1単位ずつ順番に処理します。
 
 ## 禁止事項
