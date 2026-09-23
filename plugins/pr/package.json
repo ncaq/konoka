@@ -21,7 +21,7 @@
     "@effect/language-service": "0.87.2",
     "@effect/vitest": "0.30.0",
     "@eslint/js": "10.0.1",
-    "@types/node": "22.20.3",
+    "@types/node": "22.20.4",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.5",
