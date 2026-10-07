@@ -14,12 +14,12 @@
   "dependencies": {
     "@effect/cli": "^0.77.0",
     "@effect/platform": "^0.97.1",
-    "@effect/platform-node": "^0.108.0",
-    "effect": "^3.22.1"
+    "@effect/platform-node": "^4.0.0",
+    "effect": "^4.0.0"
   },
   "devDependencies": {
     "@effect/language-service": "0.87.2",
-    "@effect/vitest": "0.30.0",
+    "@effect/vitest": "4.0.1",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.4",
     "eslint": "10.11.0",
