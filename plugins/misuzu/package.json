@@ -21,7 +21,7 @@
     "octokit": "^5.0.5"
   },
   "devDependencies": {
-    "@effect/language-service": "0.87.2",
+    "@effect/language-service": "0.87.4",
     "@effect/vitest": "0.30.0",
     "@eslint/js": "10.0.1",
     "@types/node": "22.20.4",
