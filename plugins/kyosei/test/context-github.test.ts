@@ -73,23 +73,23 @@ describe("parsePrUrl", () => {
     );
   });
 
-  test("URLではない文字列の場合はLeftを返す", () => {
+  test("URLではない文字列の場合はFailureを返す", () => {
     expect(Result.isFailure(parsePrUrl("not-a-url"))).toBe(true);
   });
 
-  test("PR URLではないGitHub URLの場合はLeftを返す", () => {
+  test("PR URLではないGitHub URLの場合はFailureを返す", () => {
     expect(Result.isFailure(parsePrUrl("https://github.com/ncaq/konoka"))).toBe(true);
   });
 
-  test("issueのURLの場合はLeftを返す", () => {
+  test("issueのURLの場合はFailureを返す", () => {
     expect(Result.isFailure(parsePrUrl("https://github.com/ncaq/konoka/issues/42"))).toBe(true);
   });
 
-  test("PR番号が0の場合はLeftを返す", () => {
+  test("PR番号が0の場合はFailureを返す", () => {
     expect(Result.isFailure(parsePrUrl("https://github.com/ncaq/konoka/pull/0"))).toBe(true);
   });
 
-  test("PR番号が負の場合はLeftを返す", () => {
+  test("PR番号が負の場合はFailureを返す", () => {
     expect(Result.isFailure(parsePrUrl("https://github.com/ncaq/konoka/pull/-1"))).toBe(true);
   });
 
