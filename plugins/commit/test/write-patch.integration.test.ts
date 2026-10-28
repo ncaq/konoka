@@ -3,8 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Option, Path, type Scope } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { ChildProcess } from "effect/process";
-import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import { ChildProcess, ChildProcessSpawner  } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { EmptyCommitError, writePatch } from "../src/write-patch";
 
@@ -12,8 +11,8 @@ import { EmptyCommitError, writePatch } from "../src/write-patch";
 function gitIn(
   cwd: string,
   ...args: readonly string[]
-): Effect.Effect<string, PlatformError, ChildProcessSpawner> {
-  return ChildProcessSpawner.use((spawner) =>
+): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+  return ChildProcessSpawner.ChildProcessSpawner.use((spawner) =>
     spawner.string(ChildProcess.make("git", args, { cwd })),
   );
 }
@@ -22,7 +21,7 @@ function gitIn(
 const initRepo: Effect.Effect<
   string,
   PlatformError,
-  FileSystem.FileSystem | ChildProcessSpawner | Scope.Scope
+  FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner | Scope.Scope
 > = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const dir = yield* fs.makeTempDirectoryScoped();

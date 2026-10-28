@@ -1,7 +1,7 @@
 import type { Path, FileSystem } from "effect";
 import { Terminal, Effect } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import type { ChildProcessSpawner } from "effect/process";
 import { createWorkdirPath } from "./create-workdir";
 import { getEditmsgPath } from "./get-editmsg-path";
 import { EmptyCommitError, writePatch } from "./write-patch";
@@ -13,7 +13,7 @@ import { EmptyCommitError, writePatch } from "./write-patch";
 export const prepareCommit: Effect.Effect<
   void,
   PlatformError | EmptyCommitError,
-  FileSystem.FileSystem | Path.Path | ChildProcessSpawner | Terminal.Terminal
+  FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner | Terminal.Terminal
 > = Effect.gen(function* () {
   const terminal = yield* Terminal.Terminal;
   const workdirPath = yield* createWorkdirPath;

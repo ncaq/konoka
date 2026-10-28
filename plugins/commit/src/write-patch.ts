@@ -1,7 +1,6 @@
 import { Data, Effect, FileSystem, Path } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { ChildProcess } from "effect/process";
-import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 /** Raised when there is nothing to commit. */
 export class EmptyCommitError extends Data.TaggedError("EmptyCommitError")<{
@@ -14,8 +13,8 @@ export class EmptyCommitError extends Data.TaggedError("EmptyCommitError")<{
  */
 function git(
   ...args: readonly string[]
-): Effect.Effect<string, PlatformError, ChildProcessSpawner> {
-  return ChildProcessSpawner.use((spawner) => spawner.string(ChildProcess.make("git", args))).pipe(
+): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+  return ChildProcessSpawner.ChildProcessSpawner.use((spawner) => spawner.string(ChildProcess.make("git", args))).pipe(
     Effect.map((s) => s.trimEnd()),
   );
 }
@@ -23,21 +22,21 @@ function git(
 /**
  * 機械に優しい方法で`git status`を出力します。
  */
-function gitStatusPorcelain(): Effect.Effect<string, PlatformError, ChildProcessSpawner> {
+function gitStatusPorcelain(): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return git("status", "--porcelain");
 }
 
 /**
  * 現在の状態を全てステージします。
  */
-function gitAddAll(): Effect.Effect<void, PlatformError, ChildProcessSpawner> {
+function gitAddAll(): Effect.Effect<void, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return git("add", "--all");
 }
 
 /**
  * コミット前に相応しいgitのdiffを生成します。
  */
-function gitDiffForCommit(): Effect.Effect<string, PlatformError, ChildProcessSpawner> {
+function gitDiffForCommit(): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return git("diff", "--cached", "--no-color", "--no-ext-diff");
 }
 
@@ -56,7 +55,7 @@ export function hasStagedChanges(status: string): boolean {
  * 現在の状態をチェックして、
  * 変更があるのにステージされたファイルが存在しない場合は全てステージします。
  */
-const ensureStaged: Effect.Effect<void, PlatformError | EmptyCommitError, ChildProcessSpawner> =
+const ensureStaged: Effect.Effect<void, PlatformError | EmptyCommitError, ChildProcessSpawner.ChildProcessSpawner> =
   Effect.gen(function* () {
     const status = yield* gitStatusPorcelain();
     if (status === "") {
@@ -79,7 +78,7 @@ export function writePatch(
 ): Effect.Effect<
   string,
   EmptyCommitError | PlatformError,
-  ChildProcessSpawner | FileSystem.FileSystem | Path.Path
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Path.Path
 > {
   return Effect.gen(function* () {
     yield* ensureStaged;

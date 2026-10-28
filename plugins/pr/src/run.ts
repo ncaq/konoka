@@ -1,4 +1,5 @@
-import { Data, Effect, Option, type PlatformError, Stream } from "effect";
+import { Data, Effect, Option, Stream } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { ChildProcess, type ChildProcessSpawner } from "effect/process";
 
 /**
@@ -34,7 +35,7 @@ export function runStdout(
   args: readonly string[],
 ): Effect.Effect<
   string,
-  CommandFailedError | PlatformError.PlatformError,
+  CommandFailedError | PlatformError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.scoped(
@@ -78,7 +79,7 @@ export function tryRunStdout(
   args: readonly string[],
 ): Effect.Effect<
   Option.Option<string>,
-  PlatformError.PlatformError,
+  PlatformError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return runStdout(cmd, args).pipe(

@@ -1,4 +1,5 @@
-import { Config, Data, Effect, type PlatformError } from "effect";
+import { Config, Data, Effect } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
@@ -58,7 +59,7 @@ export function buildEditorInvocation(
  */
 export function konokaEdit(
   editmsgArg: string,
-): Effect.Effect<void, PlatformError.PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+): Effect.Effect<void, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const editor = yield* editorCommand;

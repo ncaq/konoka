@@ -2,8 +2,7 @@ import { cwd, chdir } from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Path, Terminal } from "effect";
-import { ChildProcess } from "effect/process";
-import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import { ChildProcess, ChildProcessSpawner  } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { prepareCommit } from "../src/commit-prepare";
 
@@ -40,7 +39,7 @@ describe("prepareCommit", () => {
       const path = yield* Path.Path;
       // 変更のあるGitリポジトリを用意します。
       const repo = yield* fs.makeTempDirectoryScoped();
-      yield* ChildProcessSpawner.use((spawner) =>
+      yield* ChildProcessSpawner.ChildProcessSpawner.use((spawner) =>
         spawner.exitCode(ChildProcess.make("git", ["init", "--quiet"], { cwd: repo })),
       );
       yield* fs.writeFileString(path.join(repo, "a.txt"), "hello\n");

@@ -1,6 +1,6 @@
 import { Data, Effect, Schema, SchemaTransformation } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import type { ChildProcessSpawner } from "effect/process";
 import { CommandFailedError, runStdout } from "./run";
 
 export interface SyncBaseResult {
@@ -85,7 +85,11 @@ export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, Schema.Sche
 function pullBase(
   baseBranch: string,
   currentBranch: string,
-): Effect.Effect<void, CommandFailedError | PlatformError, ChildProcessSpawner> {
+): Effect.Effect<
+  void,
+  CommandFailedError | PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.gen(function* () {
     yield* runStdout("git", ["switch", "--", baseBranch]);
     yield* runStdout("git", ["pull", "--ff-only"]);
@@ -102,7 +106,7 @@ function pullBase(
 export function syncBase(): Effect.Effect<
   SyncBaseResult,
   CommandFailedError | PlatformError | Schema.SchemaError | CurrentIsBaseError | RebaseFailedError,
-  ChildProcessSpawner
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const repoInfoJson = yield* runStdout("gh", [

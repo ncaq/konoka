@@ -3,8 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Layer, Option, Path, type Scope, Terminal } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { ChildProcess } from "effect/process";
-import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import { ChildProcess, ChildProcessSpawner  } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { CommitMsgHookFailedError, runCommitMsgHook } from "../src/run-commit-msg-hook";
 
@@ -38,14 +37,14 @@ function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
 const initRepo: Effect.Effect<
   { readonly repo: string; readonly hooks: string },
   PlatformError,
-  FileSystem.FileSystem | Path.Path | ChildProcessSpawner | Scope.Scope
+  FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner | Scope.Scope
 > = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const repo = yield* fs.makeTempDirectoryScoped();
   const hooks = path.join(repo, "git-hooks");
   yield* fs.makeDirectory(hooks);
-  const spawner = yield* ChildProcessSpawner;
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   yield* spawner.exitCode(ChildProcess.make("git", ["init", "--quiet"], { cwd: repo }));
   yield* spawner.exitCode(
     ChildProcess.make("git", ["config", "core.hooksPath", hooks], { cwd: repo }),

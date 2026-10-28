@@ -1,6 +1,6 @@
 import { Data, Effect, Option, Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import type { ChildProcessSpawner } from "effect/process";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 /** `pushHead`が取り得る動作の種類。 */
@@ -101,7 +101,7 @@ function findOpenPullRequest(
 ): Effect.Effect<
   Option.Option<OpenPr>,
   CommandFailedError | PlatformError | Schema.SchemaError,
-  ChildProcessSpawner
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const json = yield* runStdout("gh", [
@@ -131,7 +131,7 @@ function findOpenPullRequest(
 function detectAction(): Effect.Effect<
   PushAction,
   CommandFailedError | PlatformError | RevListParseError | BehindUpstreamError,
-  ChildProcessSpawner
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const upstream = yield* tryRunStdout("git", [
@@ -173,7 +173,7 @@ export function pushHead(): Effect.Effect<
   | Schema.SchemaError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,
-  ChildProcessSpawner
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const remote = "origin";

@@ -1,6 +1,6 @@
 import { Effect, type Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
+import type { ChildProcessSpawner } from "effect/process";
 import {
   BehindUpstreamError,
   ExistingOpenPullRequestError,
@@ -31,7 +31,7 @@ export function syncAndPush(): Effect.Effect<
   | RebaseFailedError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,
-  ChildProcessSpawner
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const sync = yield* syncBase();
