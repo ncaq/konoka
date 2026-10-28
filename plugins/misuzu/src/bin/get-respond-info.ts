@@ -3,22 +3,21 @@
  * SKILL.mdの埋め込みコマンドとして使用します。
  */
 
-import process from "node:process";
-import { Args, Command } from "@effect/cli";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Option, Schema } from "effect";
+import { Argument, Command } from "effect/cli";
 import { createOctokitClient } from "../client";
 import { detectRespondContext } from "../context";
 import { getConversation } from "../conversation";
 import { verifyContextHost } from "../host-check";
 import { RespondInfoFilePathsSchema, writeRespondInfoFiles } from "../respond-info-files";
 
-const prUrl = Args.text({ name: "pr-url" }).pipe(
-  Args.withDescription(
+const prUrl = Argument.String("pr-url").pipe(
+  Argument.withDescription(
     "対象PRまたはレビューのURL。省略時はカレントブランチからPRを推定し、" +
       "PRが見つからなければローカルコンテキストになります。",
   ),
-  Args.optional,
+  Argument.optional,
 );
 
 const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
@@ -33,7 +32,7 @@ const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
       context,
       ...(conversation == null ? {} : { conversation }),
     });
-    const output = yield* Schema.encode(Schema.parseJson(RespondInfoFilePathsSchema))(
+    const output = yield* Schema.encodeEffect(Schema.fromJsonString(RespondInfoFilePathsSchema))(
       respondInfoFilePaths,
     );
     yield* Console.log(output);
@@ -41,8 +40,7 @@ const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
 );
 
 const cli = Command.run(command, {
-  name: "get-respond-info",
   version: "0.0.0",
 });
 
-cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+cli.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);

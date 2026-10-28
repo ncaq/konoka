@@ -1,7 +1,6 @@
-import { FileSystem, Path } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { ConfigProvider, Effect } from "effect";
+import { FileSystem, Path, ConfigProvider, Effect } from "effect";
 import { describe, expect } from "vitest";
 import { writeRespondInfoFiles, type RespondInfo } from "../src/respond-info-files";
 
@@ -29,35 +28,35 @@ const localRespondInfo: RespondInfo = {
 };
 
 describe("writeRespondInfoFiles", () => {
-  it.scoped("`RUNNER_TEMP`を`XDG_RUNTIME_DIR`より優先する", () =>
+  it.effect("`RUNNER_TEMP`を`XDG_RUNTIME_DIR`より優先する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runnerTemp = yield* fs.makeTempDirectoryScoped();
       const xdgRuntimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeRespondInfoFiles(localRespondInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(
-            new Map([
-              ["RUNNER_TEMP", runnerTemp],
-              ["XDG_RUNTIME_DIR", xdgRuntimeDirectory],
-            ]),
-          ),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({
+            RUNNER_TEMP: runnerTemp,
+            XDG_RUNTIME_DIR: xdgRuntimeDirectory,
+          }),
         ),
       );
 
       expect(filePaths.context.startsWith(path.join(runnerTemp, "coding-agent-work"))).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("対応情報を用途別のファイルへ書き出す", () =>
+  it.effect("対応情報を用途別のファイルへ書き出す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeRespondInfoFiles(githubRespondInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
       );
 
@@ -74,16 +73,17 @@ describe("writeRespondInfoFiles", () => {
       expect(JSON.parse(yield* fs.readFileString(filePaths.conversation ?? ""))).toEqual(
         githubRespondInfo.conversation,
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("conversationがない場合はファイルとパスを省略する", () =>
+  it.effect("conversationがない場合はファイルとパスを省略する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeRespondInfoFiles(localRespondInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
       );
 
@@ -91,10 +91,10 @@ describe("writeRespondInfoFiles", () => {
       expect(JSON.parse(yield* fs.readFileString(filePaths.context))).toEqual(
         localRespondInfo.context,
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("ベースディレクトリがgroup/otherから読める場合は失敗する", () =>
+  it.effect("ベースディレクトリがgroup/otherから読める場合は失敗する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -104,29 +104,28 @@ describe("writeRespondInfoFiles", () => {
       yield* fs.makeDirectory(baseDirectory, { recursive: true });
       yield* fs.chmod(baseDirectory, 0o755);
       const error = yield* writeRespondInfoFiles(localRespondInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
         Effect.flip,
       );
       expect(error).toMatchObject({ _tag: "UnsafeWorkDirectory" });
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("呼び出しごとに一意な作業ディレクトリを作る", () =>
+  it.effect("呼び出しごとに一意な作業ディレクトリを作る", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
-      const configProvider = ConfigProvider.fromMap(
-        new Map([["XDG_RUNTIME_DIR", runtimeDirectory]]),
-      );
+      const configProvider = ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory });
       const [first, second] = yield* Effect.all(
         [writeRespondInfoFiles(localRespondInfo), writeRespondInfoFiles(localRespondInfo)],
         { concurrency: "unbounded" },
-      ).pipe(Effect.withConfigProvider(configProvider));
+      ).pipe(Effect.provideService(ConfigProvider.ConfigProvider, configProvider));
 
       expect(path.dirname(first.context)).not.toBe(path.dirname(second.context));
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

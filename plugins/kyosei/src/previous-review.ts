@@ -3,7 +3,7 @@
  * レビューはフェイルセーフとして少しでも違う場合は積極的に復元失敗とします。
  */
 
-import { DateTime, Either, Option, Schema } from "effect";
+import { DateTime, Option, Result, Schema } from "effect";
 import type { Conversation } from "./conversation";
 import { MetadataSchema } from "./review-metadata";
 import { parseFooterMetadata } from "./review-metadata-parser";
@@ -15,25 +15,25 @@ export const PreviousReviewSchema = Schema.Struct({
   reviewId: Schema.NonEmptyString,
   event: Schema.NonEmptyString,
   /** `submittedAt`はUTCの日時として保存して、ISO 8601文字列に戻します。 */
-  submittedAt: Schema.DateTimeUtc,
+  submittedAt: Schema.DateTimeUtcFromString,
   metadata: MetadataSchema,
 });
 
 type ReviewCandidate = typeof PreviousReviewSchema.Type;
 
-const decodeDateTimeUtc = Schema.decodeUnknownEither(Schema.DateTimeUtc);
+const decodeDateTimeUtc = Schema.decodeUnknownResult(Schema.DateTimeUtcFromString);
 
 /** 1件のreviewから候補を組み立てます。失敗時は`Option.none`を返します。 */
 function toCandidate(review: Conversation["reviews"][number]): Option.Option<ReviewCandidate> {
   const metadata = parseFooterMetadata(review.body);
   const submittedAt = decodeDateTimeUtc(review.submittedAt);
-  if (Option.isNone(metadata) || Either.isLeft(submittedAt)) {
+  if (Option.isNone(metadata) || Result.isFailure(submittedAt)) {
     return Option.none();
   }
   return Option.some({
     reviewId: review.id,
     event: review.state,
-    submittedAt: submittedAt.right,
+    submittedAt: submittedAt.success,
     metadata: metadata.value,
   });
 }

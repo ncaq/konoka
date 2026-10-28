@@ -175,7 +175,7 @@ export function parseFooterMetadata(body: string): Option.Option<typeof Metadata
     model,
     executionInfo,
   } = result.right.value;
-  const decoded = Schema.decodeUnknownEither(MetadataSchema)({
+  return Schema.decodeUnknownOption(MetadataSchema)({
     commit,
     pr,
     kyoseiVersion,
@@ -185,5 +185,4 @@ export function parseFooterMetadata(body: string): Option.Option<typeof Metadata
     execution: executionInfo.execution,
     ...(executionInfo.runUrl != null ? { runUrl: executionInfo.runUrl } : {}),
   });
-  return decoded._tag === "Right" ? Option.some(decoded.right) : Option.none();
 }

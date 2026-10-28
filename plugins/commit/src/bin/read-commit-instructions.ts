@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Effect, Option } from "effect";
 import { readCommitInstructions } from "../read-commit-instructions";
 
@@ -16,7 +16,7 @@ const program = readCommitInstructions.pipe(
 );
 
 function main(): void {
-  NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+  NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));
 }
 
 main();

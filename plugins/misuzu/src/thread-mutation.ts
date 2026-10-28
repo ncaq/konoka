@@ -3,7 +3,7 @@
  * スレッド返信とresolveはGraphQL mutation、PR全体コメントはREST APIを使います。
  */
 
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import type { Octokit } from "octokit";
 import type {
   ReplySubmission,
@@ -77,19 +77,19 @@ function submitThreadReply(
         threadId: threadReply.threadId,
         body: threadReply.body,
       }),
-    ).pipe(Effect.either);
-    if (replyResult._tag === "Left") {
+    ).pipe(Effect.result);
+    if (Result.isFailure(replyResult)) {
       return {
         kind: "failed" as const,
         value: {
           threadId: threadReply.threadId,
-          message: `reply failed: ${errorMessage(replyResult.left)}`,
+          message: `reply failed: ${errorMessage(replyResult.failure)}`,
         },
       };
     }
     // APIが想定外の形式のURLを返しても、返信自体は投稿済みなので失敗にはしません。
     const replyUrl =
-      URL.parse(replyResult.right.addPullRequestReviewThreadReply.comment.url) ?? undefined;
+      URL.parse(replyResult.success.addPullRequestReviewThreadReply.comment.url) ?? undefined;
     if (!threadReply.resolve) {
       return {
         kind: "succeeded" as const,
@@ -104,15 +104,15 @@ function submitThreadReply(
       octokit.graphql<ResolveThreadResponse>(resolveThreadMutation, {
         threadId: threadReply.threadId,
       }),
-    ).pipe(Effect.either);
-    if (resolveResult._tag === "Left") {
+    ).pipe(Effect.result);
+    if (Result.isFailure(resolveResult)) {
       // 返信は成功しているので、失敗としてはresolveのみを報告します。
       return {
         kind: "failed" as const,
         value: {
           threadId: threadReply.threadId,
           message:
-            `reply succeeded but resolve failed: ${errorMessage(resolveResult.left)}` +
+            `reply succeeded but resolve failed: ${errorMessage(resolveResult.failure)}` +
             " (resolveにはリポジトリへのpush権限が必要です)",
         },
       };
@@ -122,7 +122,7 @@ function submitThreadReply(
       value: {
         threadId: threadReply.threadId,
         ...(replyUrl == null ? {} : { replyUrl }),
-        resolved: resolveResult.right.resolveReviewThread.thread.isResolved,
+        resolved: resolveResult.success.resolveReviewThread.thread.isResolved,
       },
     };
   });
@@ -156,19 +156,19 @@ export function submitReplies(
         issue_number: submission.prNumber,
         body: summaryComment,
       }),
-    ).pipe(Effect.either);
-    if (summaryResult._tag === "Left") {
+    ).pipe(Effect.result);
+    if (Result.isFailure(summaryResult)) {
       // 総括コメントの失敗はスレッド失敗とは種別が違うため、`failed`には混ぜません。
       return {
         succeeded,
         failed,
-        summaryCommentError: `summary comment failed: ${errorMessage(summaryResult.left)}`,
+        summaryCommentError: `summary comment failed: ${errorMessage(summaryResult.failure)}`,
       };
     }
     return {
       succeeded,
       failed,
-      summaryCommentUrl: new URL(summaryResult.right.data.html_url),
+      summaryCommentUrl: new URL(summaryResult.success.data.html_url),
     };
   });
 }

@@ -1,6 +1,5 @@
-import { FileSystem } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect, Option } from "effect";
+import { FileSystem, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 
 /**
  * UTF-8としてファイルを読み、存在しない場合は`Option.none`を返します。
@@ -12,9 +11,7 @@ export function readIfExists(
     const fs = yield* FileSystem.FileSystem;
     return yield* fs.readFileString(path, "utf8").pipe(
       Effect.map(Option.some),
-      Effect.catchTag("SystemError", (err) =>
-        err.reason === "NotFound" ? Effect.succeed(Option.none<string>()) : Effect.fail(err),
-      ),
+      Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(Option.none<string>())),
     );
   });
 }
@@ -29,10 +26,8 @@ export function readdirIfExists(
     const fs = yield* FileSystem.FileSystem;
     return yield* fs.readDirectory(path).pipe(
       Effect.map((entries): Option.Option<readonly string[]> => Option.some(entries)),
-      Effect.catchTag("SystemError", (err) =>
-        err.reason === "NotFound"
-          ? Effect.succeed(Option.none<readonly string[]>())
-          : Effect.fail(err),
+      Effect.catchReason("PlatformError", "NotFound", () =>
+        Effect.succeed(Option.none<readonly string[]>()),
       ),
     );
   });
@@ -53,7 +48,7 @@ export function findCaseInsensitive(
       Option.flatMap(entries, (list) => {
         const lower = name.toLowerCase();
         const found = list.toSorted().find((entry) => entry.toLowerCase() === lower);
-        return Option.fromNullable(found);
+        return Option.fromNullishOr(found);
       }),
     ),
   );

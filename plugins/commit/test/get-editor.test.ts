@@ -51,37 +51,54 @@ describe("buildEditorInvocation", () => {
 describe("editorCommand", () => {
   it.effect("`EDITOR`が設定されていればその値を返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe("nano");
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "nano"]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe("nano");
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "nano" }),
+      ),
     ),
   );
 
   it.effect("`EDITOR`に引数付きコマンドを設定してもそのまま返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe("code --wait");
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "code --wait"]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe("code --wait");
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "code --wait" }),
+      ),
     ),
   );
 
   it.effect("`EDITOR`が未設定の場合はデフォルトを返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe(defaultEditor);
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map())),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe(defaultEditor);
+        }),
+      ),
+      Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromUnknown({})),
     ),
   );
 
   it.effect("`EDITOR`が空文字列の場合もデフォルトを返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe(defaultEditor);
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", ""]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe(defaultEditor);
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "" }),
+      ),
     ),
   );
 });

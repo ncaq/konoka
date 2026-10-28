@@ -1,6 +1,6 @@
-import { Command } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
 import { Config, Effect } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess } from "effect/process";
 
 /**
  * 環境変数`EDITOR`が未設定または空のときに使うデフォルトのエディタコマンドです。
@@ -14,7 +14,7 @@ export const defaultEditor = "emacsclient --reuse-frame --alternate-editor=emacs
  * `EDITOR`はユーザが設定するものなので信頼できる文字列として扱います。
  * シェルが解釈するコマンド文字列としてそのまま`sh -c`に渡される前提です。
  */
-export const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITOR").pipe(
+export const editorCommand: Effect.Effect<string> = Config.NonEmptyString("EDITOR").pipe(
   Effect.orElseSucceed(() => defaultEditor),
 );
 
@@ -50,15 +50,15 @@ export function buildEditorInvocation(
  */
 export function getEditor(
   commitEditmsgPath: string,
-): Effect.Effect<Command.Command, PlatformError> {
+): Effect.Effect<ChildProcess.StandardCommand, PlatformError> {
   return Effect.gen(function* () {
     const editor = yield* editorCommand;
     const [executable, ...args] = buildEditorInvocation(editor, commitEditmsgPath);
-    const cmd = Command.make(executable, ...args).pipe(
-      Command.stdin("inherit"),
-      Command.stdout("inherit"),
-      Command.stderr("inherit"),
-    );
+    const cmd = ChildProcess.make(executable, args, {
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    });
     return cmd;
   });
 }

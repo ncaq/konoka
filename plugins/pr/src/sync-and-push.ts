@@ -1,6 +1,6 @@
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect, type ParseResult } from "effect";
+import { Effect, type Schema } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
 import {
   BehindUpstreamError,
   ExistingOpenPullRequestError,
@@ -26,12 +26,12 @@ export function syncAndPush(): Effect.Effect<
   | CommandFailedError
   | PlatformError
   | RevListParseError
-  | ParseResult.ParseError
+  | Schema.SchemaError
   | CurrentIsBaseError
   | RebaseFailedError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,
-  CommandExecutor
+  ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const sync = yield* syncBase();

@@ -2,7 +2,7 @@
  * 前回レビュー対象コミットから現headまでの「増分changeset」を判定するモジュール。
  */
 
-import { Data, Effect, Either, Schema } from "effect";
+import { Data, Effect, Result, Schema } from "effect";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 import { ShaSchema } from "./review-schema";
@@ -16,14 +16,16 @@ class IncrementalChangesetLookupError extends Data.TaggedError("IncrementalChang
   }
 }
 
-const NonNegativeIntSchema = Schema.Number.pipe(Schema.int(), Schema.nonNegative());
+const NonNegativeIntSchema = Schema.Number.pipe(
+  Schema.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)),
+);
 
-export const IncrementalChangesetStatusSchema = Schema.Literal(
+export const IncrementalChangesetStatusSchema = Schema.Literals([
   "tree-identical", // tree SHA同一。rebase no-edit / 署名し直し / force pushして同一など。
   "diff-empty", // tree SHAは異なるが、`compareCommits`の`files`合算で`additions+deletions`が0。masterマージのみ等。
   "diff-present", // 実コード変更あり。通常レビューに倒します。
   "lookup-failed", // API取得に失敗。SHAがGCで消えた等。フェイルセーフで通常レビューに倒します。
-);
+]);
 
 /**
  * 増分changesetの出力スキーマ。
@@ -33,12 +35,12 @@ export const IncrementalChangesetStatusSchema = Schema.Literal(
 export const IncrementalChangesetSchema = Schema.Struct({
   baseSha: ShaSchema,
   headSha: ShaSchema,
-  baseTreeSha: Schema.optionalWith(ShaSchema, { exact: true }),
-  headTreeSha: Schema.optionalWith(ShaSchema, { exact: true }),
-  aheadBy: Schema.optionalWith(NonNegativeIntSchema, { exact: true }),
-  behindBy: Schema.optionalWith(NonNegativeIntSchema, { exact: true }),
-  changedFileCount: Schema.optionalWith(NonNegativeIntSchema, { exact: true }),
-  changedLineCount: Schema.optionalWith(NonNegativeIntSchema, { exact: true }),
+  baseTreeSha: Schema.optionalKey(ShaSchema),
+  headTreeSha: Schema.optionalKey(ShaSchema),
+  aheadBy: Schema.optionalKey(NonNegativeIntSchema),
+  behindBy: Schema.optionalKey(NonNegativeIntSchema),
+  changedFileCount: Schema.optionalKey(NonNegativeIntSchema),
+  changedLineCount: Schema.optionalKey(NonNegativeIntSchema),
   status: IncrementalChangesetStatusSchema,
 });
 
@@ -132,21 +134,23 @@ export function getIncrementalChangeset(
         compareCommits(octokit, target, baseSha, headSha),
       ],
       { concurrency: "unbounded" },
-    ).pipe(Effect.either);
+    ).pipe(Effect.result);
 
-    if (Either.isLeft(fetched)) {
-      yield* Effect.logWarning(`failed to compute incremental changeset: ${fetched.left.message}`);
+    if (Result.isFailure(fetched)) {
+      yield* Effect.logWarning(
+        `failed to compute incremental changeset: ${fetched.failure.message}`,
+      );
       return buildLookupFailed(baseSha, headSha);
     }
 
-    const [baseTreeSha, headTreeSha, compare] = fetched.right;
+    const [baseTreeSha, headTreeSha, compare] = fetched.success;
     const changedFileCount = compare.files.length;
     const changedLineCount = sumLineChanges(compare.files);
 
     if (baseTreeSha === headTreeSha) {
       // 内部で組み立てた値なのでデコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
       return yield* Effect.orDie(
-        Schema.decodeUnknown(IncrementalChangesetSchema)({
+        Schema.decodeUnknownEffect(IncrementalChangesetSchema)({
           baseSha,
           headSha,
           baseTreeSha,
@@ -163,7 +167,7 @@ export function getIncrementalChangeset(
     const status: "diff-empty" | "diff-present" =
       changedLineCount === 0 ? "diff-empty" : "diff-present";
     return yield* Effect.orDie(
-      Schema.decodeUnknown(IncrementalChangesetSchema)({
+      Schema.decodeUnknownEffect(IncrementalChangesetSchema)({
         baseSha,
         headSha,
         baseTreeSha,

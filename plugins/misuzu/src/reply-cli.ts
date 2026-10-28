@@ -7,9 +7,9 @@
  * シェルの引数として渡すとクォート崩れやコマンド実行(CWE-78)につながるからです。
  */
 
-import { FileSystem, type CommandExecutor } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, ParseResult, Schema } from "effect";
+import { Data, Effect, FileSystem, Schema } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { RespondContextSchema, type PrIdentifier } from "./context-type";
 import {
@@ -65,13 +65,15 @@ function verifySubmissionTarget(
   submission: ReplySubmission,
 ): Effect.Effect<
   void,
-  ContextWithoutPr | SubmissionTargetMismatch | ParseResult.ParseError | PlatformError,
+  ContextWithoutPr | SubmissionTargetMismatch | Schema.SchemaError | PlatformError,
   FileSystem.FileSystem
 > {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const raw = yield* fs.readFileString(contextPath);
-    const context = yield* Schema.decodeUnknown(Schema.parseJson(RespondContextSchema))(raw);
+    const context = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(RespondContextSchema))(
+      raw,
+    );
     const expected = context.pr;
     if (expected == null) {
       return yield* new ContextWithoutPr({ contextPath });
@@ -107,11 +109,11 @@ export function runReplyAndResolve(options: {
   readonly submissionPath: string;
   readonly contextPath: string;
   readonly dryRun: boolean;
-  readonly makeOctokit: Effect.Effect<Octokit, Error, CommandExecutor.CommandExecutor>;
+  readonly makeOctokit: Effect.Effect<Octokit, Error, ChildProcessSpawner.ChildProcessSpawner>;
 }): Effect.Effect<
   ReplyCliOutcome,
-  Error | ParseResult.ParseError | PlatformError,
-  FileSystem.FileSystem | CommandExecutor.CommandExecutor
+  Error | Schema.SchemaError | PlatformError,
+  FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -119,7 +121,7 @@ export function runReplyAndResolve(options: {
     const submission = yield* decodeReplySubmission(raw);
     yield* verifySubmissionTarget(options.contextPath, submission);
     if (options.dryRun) {
-      const encodedSubmission = yield* Schema.encode(ReplySubmissionSchema)(submission);
+      const encodedSubmission = yield* Schema.encodeEffect(ReplySubmissionSchema)(submission);
       return {
         output: JSON.stringify({ dryRun: true, submission: encodedSubmission }, null, 2),
         partialFailure: false,
@@ -127,8 +129,8 @@ export function runReplyAndResolve(options: {
     }
     const octokit = yield* options.makeOctokit;
     const result = yield* submitReplies(octokit, submission);
-    const output = yield* Schema.encode(
-      Schema.parseJson(ReplySubmissionResultSchema, { space: 2 }),
+    const output = yield* Schema.encodeEffect(
+      Schema.fromJsonString(ReplySubmissionResultSchema, { space: 2 }),
     )(result);
     return {
       output,

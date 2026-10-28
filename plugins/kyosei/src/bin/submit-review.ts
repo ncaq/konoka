@@ -3,22 +3,23 @@
  * コマンドライン引数からJSON形式のレビューデータを受け取り、GitHub APIでレビューを投稿します。
  */
 
-import process from "node:process";
-import { Args, Command, Options } from "@effect/cli";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
+import { Argument, Command, Flag } from "effect/cli";
 import { createOctokitClient } from "../client";
 import { decodeReviewSubmission } from "../review-decoder";
 import { previewReview, submitReview } from "../review-poster";
 
-const dryRun = Options.boolean("dry-run").pipe(
-  Options.withDescription(
+const dryRun = Flag.Boolean("dry-run").pipe(
+  Flag.withDescription(
     "投稿せずに、組み立て済みのcreateReviewパラメータをJSON出力します。スキーマ検証とメタデータフッター生成は実行されます。",
   ),
+  // v4の`Flag.Boolean`は省略すると必須扱いになるため、省略時は`false`にします。
+  Flag.withDefault(false),
 );
 
-const json = Args.text({ name: "json" }).pipe(
-  Args.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),
+const json = Argument.String("json").pipe(
+  Argument.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),
 );
 
 const command = Command.make("submit-review", { dryRun, json }, ({ dryRun, json }) =>
@@ -36,8 +37,7 @@ const command = Command.make("submit-review", { dryRun, json }, ({ dryRun, json 
 );
 
 const cli = Command.run(command, {
-  name: "submit-review",
   version: "0.0.0",
 });
 
-cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+cli.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);

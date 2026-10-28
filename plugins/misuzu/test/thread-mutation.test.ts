@@ -1,7 +1,7 @@
 import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import type { Octokit } from "octokit";
-import { describe, expect, vi } from "vitest";
+import { describe, expect, vi, type Mock } from "vitest";
 import type { ReplySubmission } from "../src/reply-schema";
 import { submitReplies } from "../src/thread-mutation";
 
@@ -15,10 +15,12 @@ const baseSubmission: ReplySubmission = {
   ],
 };
 
+type GraphqlHandler = (query: string, variables: { threadId: string }) => Promise<unknown>;
+
 interface OctokitMock {
   octokit: Octokit;
-  graphql: ReturnType<typeof vi.fn>;
-  createComment: ReturnType<typeof vi.fn>;
+  graphql: Mock<GraphqlHandler>;
+  createComment: Mock;
 }
 
 /**
@@ -26,7 +28,7 @@ interface OctokitMock {
  * graphqlはmutation文字列に応じて返信・resolveのレスポンスを返し分けます。
  */
 function makeOctokitMock(): OctokitMock {
-  const graphql = vi.fn().mockImplementation((query: string, variables: { threadId: string }) => {
+  const graphql = vi.fn<GraphqlHandler>().mockImplementation((query, variables) => {
     if (query.includes("addPullRequestReviewThreadReply")) {
       return Promise.resolve({
         addPullRequestReviewThreadReply: {
@@ -130,12 +132,15 @@ describe("submitReplies", () => {
     Effect.gen(function* () {
       const { octokit, graphql } = makeOctokitMock();
       const original = graphql.getMockImplementation();
+      if (original == null) {
+        throw new Error("graphql mock implementation is missing");
+      }
       // 実行順序に依存しないよう、threadIdで条件分岐して失敗させます。
       graphql.mockImplementation((query: string, variables: { threadId: string }) => {
         if (query.includes("addPullRequestReviewThreadReply") && variables.threadId === "PRRT_1") {
           return Promise.reject(new Error("boom"));
         }
-        return original?.(query, variables) as Promise<unknown>;
+        return original(query, variables);
       });
       const result = yield* submitReplies(octokit, baseSubmission);
       expect(result.failed).toHaveLength(1);

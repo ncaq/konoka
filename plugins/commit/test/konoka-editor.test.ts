@@ -1,8 +1,7 @@
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { Cause, ConfigProvider, Effect, Exit, Option, Scope } from "effect";
+import { FileSystem, Path, Cause, ConfigProvider, Effect, Exit, Option, Scope } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { assert, expect } from "vitest";
 import { EditorFailedError, konokaEdit } from "../src/konoka-editor";
 
@@ -26,56 +25,68 @@ const setupFiles: Effect.Effect<
 });
 
 describe("konokaEdit", () => {
-  it.scoped("`EDITOR`が0で終わる場合は成功する", () =>
+  it.effect("`EDITOR`が0で終わる場合は成功する", () =>
     Effect.gen(function* () {
       const { editmsgPath, patchPath } = yield* setupFiles;
       yield* konokaEdit(editmsgPath, patchPath).pipe(
-        Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "true"]]))),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ EDITOR: "true" }),
+        ),
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("`EDITOR`が非0で終わる場合は終了コードを含む`EditorFailedError`で失敗する", () =>
+  it.effect("`EDITOR`が非0で終わる場合は終了コードを含む`EditorFailedError`で失敗する", () =>
     Effect.gen(function* () {
       const { editmsgPath, patchPath } = yield* setupFiles;
       const exit = yield* Effect.exit(
         konokaEdit(editmsgPath, patchPath).pipe(
-          Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
+          Effect.provideService(
+            ConfigProvider.ConfigProvider,
+            ConfigProvider.fromUnknown({ EDITOR: "false" }),
+          ),
         ),
       );
       assert(Exit.isFailure(exit));
-      const failure = Cause.failureOption(exit.cause);
+      const failure = Cause.findErrorOption(exit.cause);
       assert(Option.isSome(failure));
       assert(failure.value instanceof EditorFailedError);
       expect(failure.value.exitCode).toBe(1);
       expect(failure.value.message).toContain("exit code 1");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("エディタが失敗してもdiffは取り除かれる", () =>
+  it.effect("エディタが失敗してもdiffは取り除かれる", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const { editmsgPath, patchPath } = yield* setupFiles;
       yield* Effect.exit(
         konokaEdit(editmsgPath, patchPath).pipe(
-          Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
+          Effect.provideService(
+            ConfigProvider.ConfigProvider,
+            ConfigProvider.fromUnknown({ EDITOR: "false" }),
+          ),
         ),
       );
       // releaseで`removeDiffFromEditmsg`が実行され、付与したdiffが残らないことを確認します。
       const result = yield* fs.readFileString(editmsgPath);
       expect(result).not.toContain("diff --git");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("引数のCOMMIT_EDITMSGパスが`$1`としてエディタに渡る", () =>
+  it.effect("引数のCOMMIT_EDITMSGパスが`$1`としてエディタに渡る", () =>
     Effect.gen(function* () {
       const { editmsgPath, patchPath } = yield* setupFiles;
       // 内側に`sh -c`をもう一段噛ませることで、`"$@"`を素直な位置引数として受け取り、
       // `$1`が`konokaEdit`に渡したCOMMIT_EDITMSGパスと一致するかを終了コードで判定します。
       const editor = `sh -c 'test "$1" = "${editmsgPath}"' --`;
       yield* konokaEdit(editmsgPath, patchPath).pipe(
-        Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", editor]]))),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ EDITOR: editor }),
+        ),
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

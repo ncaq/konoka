@@ -1,6 +1,6 @@
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, Option, ParseResult, Schema } from "effect";
+import { Data, Effect, Option, Schema } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 /** `pushHead`が取り得る動作の種類。 */
@@ -72,7 +72,7 @@ export function parseAheadBehind(out: string): Effect.Effect<AheadBehind, RevLis
 const OpenPrSchema = Schema.Struct({ number: Schema.Number });
 
 /** 上記の配列形式から先頭1件を取り出すスキーマ。JSON文字列を直接デコードします。 */
-const OpenPrListFromJson = Schema.parseJson(Schema.Array(OpenPrSchema));
+const OpenPrListFromJson = Schema.fromJsonString(Schema.Array(OpenPrSchema));
 
 type OpenPr = Schema.Schema.Type<typeof OpenPrSchema>;
 
@@ -80,14 +80,14 @@ type OpenPr = Schema.Schema.Type<typeof OpenPrSchema>;
  * `gh pr list --json number`が返したJSONをデコードし、
  * 先頭の1件を`Option`で返します。
  *
- * 検証とデコードを`Schema.parseJson` + `Schema.decodeUnknown`に委ねるため、
- * 失敗時のエラー型は`ParseResult.ParseError`になります。
+ * 検証とデコードを`Schema.fromJsonString` + `Schema.decodeUnknownEffect`に委ねるため、
+ * 失敗時のエラー型は`Schema.SchemaError`になります。
  */
 export function parseOpenPr(
   json: string,
-): Effect.Effect<Option.Option<OpenPr>, ParseResult.ParseError> {
-  return Schema.decodeUnknown(OpenPrListFromJson)(json).pipe(
-    Effect.map((entries) => Option.fromNullable(entries[0])),
+): Effect.Effect<Option.Option<OpenPr>, Schema.SchemaError> {
+  return Schema.decodeUnknownEffect(OpenPrListFromJson)(json).pipe(
+    Effect.map((entries) => Option.fromNullishOr(entries[0])),
   );
 }
 
@@ -100,8 +100,8 @@ function findOpenPullRequest(
   branch: string,
 ): Effect.Effect<
   Option.Option<OpenPr>,
-  CommandFailedError | PlatformError | ParseResult.ParseError,
-  CommandExecutor
+  CommandFailedError | PlatformError | Schema.SchemaError,
+  ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const json = yield* runStdout("gh", [
@@ -131,7 +131,7 @@ function findOpenPullRequest(
 function detectAction(): Effect.Effect<
   PushAction,
   CommandFailedError | PlatformError | RevListParseError | BehindUpstreamError,
-  CommandExecutor
+  ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const upstream = yield* tryRunStdout("git", [
@@ -170,10 +170,10 @@ export function pushHead(): Effect.Effect<
   | CommandFailedError
   | PlatformError
   | RevListParseError
-  | ParseResult.ParseError
+  | Schema.SchemaError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,
-  CommandExecutor
+  ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const remote = "origin";

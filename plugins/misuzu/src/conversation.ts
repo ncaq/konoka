@@ -5,7 +5,7 @@
  */
 
 import { Data, Effect, Schema } from "effect";
-import type { UnknownException } from "effect/Cause";
+import type { UnknownError } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 
@@ -63,8 +63,8 @@ export const ConversationReviewThreadSchema = Schema.Struct({
   isOutdated: Schema.Boolean,
   resolvedBy: Schema.NullOr(Schema.NonEmptyString),
   path: Schema.NonEmptyString,
-  line: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
-  startLine: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
+  line: Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))),
+  startLine: Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))),
   diffSide: Schema.NonEmptyString,
   comments: Schema.Array(ReviewThreadCommentSchema),
 });
@@ -431,7 +431,7 @@ function paginateConnection<TNode>(
   nodeFields: string,
   pageInfo: PageInfo,
   accumulator: TNode[],
-): Effect.Effect<void, GraphQlConnectionMissing | UnknownException> {
+): Effect.Effect<void, GraphQlConnectionMissing | UnknownError> {
   return Effect.gen(function* () {
     const query = buildPageQuery(connectionName, nodeFields);
     let cursor = pageInfo.endCursor;

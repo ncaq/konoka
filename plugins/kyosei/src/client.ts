@@ -2,10 +2,11 @@
  * GitHubへ認証してクライアントを生成するためのモジュール。
  */
 
-import { Command, type CommandExecutor } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process";
 import { Octokit } from "octokit";
+import { commandString } from "./command";
 import {
   EnvVarNotSet,
   type EnvVarInvalidUrl,
@@ -125,7 +126,7 @@ function getGitHubAuthOptionsFromEnvironment(): Option.Option<GitHubAuthOptions>
 function createGitHubAuthOptionsFromGh(): Effect.Effect<
   GitHubAuthOptions,
   EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const githubHostname = yield* getGitHubHostname();
@@ -133,7 +134,7 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<
       githubHostname === "github.com"
         ? ["auth", "token"]
         : ["auth", "token", "--hostname", githubHostname];
-    const stdout = yield* Command.string(Command.make("gh", ...argumentList)).pipe(
+    const stdout = yield* commandString("gh", argumentList).pipe(
       Effect.mapError((cause) => new GhTokenReadError({ cause })),
     );
     const token = normalizeEnvironmentVariable(stdout);
@@ -154,7 +155,7 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<
 function createGitHubAuthOptions(): Effect.Effect<
   GitHubAuthOptions,
   EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Option.match(getGitHubAuthOptionsFromEnvironment(), {
     onSome: (options) => Effect.succeed(options),
@@ -206,7 +207,7 @@ function handleSecondaryRateLimit(
 export function createOctokitClient(): Effect.Effect<
   Octokit,
   OctokitClientCreationError,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const githubAuthOptions = yield* createGitHubAuthOptions();

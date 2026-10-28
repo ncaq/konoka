@@ -1,7 +1,6 @@
-import { Command, FileSystem, Path, Terminal } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, Option } from "effect";
+import { Data, Effect, type FileSystem, Option, Path, Stream, Terminal } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { GitCommandFailedError } from "./find-git-hook";
 import { findGitHook, gitTopLevel } from "./find-git-hook";
 
@@ -40,9 +39,10 @@ export function runCommitMsgHook(
 ): Effect.Effect<
   void,
   PlatformError | GitCommandFailedError | CommitMsgHookFailedError,
-  CommandExecutor | FileSystem.FileSystem | Path.Path | Terminal.Terminal
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Path.Path | Terminal.Terminal
 > {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const path = yield* Path.Path;
     const terminal = yield* Terminal.Terminal;
     const hookPath = yield* findGitHook(commitMsgHookName);
@@ -53,14 +53,14 @@ export function runCommitMsgHook(
       return;
     }
     const workingDirectory = yield* gitTopLevel;
-    const hook = Command.make(hookPath.value, path.resolve(messagePath)).pipe(
-      Command.workingDirectory(workingDirectory),
+    const hook = ChildProcess.make(hookPath.value, [path.resolve(messagePath)], {
+      cwd: workingDirectory,
       // gitはフックの標準入力を空にするため、即座にEOFになる入力を与えて同じ状態にします。
-      Command.feed(""),
-      Command.stdout("inherit"),
-      Command.stderr("inherit"),
-    );
-    const exitCode = yield* Command.exitCode(hook);
+      stdin: Stream.empty,
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    const exitCode = yield* spawner.exitCode(hook);
     if (exitCode !== 0) {
       return yield* new CommitMsgHookFailedError({ hookPath: hookPath.value, exitCode });
     }

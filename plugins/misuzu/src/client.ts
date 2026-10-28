@@ -3,9 +3,9 @@
  */
 
 import process from "node:process";
-import { Command, type CommandExecutor } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { Octokit } from "octokit";
 
 /** 環境変数が未設定または事実上の空である場合の失敗。 */
@@ -84,7 +84,7 @@ function normalizeEnvironmentVariable(x: string): Option.Option<string> {
  * 事実上の空だったら`Option.none`として扱います。
  */
 function getNormalizedEnvironmentVariable(name: string): Option.Option<string> {
-  return Option.fromNullable(process.env[name]).pipe(Option.flatMap(normalizeEnvironmentVariable));
+  return Option.fromNullishOr(process.env[name]).pipe(Option.flatMap(normalizeEnvironmentVariable));
 }
 
 /**
@@ -195,17 +195,18 @@ function getGitHubAuthOptionsFromEnvironment(): Option.Option<GitHubAuthOptions>
 function createGitHubAuthOptionsFromGh(): Effect.Effect<
   GitHubAuthOptions,
   EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const githubHostname = yield* getGitHubHostname();
     const argumentList =
       githubHostname === "github.com"
         ? ["auth", "token"]
         : ["auth", "token", "--hostname", githubHostname];
-    const stdout = yield* Command.string(Command.make("gh", ...argumentList)).pipe(
-      Effect.mapError((cause) => new GhTokenReadError({ cause })),
-    );
+    const stdout = yield* spawner
+      .string(ChildProcess.make("gh", argumentList))
+      .pipe(Effect.mapError((cause) => new GhTokenReadError({ cause })));
     const token = normalizeEnvironmentVariable(stdout);
     if (Option.isNone(token)) {
       return yield* new GhTokenEmpty();
@@ -224,7 +225,7 @@ function createGitHubAuthOptionsFromGh(): Effect.Effect<
 function createGitHubAuthOptions(): Effect.Effect<
   GitHubAuthOptions,
   EnvVarInvalidUrl | GhTokenReadError | GhTokenEmpty,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Option.match(getGitHubAuthOptionsFromEnvironment(), {
     onSome: (options) => Effect.succeed(options),
@@ -276,7 +277,7 @@ function handleSecondaryRateLimit(
 export function createOctokitClient(): Effect.Effect<
   Octokit,
   OctokitClientCreationError,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const githubAuthOptions = yield* createGitHubAuthOptions();

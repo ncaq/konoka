@@ -1,5 +1,4 @@
-import { Path } from "@effect/platform";
-import { Effect } from "effect";
+import { Path, Effect } from "effect";
 
 /**
  * `COMMIT_EDITMSG`ファイルのパスを返します。

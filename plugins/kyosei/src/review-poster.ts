@@ -3,8 +3,8 @@
  * レビュー本文とインラインコメントを1回のAPI呼び出しで投稿します。
  */
 
-import { type CommandExecutor } from "@effect/platform";
 import { Effect } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { formatReviewCommentBody } from "./review-comment-body";
 import { buildReviewBody } from "./review-metadata";
@@ -50,7 +50,11 @@ function buildCreateReviewParams(
 export function submitReview(
   octokit: Octokit,
   submission: typeof ReviewSubmissionSchema.Type,
-): Effect.Effect<typeof ReviewSubmissionResultSchema.Type, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<
+  typeof ReviewSubmissionResultSchema.Type,
+  Error,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.gen(function* () {
     const body = yield* buildReviewBody(submission);
     const params = buildCreateReviewParams(submission, body);
@@ -69,7 +73,7 @@ export function submitReview(
  */
 export function previewReview(
   submission: typeof ReviewSubmissionSchema.Type,
-): Effect.Effect<CreateReviewParams, never, CommandExecutor.CommandExecutor> {
+): Effect.Effect<CreateReviewParams, never, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     const body = yield* buildReviewBody(submission);
     return buildCreateReviewParams(submission, body);

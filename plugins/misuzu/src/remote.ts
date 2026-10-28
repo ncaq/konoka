@@ -2,8 +2,8 @@
  * Gitリモートからリポジトリ情報を取得するモジュール。
  */
 
-import { Command, type CommandExecutor } from "@effect/platform";
 import { Data, Effect, Option } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import gitUrlParse from "git-url-parse";
 
 /**
@@ -32,30 +32,38 @@ export class RemoteUrlParseError extends Data.TaggedError("RemoteUrlParseError")
 export function getRemoteName(): Effect.Effect<
   string,
   Error | NoGitRemotes,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     // 現在のブランチのupstreamからリモート名を取得します。
     // 例: @{upstream}が"origin/main"ならリモート名は"origin"です。
     // upstream未設定時の`git rev-parse`非ゼロ終了は想定通りなのでgit remoteのフォールバックに進めます。
-    // ここでExitCodeError以外の失敗を区別したいが、Command.stringは現状PlatformError系をそのまま返すため、
+    // ここでExitCodeError以外の失敗を区別したいが、`ChildProcessSpawner.string`は現状PlatformError系をそのまま返すため、
     // 細かいタグ判別はせずgit remoteへフォールバックします。
-    const fromUpstream = yield* Command.string(
-      Command.make("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"),
-    ).pipe(
-      Effect.map((stdout) => {
-        const upstream = stdout.trim();
-        const separatorIndex = upstream.indexOf("/");
-        return separatorIndex > 0
-          ? Option.some(upstream.slice(0, separatorIndex))
-          : Option.none<string>();
-      }),
-      Effect.catchAll(() => Effect.succeed(Option.none<string>())),
-    );
+    const fromUpstream = yield* spawner
+      .string(
+        ChildProcess.make("git", [
+          "rev-parse",
+          "--abbrev-ref",
+          "--symbolic-full-name",
+          "@{upstream}",
+        ]),
+      )
+      .pipe(
+        Effect.map((stdout) => {
+          const upstream = stdout.trim();
+          const separatorIndex = upstream.indexOf("/");
+          return separatorIndex > 0
+            ? Option.some(upstream.slice(0, separatorIndex))
+            : Option.none<string>();
+        }),
+        Effect.catch(() => Effect.succeed(Option.none<string>())),
+      );
     if (Option.isSome(fromUpstream)) {
       return fromUpstream.value;
     }
-    const remoteListOutput = yield* Command.string(Command.make("git", "remote"));
+    const remoteListOutput = yield* spawner.string(ChildProcess.make("git", ["remote"]));
     const firstRemote = remoteListOutput.trim().split("\n")[0];
     if (firstRemote == null || firstRemote === "") {
       return yield* new NoGitRemotes();
@@ -75,12 +83,13 @@ export function getRemoteRepo(
 ): Effect.Effect<
   RemoteRepo,
   Error | NoGitRemotes | RemoteUrlParseError,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const remoteName = knownRemoteName ?? (yield* getRemoteName());
-    const remoteUrlOutput = yield* Command.string(
-      Command.make("git", "remote", "get-url", remoteName),
+    const remoteUrlOutput = yield* spawner.string(
+      ChildProcess.make("git", ["remote", "get-url", remoteName]),
     );
     const url = remoteUrlOutput.trim();
     const parsed = gitUrlParse(url);

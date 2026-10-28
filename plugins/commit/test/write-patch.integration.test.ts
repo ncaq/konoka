@@ -1,10 +1,10 @@
 import { chdir, cwd } from "node:process";
-import { Command, FileSystem, Path } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { Cause, Effect, Exit, Option, Scope } from "effect";
+import { Cause, Effect, Exit, FileSystem, Option, Path, type Scope } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess } from "effect/process";
+import { ChildProcessSpawner } from "effect/process/ChildProcessSpawner";
 import { afterEach, assert, describe, expect } from "vitest";
 import { EmptyCommitError, writePatch } from "../src/write-patch";
 
@@ -12,15 +12,17 @@ import { EmptyCommitError, writePatch } from "../src/write-patch";
 function gitIn(
   cwd: string,
   ...args: readonly string[]
-): Effect.Effect<string, PlatformError, CommandExecutor> {
-  return Command.make("git", ...args).pipe(Command.workingDirectory(cwd), Command.string);
+): Effect.Effect<string, PlatformError, ChildProcessSpawner> {
+  return ChildProcessSpawner.use((spawner) =>
+    spawner.string(ChildProcess.make("git", args, { cwd })),
+  );
 }
 
 /** スコープに紐づく一時ディレクトリに空のGitリポジトリを初期化してそのパスを返します。 */
 const initRepo: Effect.Effect<
   string,
   PlatformError,
-  FileSystem.FileSystem | CommandExecutor | Scope.Scope
+  FileSystem.FileSystem | ChildProcessSpawner | Scope.Scope
 > = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const dir = yield* fs.makeTempDirectoryScoped();
@@ -35,7 +37,7 @@ describe("writePatch", () => {
     chdir(originalCwd);
   });
 
-  it.scoped("変更が何も無ければ`EmptyCommitError`で失敗する", () =>
+  it.effect("変更が何も無ければ`EmptyCommitError`で失敗する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const repo = yield* initRepo;
@@ -43,13 +45,13 @@ describe("writePatch", () => {
       chdir(repo);
       const exit = yield* Effect.exit(writePatch(workdir));
       assert(Exit.isFailure(exit));
-      const failure = Cause.failureOption(exit.cause);
+      const failure = Cause.findErrorOption(exit.cause);
       assert(Option.isSome(failure));
       expect(failure.value).toBeInstanceOf(EmptyCommitError);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("未ステージの変更を自動でステージしてpatchファイルを書き出す", () =>
+  it.effect("未ステージの変更を自動でステージしてpatchファイルを書き出す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -70,10 +72,10 @@ describe("writePatch", () => {
       const actual = yield* fs.readFileString(patchPath);
       expect(actual).toBe(expected);
       expect(actual).toContain("a.txt");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("既にステージ済みの変更からpatchファイルを書き出す", () =>
+  it.effect("既にステージ済みの変更からpatchファイルを書き出す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -84,6 +86,6 @@ describe("writePatch", () => {
       chdir(repo);
       const patchPath = yield* writePatch(workdir);
       expect(yield* fs.readFileString(patchPath)).toContain("b.txt");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

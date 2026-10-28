@@ -3,8 +3,23 @@
  * PR URLからowner, repo, PR番号と優先対応対象(focus)を抽出します。
  */
 
-import { Either } from "effect";
+import { Result } from "effect";
 import type { Focus, RespondContext } from "./context-type";
+
+/**
+ * 文字列をURLとして解釈し、失敗した場合は失敗理由を`Result.Failure`に格納して返します。
+ */
+function parseUrl(input: string): Result.Result<URL, string> {
+  try {
+    return Result.succeed(new URL(input));
+  } catch (cause) {
+    return Result.fail(
+      cause instanceof TypeError
+        ? `not a valid URL: ${cause.message}`
+        : `unexpected URL parsing error: ${String(cause)}`,
+    );
+  }
+}
 
 /**
  * フラグメントの形式とfocus種別の対応。
@@ -42,34 +57,28 @@ export function parseFocusFragment(hash: string): Focus | undefined {
 
 /**
  * 引数文字列を解析してPR URLからコンテキスト情報を抽出します。
- * PR URLとして解釈できない場合は失敗理由を`Either.Left`に格納して返します。
+ * PR URLとして解釈できない場合は失敗理由を`Result.Failure`に格納して返します。
  * 失敗時の取り扱い(エラー化)は呼び出し側の責務です。
  *
  * `https://<host>/<owner>/<repo>/pull/<number>`形式を想定しています。
  * 末尾のサブパス(/files, /commits等)やクエリパラメータがあっても問題ありません。
  * `#pullrequestreview-<id>`等のフラグメントは優先対応対象(focus)として抽出します。
  */
-export function parsePrUrl(argument: string): Either.Either<RespondContext, string> {
-  return Either.try({
-    try: () => new URL(argument.trim()),
-    catch: (cause) =>
-      cause instanceof TypeError
-        ? `not a valid URL: ${cause.message}`
-        : `unexpected URL parsing error: ${String(cause)}`,
-  }).pipe(
-    Either.flatMap((url) => {
+export function parsePrUrl(argument: string): Result.Result<RespondContext, string> {
+  return parseUrl(argument.trim()).pipe(
+    Result.flatMap((url) => {
       const [owner, repo, pullLiteral, prNumberStr] = url.pathname
         .split("/")
         .filter((s) => s !== "");
       if (owner == null || repo == null || pullLiteral !== "pull" || prNumberStr == null) {
-        return Either.left("URL path is not in /owner/repo/pull/<number> form");
+        return Result.fail("URL path is not in /owner/repo/pull/<number> form");
       }
       const prNumber = Number.parseInt(prNumberStr, 10);
       if (!Number.isFinite(prNumber) || prNumber <= 0) {
-        return Either.left(`PR number is not a positive integer: ${prNumberStr}`);
+        return Result.fail(`PR number is not a positive integer: ${prNumberStr}`);
       }
       const focus = parseFocusFragment(url.hash);
-      return Either.right<RespondContext>({
+      return Result.succeed<RespondContext>({
         pr: { owner, repo, prNumber },
         host: url.hostname,
         ...(focus == null ? {} : { focus }),
