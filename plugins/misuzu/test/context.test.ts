@@ -4,11 +4,11 @@ import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
 import { detectRespondContext, InvalidPrUrlArgument } from "../src/context";
-import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
-const failingCommandLayer = fakeCommandExecutor(() =>
+const failingCommandLayer = fakeChildProcessSpawner(() =>
   Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
 );
 

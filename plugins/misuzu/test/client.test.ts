@@ -2,7 +2,7 @@ import process from "node:process";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client";
-import { fakeCommandExecutor } from "./fake-command";
+import { fakeChildProcessSpawner } from "./fake-command";
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。
@@ -117,7 +117,7 @@ describe("createOctokitClient", () => {
         try {
           const requestedUrls = mockFetchAndCaptureUrls();
 
-          const layer = fakeCommandExecutor(() =>
+          const layer = fakeChildProcessSpawner(() =>
             Effect.die(new Error("gh should not be invoked when token env is set")),
           );
           const octokit = await Effect.runPromise(
@@ -162,7 +162,7 @@ describe("createOctokitClient", () => {
       const restore = withEnv({ GH_TOKEN: "  ghp_env_token \n" });
       try {
         const authHeaders = mockFetchAndCaptureAuthHeaders();
-        const layer = fakeCommandExecutor(() =>
+        const layer = fakeChildProcessSpawner(() =>
           Effect.die(new Error("gh should not be invoked when token env is set")),
         );
         const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));
@@ -177,7 +177,7 @@ describe("createOctokitClient", () => {
       const restore = withEnv({ GH_TOKEN: "   ", GITHUB_TOKEN: "ghp_fallback_token" });
       try {
         const authHeaders = mockFetchAndCaptureAuthHeaders();
-        const layer = fakeCommandExecutor(() =>
+        const layer = fakeChildProcessSpawner(() =>
           Effect.die(new Error("gh should not be invoked when token env is set")),
         );
         const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));
@@ -190,7 +190,7 @@ describe("createOctokitClient", () => {
 
     test("環境変数にトークンがない場合はgh auth tokenへフォールバックする", async () => {
       const invoked: { command: string; args: readonly string[] }[] = [];
-      const layer = fakeCommandExecutor((command, args) => {
+      const layer = fakeChildProcessSpawner((command, args) => {
         invoked.push({ command, args });
         return Effect.succeed("ghp_gh_token\n");
       });
@@ -205,7 +205,7 @@ describe("createOctokitClient", () => {
       const restore = withEnv({ GH_HOST: "ghe.example.com" });
       try {
         const invoked: { command: string; args: readonly string[] }[] = [];
-        const layer = fakeCommandExecutor((command, args) => {
+        const layer = fakeChildProcessSpawner((command, args) => {
           invoked.push({ command, args });
           return Effect.succeed("ghp_ghe_token\n");
         });
@@ -220,7 +220,7 @@ describe("createOctokitClient", () => {
     });
 
     test("ghの出力が空白のみの場合はGhTokenEmptyで失敗する", async () => {
-      const layer = fakeCommandExecutor(() => Effect.succeed("   \n"));
+      const layer = fakeChildProcessSpawner(() => Effect.succeed("   \n"));
       const error = await Effect.runPromise(
         createOctokitClient().pipe(Effect.flip, Effect.provide(layer)),
       );
@@ -233,7 +233,7 @@ describe("createOctokitClient", () => {
     test("GITHUB_SERVER_URLが不正な場合はEnvVarInvalidUrlで失敗する", async () => {
       const restore = withEnv({ GITHUB_SERVER_URL: "not a url" });
       try {
-        const layer = fakeCommandExecutor(() => Effect.succeed("ghp_gh_token\n"));
+        const layer = fakeChildProcessSpawner(() => Effect.succeed("ghp_gh_token\n"));
         const error = await Effect.runPromise(
           createOctokitClient().pipe(Effect.flip, Effect.provide(layer)),
         );
@@ -262,7 +262,7 @@ describe("createOctokitClient", () => {
       try {
         const requestedUrls = mockFetchAndCaptureUrls();
 
-        const layer = fakeCommandExecutor(() =>
+        const layer = fakeChildProcessSpawner(() =>
           Effect.die(new Error("gh should not be invoked when token env is set")),
         );
         const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));

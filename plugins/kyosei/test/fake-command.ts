@@ -33,11 +33,11 @@ function firstStandardCommand(command: ChildProcess.Command): ChildProcess.Stand
 
 /** 未対応のメソッドが呼ばれた時のdefect。どのメソッドかをメッセージに含めます。 */
 function unsupported(method: string): Error {
-  return new Error(`fakeCommandExecutor: ${method} is not supported`);
+  return new Error(`fakeChildProcessSpawner: ${method} is not supported`);
 }
 
 /** `ChildProcessSpawner`をフェイク実装で差し替える`Layer`を返します。 */
-export function fakeCommandExecutor(
+export function fakeChildProcessSpawner(
   handler: CommandHandler,
 ): Layer.Layer<ChildProcessSpawner.ChildProcessSpawner> {
   const fake: ChildProcessSpawner.ChildProcessSpawner["Service"] = {

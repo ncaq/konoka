@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
 import { resolveLocalContext } from "../src/context-local";
-import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
@@ -15,7 +15,7 @@ describe("resolveLocalContext", () => {
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(FakeCommandError))),
       Effect.provide(
-        fakeCommandExecutor(() =>
+        fakeChildProcessSpawner(() =>
           Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
         ),
       ),
