@@ -16,7 +16,6 @@ allowed-tools: >-
   Skill(kyosei:security-reviewer),
   Skill(kyosei:test-reviewer),
   mcp__github
-effort: low
 ---
 
 # コマンドの実行方法
