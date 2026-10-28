@@ -5,18 +5,13 @@
 
 import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
-import { Argument, Command, Flag } from "effect/cli";
+import { Argument, Command } from "effect/cli";
+import { dryRunFlag } from "../cli-params";
 import { createOctokitClient } from "../client";
 import { decodeReviewSubmission } from "../review-decoder";
 import { previewReview, submitReview } from "../review-poster";
 
-const dryRun = Flag.Boolean("dry-run").pipe(
-  Flag.withDescription(
-    "投稿せずに、組み立て済みのcreateReviewパラメータをJSON出力します。スキーマ検証とメタデータフッター生成は実行されます。",
-  ),
-  // v4の`Flag.Boolean`は省略すると必須扱いになるため、省略時は`false`にします。
-  Flag.withDefault(false),
-);
+const dryRun = dryRunFlag;
 
 const json = Argument.String("json").pipe(
   Argument.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),

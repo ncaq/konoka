@@ -6,17 +6,12 @@
 
 import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
-import { Argument, Command, Flag } from "effect/cli";
+import { Argument, Command } from "effect/cli";
+import { dryRunFlag } from "../cli-params";
 import { createOctokitClient } from "../client";
 import { PartialSubmissionFailure, runReplyAndResolve } from "../reply-cli";
 
-const dryRun = Flag.Boolean("dry-run").pipe(
-  Flag.withDescription(
-    "投稿せずに、スキーマ検証済みの投稿予定データをJSON出力します。GitHub APIへのアクセスは行われません。",
-  ),
-  // v4の`Flag.Boolean`は省略時に失敗するため、省略時は投稿する(false)ようにします。
-  Flag.withDefault(false),
-);
+const dryRun = dryRunFlag;
 
 const submissionPath = Argument.String("submission-path").pipe(
   Argument.withDescription(

@@ -5,20 +5,15 @@
 
 import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Option, Schema } from "effect";
-import { Argument, Command } from "effect/cli";
+import { Command } from "effect/cli";
+import { prUrlArgument } from "../cli-params";
 import { createOctokitClient } from "../client";
 import { detectRespondContext } from "../context";
 import { getConversation } from "../conversation";
 import { verifyContextHost } from "../host-check";
 import { RespondInfoFilePathsSchema, writeRespondInfoFiles } from "../respond-info-files";
 
-const prUrl = Argument.String("pr-url").pipe(
-  Argument.withDescription(
-    "対象PRまたはレビューのURL。省略時はカレントブランチからPRを推定し、" +
-      "PRが見つからなければローカルコンテキストになります。",
-  ),
-  Argument.optional,
-);
+const prUrl = prUrlArgument;
 
 const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
   Effect.gen(function* () {
