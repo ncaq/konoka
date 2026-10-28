@@ -3,9 +3,10 @@
  * gitとGitHub APIからブランチ情報を解決します。
  */
 
-import { Command, type CommandExecutor } from "@effect/platform";
 import { Data, Effect, Option } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
+import { commandString } from "./command";
 import type { LocalOutputContext } from "./context-type";
 import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
 
@@ -24,11 +25,12 @@ class UnexpectedSymbolicRefFormat extends Data.TaggedError("UnexpectedSymbolicRe
  */
 function getDefaultBranchFromGit(
   remoteName: string,
-): Effect.Effect<string, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<string, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
-    const symbolicRef = yield* Command.string(
-      Command.make("git", "symbolic-ref", `refs/remotes/${remoteName}/HEAD`),
-    );
+    const symbolicRef = yield* commandString("git", [
+      "symbolic-ref",
+      `refs/remotes/${remoteName}/HEAD`,
+    ]);
     // "refs/remotes/origin/main" → "main"
     const prefix = `refs/remotes/${remoteName}/`;
     const ref = symbolicRef.trim();
@@ -46,7 +48,7 @@ function getDefaultBranchFromGit(
 function tryGetRemoteRepo(): Effect.Effect<
   Option.Option<RemoteRepo>,
   Error,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return getRemoteRepo().pipe(
     Effect.map(Option.some),
@@ -66,10 +68,10 @@ function tryGetRemoteRepo(): Effect.Effect<
  */
 export function resolveLocalContext(
   octokit: Octokit,
-): Effect.Effect<LocalOutputContext, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<LocalOutputContext, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     const [remoteName, currentBranchOutput] = yield* Effect.all(
-      [getRemoteName(), Command.string(Command.make("git", "rev-parse", "--abbrev-ref", "HEAD"))],
+      [getRemoteName(), commandString("git", ["rev-parse", "--abbrev-ref", "HEAD"])],
       { concurrency: "unbounded" },
     );
     const currentBranch = currentBranchOutput.trim();

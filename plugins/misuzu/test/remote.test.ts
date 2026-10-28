@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { getRemoteName, getRemoteRepo, NoGitRemotes } from "../src/remote";
-import { FakeCommandError, fakeCommandExecutor, type CommandHandler } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner, type CommandHandler } from "./fake-command";
 
 const sequenceHandler = (responses: Effect.Effect<string, Error>[]): CommandHandler => {
   let index = 0;
@@ -19,7 +19,7 @@ describe("getRemoteName", () => {
   it.effect("upstreamが設定されている場合はupstreamからリモート名を取得する", () =>
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
-      Effect.provide(fakeCommandExecutor(sequenceHandler([Effect.succeed("origin/master\n")]))),
+      Effect.provide(fakeChildProcessSpawner(sequenceHandler([Effect.succeed("origin/master\n")]))),
     ),
   );
 
@@ -27,7 +27,7 @@ describe("getRemoteName", () => {
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("upstream"))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("upstream\norigin\n"),
@@ -42,7 +42,7 @@ describe("getRemoteName", () => {
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(NoGitRemotes))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("\n"),
@@ -56,7 +56,7 @@ describe("getRemoteName", () => {
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             // detached HEADなどでupstream取得がリモート名を含まない値を返すケース。
             Effect.succeed("HEAD\n"),
@@ -71,7 +71,7 @@ describe("getRemoteName", () => {
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             // 先頭スラッシュはリモート名が空になる異常出力なので採用しない仕様です。
             Effect.succeed("/master\n"),
@@ -96,7 +96,7 @@ describe("getRemoteRepo", () => {
         ),
       ),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             Effect.succeed("https://github.com/test-owner/test-repo.git\n"),
@@ -118,7 +118,7 @@ describe("getRemoteRepo", () => {
         ),
       ),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             Effect.succeed("git@github.com:test-owner/test-repo.git\n"),
@@ -140,7 +140,7 @@ describe("getRemoteRepo", () => {
         ),
       ),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             // ownerに相当するパスセグメントを持たないURL。
@@ -156,7 +156,7 @@ describe("getRemoteRepo", () => {
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(FakeCommandError))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             Effect.fail(new FakeCommandError({ message: "fatal: no such remote" })),
@@ -179,7 +179,7 @@ describe("getRemoteRepo", () => {
       ),
       Effect.provide(
         // 1回目の呼び出しがget-urlになる=getRemoteNameのgit呼び出しが省略されている。
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([Effect.succeed("https://github.com/test-owner/test-repo.git\n")]),
         ),
       ),

@@ -1,7 +1,7 @@
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { afterEach, beforeEach, expect } from "vitest";
@@ -20,10 +20,12 @@ describe("prepareEditmsg", () => {
 
   it.effect("PULLREQ_EDITMSGファイルのパスを返す", () =>
     prepareEditmsg({ runtimeDir }).pipe(
-      Effect.tap((path) => {
-        expect(path.endsWith("/PULLREQ_EDITMSG")).toBe(true);
-      }),
-      Effect.provide(NodeContext.layer),
+      Effect.tap((path) =>
+        Effect.sync(() => {
+          expect(path.endsWith("/PULLREQ_EDITMSG")).toBe(true);
+        }),
+      ),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -35,7 +37,7 @@ describe("prepareEditmsg", () => {
           expect(info.isDirectory()).toBe(true);
         }),
       ),
-      Effect.provide(NodeContext.layer),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -44,7 +46,7 @@ describe("prepareEditmsg", () => {
       const a = yield* prepareEditmsg({ runtimeDir });
       const b = yield* prepareEditmsg({ runtimeDir });
       expect(dirname(a)).not.toBe(dirname(b));
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("基底ディレクトリが存在しなくても再帰的に作成する", () =>
@@ -54,6 +56,6 @@ describe("prepareEditmsg", () => {
       expect(path.startsWith(fresh)).toBe(true);
       const info = yield* Effect.promise(() => stat(dirname(path)));
       expect(info.isDirectory()).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

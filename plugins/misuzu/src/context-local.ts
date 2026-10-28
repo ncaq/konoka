@@ -5,8 +5,8 @@
  * misuzuはdiffを扱わないため、PRの特定だけに絞っています。
  */
 
-import { Command, type CommandExecutor } from "@effect/platform";
 import { Effect, Option } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
 import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
@@ -18,7 +18,7 @@ import { getRemoteName, getRemoteRepo, type RemoteRepo } from "./remote";
  */
 function tryGetRemoteRepo(
   remoteName: string,
-): Effect.Effect<Option.Option<RemoteRepo>, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<Option.Option<RemoteRepo>, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return getRemoteRepo(remoteName).pipe(
     Effect.map(Option.some),
     // GitHubリポジトリが特定できない正当なケースは`None`に畳んで上位に渡します。
@@ -37,16 +37,20 @@ function tryGetRemoteRepo(
  */
 export function findPrForCurrentBranch(
   octokit: Octokit,
-): Effect.Effect<Option.Option<PrIdentifier>, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<Option.Option<PrIdentifier>, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    // リモートが1つもないのはPRが特定できない正当なケースなのでNoneに畳みます。
+    // `Effect.all`の引数内に直接書くと`catchTag`のエラー型が`any`に推論されてしまうため、
+    // 先に変数へ束縛しています。
+    const remoteNameEffect = getRemoteName().pipe(
+      Effect.map(Option.some),
+      Effect.catchTag("NoGitRemotes", () => Effect.succeed(Option.none<string>())),
+    );
     const [remoteName, currentBranchOutput] = yield* Effect.all(
       [
-        // リモートが1つもないのはPRが特定できない正当なケースなのでNoneに畳みます。
-        getRemoteName().pipe(
-          Effect.map(Option.some),
-          Effect.catchTag("NoGitRemotes", () => Effect.succeed(Option.none<string>())),
-        ),
-        Command.string(Command.make("git", "rev-parse", "--abbrev-ref", "HEAD")),
+        remoteNameEffect,
+        spawner.string(ChildProcess.make("git", ["rev-parse", "--abbrev-ref", "HEAD"])),
       ],
       { concurrency: "unbounded" },
     );

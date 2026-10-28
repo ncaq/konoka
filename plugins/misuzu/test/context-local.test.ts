@@ -3,7 +3,7 @@ import { Effect, Option } from "effect";
 import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
 import { findPrForCurrentBranch } from "../src/context-local";
-import { FakeCommandError, fakeCommandExecutor, type CommandHandler } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner, type CommandHandler } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
@@ -47,7 +47,7 @@ describe("findPrForCurrentBranch", () => {
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(FakeCommandError))),
       Effect.provide(
-        fakeCommandExecutor(() =>
+        fakeChildProcessSpawner(() =>
           Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
         ),
       ),
@@ -71,7 +71,7 @@ describe("findPrForCurrentBranch", () => {
         state: "open",
         per_page: 1,
       });
-    }).pipe(Effect.provide(fakeCommandExecutor(gitHandler(githubGitOutputs))));
+    }).pipe(Effect.provide(fakeChildProcessSpawner(gitHandler(githubGitOutputs))));
   });
 
   it.effect("PRが見つからない場合はNoneを返す", () => {
@@ -79,7 +79,7 @@ describe("findPrForCurrentBranch", () => {
     return Effect.gen(function* () {
       const pr = yield* findPrForCurrentBranch(octokit);
       expect(Option.isNone(pr)).toBe(true);
-    }).pipe(Effect.provide(fakeCommandExecutor(gitHandler(githubGitOutputs))));
+    }).pipe(Effect.provide(fakeChildProcessSpawner(gitHandler(githubGitOutputs))));
   });
 
   it.effect("GitHubリポジトリが特定できない場合はNoneを返す", () =>
@@ -88,7 +88,7 @@ describe("findPrForCurrentBranch", () => {
       expect(Option.isNone(pr)).toBe(true);
     }).pipe(
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           gitHandler({
             ...githubGitOutputs,
             // GitHub形式として解釈できないリモートURL。
@@ -105,7 +105,7 @@ describe("findPrForCurrentBranch", () => {
       expect(Option.isNone(pr)).toBe(true);
     }).pipe(
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           gitHandler({
             // upstream未設定でgit remoteも空 = リモートなし。
             "git remote": "\n",

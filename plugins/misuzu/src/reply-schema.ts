@@ -3,10 +3,11 @@
  * 循環参照を避けるためにスキーマ関連はまとめたほうが良いことが多い。
  */
 
-import { Effect, ParseResult, Schema } from "effect";
+import { Effect, Schema } from "effect";
+import { PositiveIntSchema } from "./positive-int";
 
 /** PR 番号は正の整数。 */
-export const PrNumberSchema = Schema.Number.pipe(Schema.int(), Schema.positive());
+export const PrNumberSchema = PositiveIntSchema;
 
 /**
  * 1つのレビュースレッドへの返信指定。
@@ -36,7 +37,7 @@ export const ReplySubmissionSchema = Schema.Struct({
    * レビュー本文(スレッドではないreview body)への応答はスレッド返信APIが存在しないため、
    * こちらで行います。
    */
-  summaryComment: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  summaryComment: Schema.optionalKey(Schema.NonEmptyString),
 });
 
 export type ReplySubmission = typeof ReplySubmissionSchema.Type;
@@ -49,7 +50,7 @@ export const ThreadReplyResultSchema = Schema.Struct({
    * APIが想定外の形式のURLを返して解釈できなかった場合は省略されます。
    * 返信自体は投稿済みなのでURLの解釈失敗を失敗扱いにはしません。
    */
-  replyUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+  replyUrl: Schema.optionalKey(Schema.URLFromString),
   /** resolveまで完了したかどうか。 */
   resolved: Schema.Boolean,
 });
@@ -66,24 +67,24 @@ export const ReplySubmissionResultSchema = Schema.Struct({
   /** スレッド返信の失敗のみが入ります。総括コメントの失敗は含まれません。 */
   failed: Schema.Array(ThreadReplyFailureSchema),
   /** 総括コメントのURL。投稿に成功した場合のみ含まれます。 */
-  summaryCommentUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+  summaryCommentUrl: Schema.optionalKey(Schema.URLFromString),
   /**
    * 総括コメントの投稿失敗の内容。失敗した場合のみ含まれます。
    * `failed`とは種別を分離し、`threadId`の名前空間に擬似IDを持ち込まないようにしています。
    */
-  summaryCommentError: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  summaryCommentError: Schema.optionalKey(Schema.NonEmptyString),
 });
 
 export type ReplySubmissionResult = typeof ReplySubmissionResultSchema.Type;
 
 /**
  * JSON文字列をパース・バリデーションして`ReplySubmission`に変換します。
- * JSONパースまたはバリデーションの失敗は`ParseError`として型付きの失敗になります。
+ * JSONパースまたはバリデーションの失敗は`SchemaError`として型付きの失敗になります。
  */
 export function decodeReplySubmission(
   input: string,
-): Effect.Effect<ReplySubmission, ParseResult.ParseError> {
-  return Schema.decodeUnknown(Schema.parseJson(ReplySubmissionSchema), {
+): Effect.Effect<ReplySubmission, Schema.SchemaError> {
+  return Schema.decodeUnknownEffect(Schema.fromJsonString(ReplySubmissionSchema), {
     onExcessProperty: "error",
   })(input);
 }

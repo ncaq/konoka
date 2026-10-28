@@ -1,7 +1,6 @@
-import { Command, FileSystem, Terminal } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Config, Console, Effect, Option, Stream } from "effect";
+import { Config, Console, Effect, FileSystem, Option, Schema, Stream, Terminal } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, type ChildProcessSpawner } from "effect/process";
 
 /**
  * 環境変数`COLUMNS`が使えないときにdeltaへ渡す既定の表示幅です。
@@ -16,13 +15,10 @@ export const defaultWidth = 100 as const;
  * そのため環境変数`COLUMNS`が正の整数ならその値を、
  * 未設定または不正な値なら`defaultWidth`を使います。
  */
-export const displayWidth: Effect.Effect<number> = Config.integer("COLUMNS").pipe(
-  Config.validate({
-    message: "COLUMNS must be a positive integer",
-    validation: (columns) => 0 < columns,
-  }),
-  Effect.orElseSucceed(() => defaultWidth),
-);
+export const displayWidth: Effect.Effect<number> = Config.schema(
+  Schema.Int.check(Schema.isGreaterThan(0, { message: "COLUMNS must be a positive integer" })),
+  "COLUMNS",
+).pipe(Effect.orElseSucceed(() => defaultWidth));
 
 /**
  * deltaでパッチをシンタックスハイライトして、
@@ -36,13 +32,12 @@ export const displayWidth: Effect.Effect<number> = Config.integer("COLUMNS").pip
 function highlightWithDelta(
   patch: string,
   width: number,
-): Effect.Effect<Option.Option<string>, never, CommandExecutor> {
+): Effect.Effect<Option.Option<string>, never, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
-    const delta = Command.make("delta", "--paging=never", `--width=${width}`).pipe(
-      Command.feed(patch),
-      Command.stderr("inherit"),
-    );
-    const deltaProcess = yield* Command.start(delta);
+    const deltaProcess = yield* ChildProcess.make("delta", ["--paging=never", `--width=${width}`], {
+      stdin: Stream.make(new TextEncoder().encode(patch)),
+      stderr: "inherit",
+    });
     const [highlighted, exitCode] = yield* Effect.all(
       [Stream.mkString(Stream.decodeText(deltaProcess.stdout)), deltaProcess.exitCode],
       { concurrency: "unbounded" },
@@ -54,7 +49,7 @@ function highlightWithDelta(
     return Option.some(highlighted);
   }).pipe(
     Effect.scoped,
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Console.error(`Failed to run delta: ${error.message}. Falling back to the plain patch.`).pipe(
         Effect.as(Option.none<string>()),
       ),
@@ -70,7 +65,11 @@ function highlightWithDelta(
  */
 export function showStagedPatch(
   patchPath: string,
-): Effect.Effect<void, PlatformError, CommandExecutor | FileSystem.FileSystem | Terminal.Terminal> {
+): Effect.Effect<
+  void,
+  PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Terminal.Terminal
+> {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const terminal = yield* Terminal.Terminal;

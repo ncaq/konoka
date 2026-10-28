@@ -1,8 +1,7 @@
 import { chdir, cwd } from "node:process";
-import { FileSystem, Path } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { Effect, Exit, Option } from "effect";
+import { FileSystem, Path, Effect, Exit, Option } from "effect";
 import { afterEach, assert, describe, expect } from "vitest";
 import { readCommitInstructions } from "../src/read-commit-instructions";
 
@@ -13,7 +12,7 @@ describe("readCommitInstructions", () => {
     chdir(originalCwd);
   });
 
-  it.scoped("ファイルが存在すれば内容を`Option.some`で返す", () =>
+  it.effect("ファイルが存在すれば内容を`Option.some`で返す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -27,20 +26,20 @@ describe("readCommitInstructions", () => {
       const result = yield* readCommitInstructions;
       assert(Option.isSome(result));
       expect(result.value).toBe("プロジェクト固有のガイドライン");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("ファイルが存在しなければ`Option.none`を返す", () =>
+  it.effect("ファイルが存在しなければ`Option.none`を返す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const dir = yield* fs.makeTempDirectoryScoped();
       chdir(dir);
       const result = yield* readCommitInstructions;
       expect(Option.isNone(result)).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("NotFound以外の読み取りエラーはそのまま失敗として伝播する", () =>
+  it.effect("NotFound以外の読み取りエラーはそのまま失敗として伝播する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -52,6 +51,6 @@ describe("readCommitInstructions", () => {
       chdir(dir);
       const exit = yield* Effect.exit(readCommitInstructions);
       expect(Exit.isFailure(exit)).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

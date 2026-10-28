@@ -3,8 +3,9 @@
  * 循環参照を避けるためにスキーマ関連はまとめたほうが良いことが多い。
  */
 
-import { Schema } from "effect";
+import { Schema, SchemaTransformation } from "effect";
 import { valid as semverValid } from "semver";
+import { PositiveIntSchema } from "./positive-int";
 
 /** 入力が空文字や空白のみの場合に`undefined`扱いとして正規化するためのバリデーター。 */
 export function pickNonBlank(raw: unknown): string | undefined {
@@ -21,17 +22,21 @@ export function pickNonBlank(raw: unknown): string | undefined {
  * 入力には`undefined`、空文字、空白のみも許容し、内部で`pickNonBlank`によって正規化します。
  */
 function fallbackToUnknown<A extends string>(
-  schema: Schema.Schema<A, string>,
-): Schema.Schema<A | "unknown", string | undefined> {
+  schema: Schema.Codec<A, string>,
+): Schema.Codec<A | "unknown", string | undefined> {
   const isValid = Schema.is(schema);
-  return Schema.transform(Schema.UndefinedOr(Schema.String), Schema.Union(schema, UnknownLiteral), {
-    strict: true,
-    decode: (raw) => {
-      const trimmed = pickNonBlank(raw);
-      return trimmed != null && isValid(trimmed) ? trimmed : ("unknown" as const);
-    },
-    encode: (decoded) => (decoded === "unknown" ? undefined : decoded),
-  });
+  return Schema.UndefinedOr(Schema.String).pipe(
+    Schema.decodeTo(
+      Schema.toType(Schema.Union([schema, UnknownLiteral])),
+      SchemaTransformation.transform<A | "unknown", string | undefined>({
+        decode: (raw) => {
+          const trimmed = pickNonBlank(raw);
+          return trimmed != null && isValid(trimmed) ? trimmed : ("unknown" as const);
+        },
+        encode: (decoded) => (decoded === "unknown" ? undefined : decoded),
+      }),
+    ),
+  );
 }
 
 /** 値が不明だった時はこれで埋めます。 */
@@ -72,25 +77,27 @@ function isSemVer(value: string): boolean {
 
 /** GitのSHA形式(短縮7桁から完全40桁の16進)。 */
 export const ShaSchema = Schema.NonEmptyString.pipe(
-  Schema.filter(isSha, { description: "Git SHA (7-40 hex characters)" }),
+  Schema.check(Schema.makeFilter(isSha, { description: "Git SHA (7-40 hex characters)" })),
 );
 
 /** SemVerの形式。`1.2.3`を基本とし、プレリリース・ビルドメタデータも許容。 */
 export const SemVerSchema = Schema.NonEmptyString.pipe(
-  Schema.filter(isSemVer, { description: "SemVer (MAJOR.MINOR.PATCH[-prerelease][+build])" }),
+  Schema.check(
+    Schema.makeFilter(isSemVer, { description: "SemVer (MAJOR.MINOR.PATCH[-prerelease][+build])" }),
+  ),
 );
 
 /** SemVerの形式、もしくは`"unknown"`。 */
 export const SemVerOrUnknownSchema = fallbackToUnknown(SemVerSchema);
 
 /** 実行環境。検出できない場合は`"unknown"`。 */
-export const ExecutionSchema = Schema.Literal("GitHub Actions", "Claude Code CLI", "unknown");
+export const ExecutionSchema = Schema.Literals(["GitHub Actions", "Claude Code CLI", "unknown"]);
 
 /** PR 番号は正の整数。 */
-export const PrNumberSchema = Schema.Number.pipe(Schema.int(), Schema.positive());
+export const PrNumberSchema = PositiveIntSchema;
 
 /** 差分の古い方を指す"LEFT"、新しい方を指す"RIGHT"。 */
-export const DiffSideSchema = Schema.Literal("LEFT", "RIGHT");
+export const DiffSideSchema = Schema.Literals(["LEFT", "RIGHT"]);
 
 /**
  * レビューコメントの重要度レベル。
@@ -98,40 +105,44 @@ export const DiffSideSchema = Schema.Literal("LEFT", "RIGHT");
  * スキーマレベルで順位はつけていいませんが、
  * 重要度は左の方が高いです。
  */
-export const ReviewLevelSchema = Schema.Literal("CAUTION", "WARNING", "IMPORTANT", "TIP", "NOTE");
+export const ReviewLevelSchema = Schema.Literals([
+  "CAUTION",
+  "WARNING",
+  "IMPORTANT",
+  "TIP",
+  "NOTE",
+]);
 
 /** サブエージェントと対応するタグ。 */
-export const ReviewTagSchema = Schema.Literal(
+export const ReviewTagSchema = Schema.Literals([
   "code-quality",
   "dependency",
   "documentation",
   "performance",
   "security",
   "test",
-);
+]);
 
 /** レビューのインラインコメントの入力スキーマ。 */
 export const ReviewCommentSchema = Schema.Struct({
   path: Schema.NonEmptyString,
   body: Schema.NonEmptyString,
-  line: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  startLine: Schema.optionalWith(Schema.Number.pipe(Schema.int(), Schema.positive()), {
-    exact: true,
-  }),
-  side: Schema.optionalWith(DiffSideSchema, { exact: true }),
+  line: PositiveIntSchema,
+  startLine: Schema.optionalKey(PositiveIntSchema),
+  side: Schema.optionalKey(DiffSideSchema),
   level: ReviewLevelSchema,
   tags: Schema.Array(ReviewTagSchema),
 });
 
 /** トップレベルレビューの種別。 */
-export const ReviewEventSchema = Schema.Literal("APPROVE", "COMMENT", "REQUEST_CHANGES");
+export const ReviewEventSchema = Schema.Literals(["APPROVE", "COMMENT", "REQUEST_CHANGES"]);
 
 /**
  * LLM が任意で渡すメタデータ。
  * LLM自身しか確実には知らない情報のみ入力を要求します。
  */
 export const ReviewMetadataInputSchema = Schema.Struct({
-  model: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  model: Schema.optionalKey(Schema.NonEmptyString),
 });
 
 /**
@@ -157,13 +168,13 @@ export const ReviewSubmissionSchema = Schema.Struct({
   headCommitId: ShaSchema,
   event: ReviewEventSchema,
   body: Schema.NonEmptyString,
-  metadata: Schema.optionalWith(ReviewMetadataInputSchema, { exact: true }),
-  internalErrors: Schema.optionalWith(InternalErrorsSchema, { exact: true }),
-  comments: Schema.optionalWith(Schema.Array(ReviewCommentSchema), { exact: true }),
+  metadata: Schema.optionalKey(ReviewMetadataInputSchema),
+  internalErrors: Schema.optionalKey(InternalErrorsSchema),
+  comments: Schema.optionalKey(Schema.Array(ReviewCommentSchema)),
 });
 
 /** レビュー投稿の結果スキーマ。 */
 export const ReviewSubmissionResultSchema = Schema.Struct({
-  reviewId: Schema.Number.pipe(Schema.int(), Schema.positive()),
-  htmlUrl: Schema.URL,
+  reviewId: PositiveIntSchema,
+  htmlUrl: Schema.URLFromString,
 });

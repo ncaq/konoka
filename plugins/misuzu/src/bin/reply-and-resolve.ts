@@ -4,28 +4,22 @@
  * 本体ロジックは`../reply-cli`にあります。
  */
 
-import process from "node:process";
-import { Args, Command, Options } from "@effect/cli";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect } from "effect";
+import { Argument, Command } from "effect/cli";
+import { dryRunFlag } from "../cli-params";
 import { createOctokitClient } from "../client";
 import { PartialSubmissionFailure, runReplyAndResolve } from "../reply-cli";
 
-const dryRun = Options.boolean("dry-run").pipe(
-  Options.withDescription(
-    "投稿せずに、スキーマ検証済みの投稿予定データをJSON出力します。GitHub APIへのアクセスは行われません。",
-  ),
-);
-
-const submissionPath = Args.text({ name: "submission-path" }).pipe(
-  Args.withDescription(
+const submissionPath = Argument.String("submission-path").pipe(
+  Argument.withDescription(
     "返信+resolve投稿用のJSONファイルのパス(ReplySubmissionSchemaに準拠)。" +
       "本文にはuntrustedな文字列が入るため、引数のJSON文字列ではなくファイルで受け取ります。",
   ),
 );
 
-const contextPath = Args.text({ name: "context-path" }).pipe(
-  Args.withDescription(
+const contextPath = Argument.String("context-path").pipe(
+  Argument.withDescription(
     "get-respond-infoが出力したcontext.jsonのパス。" +
       "投稿JSONの投稿先がここで検出済みのPRと一致しない場合は投稿せずに失敗します。",
   ),
@@ -33,7 +27,7 @@ const contextPath = Args.text({ name: "context-path" }).pipe(
 
 const command = Command.make(
   "reply-and-resolve",
-  { dryRun, submissionPath, contextPath },
+  { dryRun: dryRunFlag, submissionPath, contextPath },
   ({ dryRun, submissionPath, contextPath }) =>
     Effect.gen(function* () {
       const outcome = yield* runReplyAndResolve({
@@ -51,8 +45,7 @@ const command = Command.make(
 );
 
 const cli = Command.run(command, {
-  name: "reply-and-resolve",
   version: "0.0.0",
 });
 
-cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+cli.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);

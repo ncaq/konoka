@@ -4,8 +4,8 @@
  * 引数がなければカレントブランチからPRを探索します。
  */
 
-import { type CommandExecutor } from "@effect/platform";
-import { Data, Effect, Either, Option } from "effect";
+import { Data, Effect, Option, Result } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { parsePrUrl } from "./context-github";
 import { findPrForCurrentBranch } from "./context-local";
@@ -31,15 +31,15 @@ export class InvalidPrUrlArgument extends Data.TaggedError("InvalidPrUrlArgument
 export function detectRespondContext(
   octokit: Octokit,
   argument: string | undefined,
-): Effect.Effect<RespondContext, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<RespondContext, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     // 引数が指定されていればURLからPRのコンテキストを取得します。
     if (argument != null && argument.trim() !== "") {
       const parsed = parsePrUrl(argument);
-      if (Either.isRight(parsed)) {
-        return parsed.right;
+      if (Result.isSuccess(parsed)) {
+        return parsed.success;
       }
-      return yield* new InvalidPrUrlArgument({ argument, reason: parsed.left });
+      return yield* new InvalidPrUrlArgument({ argument, reason: parsed.failure });
     }
     // 引数が指定されていない場合はカレントブランチからPRを探索します。
     const pr = yield* findPrForCurrentBranch(octokit);

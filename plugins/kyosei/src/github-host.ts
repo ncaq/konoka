@@ -34,7 +34,7 @@ export function normalizeEnvironmentVariable(x: string): Option.Option<string> {
  * 事実上の空だったら`Option.none`として扱います。
  */
 export function getNormalizedEnvironmentVariable(name: string): Option.Option<string> {
-  return Option.fromNullable(process.env[name]).pipe(Option.flatMap(normalizeEnvironmentVariable));
+  return Option.fromNullishOr(process.env[name]).pipe(Option.flatMap(normalizeEnvironmentVariable));
 }
 
 /**

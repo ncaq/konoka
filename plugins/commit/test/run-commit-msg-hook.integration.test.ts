@@ -1,10 +1,9 @@
 import { chdir, cwd } from "node:process";
-import { Command, FileSystem, Path, Terminal } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { Cause, Effect, Exit, Layer, Option, Scope } from "effect";
+import { Cause, Effect, Exit, FileSystem, Layer, Option, Path, type Scope, Terminal } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { CommitMsgHookFailedError, runCommitMsgHook } from "../src/run-commit-msg-hook";
 
@@ -13,17 +12,19 @@ import { CommitMsgHookFailedError, runCommitMsgHook } from "../src/run-commit-ms
  * 標準出力へ実際に書き出す代わりに出力内容を検査できるようにします。
  */
 function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
-  return Layer.succeed(Terminal.Terminal, {
-    columns: Effect.succeed(80),
-    rows: Effect.succeed(24),
-    isTTY: Effect.succeed(false),
-    readInput: Effect.dieMessage("readInput is not used in this test"),
-    readLine: Effect.dieMessage("readLine is not used in this test"),
-    display: (input) =>
-      Effect.sync(() => {
-        sink.push(input);
-      }),
-  });
+  return Layer.succeed(
+    Terminal.Terminal,
+    Terminal.make({
+      columns: Effect.succeed(80),
+      rows: Effect.succeed(24),
+      readInput: Effect.die(new Error("readInput is not used in this test")),
+      readLine: Effect.die(new Error("readLine is not used in this test")),
+      display: (input) =>
+        Effect.sync(() => {
+          sink.push(input);
+        }),
+    }),
+  );
 }
 
 /**
@@ -36,20 +37,17 @@ function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
 const initRepo: Effect.Effect<
   { readonly repo: string; readonly hooks: string },
   PlatformError,
-  FileSystem.FileSystem | Path.Path | CommandExecutor | Scope.Scope
+  FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner | Scope.Scope
 > = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const repo = yield* fs.makeTempDirectoryScoped();
   const hooks = path.join(repo, "git-hooks");
   yield* fs.makeDirectory(hooks);
-  yield* Command.make("git", "init", "--quiet").pipe(
-    Command.workingDirectory(repo),
-    Command.exitCode,
-  );
-  yield* Command.make("git", "config", "core.hooksPath", hooks).pipe(
-    Command.workingDirectory(repo),
-    Command.exitCode,
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  yield* spawner.exitCode(ChildProcess.make("git", ["init", "--quiet"], { cwd: repo }));
+  yield* spawner.exitCode(
+    ChildProcess.make("git", ["config", "core.hooksPath", hooks], { cwd: repo }),
   );
   return { repo, hooks };
 });
@@ -94,7 +92,7 @@ describe("runCommitMsgHook", () => {
     chdir(originalCwd);
   });
 
-  it.scoped("フックが設定されていなければ検査をスキップして成功する", () =>
+  it.effect("フックが設定されていなければ検査をスキップして成功する", () =>
     Effect.gen(function* () {
       const { repo } = yield* initRepo;
       const messagePath = yield* writeMessage(repo, "feat: 新機能を追加します\n");
@@ -102,10 +100,10 @@ describe("runCommitMsgHook", () => {
       const output: string[] = [];
       yield* runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output)));
       expect(output.join("")).toContain("Skipped");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("フックが成功すればそのまま成功する", () =>
+  it.effect("フックが成功すればそのまま成功する", () =>
     Effect.gen(function* () {
       const { repo, hooks } = yield* initRepo;
       const hookPath = yield* writeCommitMsgHook(hooks, "#!/bin/sh\nexit 0\n");
@@ -114,10 +112,10 @@ describe("runCommitMsgHook", () => {
       const output: string[] = [];
       yield* runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output)));
       expect(output.join("")).toContain(hookPath);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("フックが非0で終わると終了コードを含むエラーで失敗する", () =>
+  it.effect("フックが非0で終わると終了コードを含むエラーで失敗する", () =>
     Effect.gen(function* () {
       const { repo, hooks } = yield* initRepo;
       const hookPath = yield* writeCommitMsgHook(hooks, "#!/bin/sh\nexit 3\n");
@@ -128,15 +126,15 @@ describe("runCommitMsgHook", () => {
         runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output))),
       );
       assert(Exit.isFailure(exit));
-      const failure = Cause.failureOption(exit.cause);
+      const failure = Cause.findErrorOption(exit.cause);
       assert(Option.isSome(failure));
       assert(failure.value instanceof CommitMsgHookFailedError);
       expect(failure.value.exitCode).toBe(3);
       expect(failure.value.hookPath).toBe(hookPath);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("メッセージファイルのパスを第一引数として渡す", () =>
+  it.effect("メッセージファイルのパスを第一引数として渡す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -147,10 +145,10 @@ describe("runCommitMsgHook", () => {
       const output: string[] = [];
       yield* runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output)));
       expect(yield* fs.readFileString(path.join(repo, "argv1"))).toBe(messagePath);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("フックによるメッセージファイルの書き換えをgitと同じくそのまま採用する", () =>
+  it.effect("フックによるメッセージファイルの書き換えをgitと同じくそのまま採用する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const { repo, hooks } = yield* initRepo;
@@ -160,10 +158,10 @@ describe("runCommitMsgHook", () => {
       const output: string[] = [];
       yield* runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output)));
       expect(yield* fs.readFileString(messagePath)).toBe("書き換えました\n");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("リポジトリのルートを作業ディレクトリとしてフックを実行する", () =>
+  it.effect("リポジトリのルートを作業ディレクトリとしてフックを実行する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -178,6 +176,6 @@ describe("runCommitMsgHook", () => {
       yield* runCommitMsgHook(messagePath).pipe(Effect.provide(captureTerminal(output)));
       const actual = (yield* fs.readFileString(path.join(repo, "pwd"))).trimEnd();
       expect(actual).toBe(yield* fs.realPath(repo));
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

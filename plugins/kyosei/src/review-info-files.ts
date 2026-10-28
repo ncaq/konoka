@@ -1,9 +1,8 @@
 import { tmpdir } from "node:os";
 import { isAbsolute } from "node:path";
 import process from "node:process";
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Config, Data, Effect, Option, ParseResult, Schema } from "effect";
+import { FileSystem, Path, Config, Data, Effect, Option, Schema } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { ReviewContextSchema } from "./context-type";
 import { ConversationSchema } from "./conversation";
 import { IncrementalChangesetSchema } from "./incremental-changeset";
@@ -21,37 +20,37 @@ export const ChangesetMetadataSchema = Schema.Struct({ headCommitId: ShaSchema }
 export const PreviousReviewFileSchema = Schema.Struct({
   reviewId: Schema.NonEmptyString,
   event: Schema.NonEmptyString,
-  submittedAt: Schema.DateTimeUtc,
+  submittedAt: Schema.DateTimeUtcFromString,
   metadata: Schema.Struct({
     commit: ShaSchema,
     pr: PrNumberSchema,
     kyoseiVersion: SemVerSchema,
-    kyoseiActionVersion: Schema.Union(SemVerSchema, UnknownLiteral),
-    claudeCodeVersion: Schema.Union(SemVerSchema, UnknownLiteral),
+    kyoseiActionVersion: Schema.Union([SemVerSchema, UnknownLiteral]),
+    claudeCodeVersion: Schema.Union([SemVerSchema, UnknownLiteral]),
     model: Schema.NonEmptyString,
     execution: ExecutionSchema,
-    runUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+    runUrl: Schema.optionalKey(Schema.URLFromString),
   }),
 });
 
 const AbsolutePathSchema = Schema.NonEmptyString.pipe(
-  Schema.filter(isAbsolute, { description: "absolute file path" }),
+  Schema.check(Schema.makeFilter(isAbsolute, { description: "absolute file path" })),
 );
 
 export const ReviewInfoFilePathsSchema = Schema.Struct({
   context: AbsolutePathSchema,
   patch: AbsolutePathSchema,
   commits: AbsolutePathSchema,
-  changesetMetadata: Schema.optionalWith(AbsolutePathSchema, { exact: true }),
-  conversation: Schema.optionalWith(AbsolutePathSchema, { exact: true }),
-  previousReview: Schema.optionalWith(AbsolutePathSchema, { exact: true }),
-  incrementalChangeset: Schema.optionalWith(AbsolutePathSchema, { exact: true }),
+  changesetMetadata: Schema.optionalKey(AbsolutePathSchema),
+  conversation: Schema.optionalKey(AbsolutePathSchema),
+  previousReview: Schema.optionalKey(AbsolutePathSchema),
+  incrementalChangeset: Schema.optionalKey(AbsolutePathSchema),
 });
 
 export type ReviewInfoFilePaths = typeof ReviewInfoFilePathsSchema.Type;
 
-const personalWorkDirectory = Config.nonEmptyString("RUNNER_TEMP").pipe(
-  Effect.orElse(() => Config.nonEmptyString("XDG_RUNTIME_DIR")),
+const personalWorkDirectory = Config.NonEmptyString("RUNNER_TEMP").pipe(
+  Config.orElse(() => Config.NonEmptyString("XDG_RUNTIME_DIR")),
   Effect.orElseSucceed(() => tmpdir()),
 );
 
@@ -105,10 +104,10 @@ function ensurePrivateDirectory(
 }
 
 function encodeJson<A, I>(
-  schema: Schema.Schema<A, I>,
+  schema: Schema.Codec<A, I>,
   value: A,
-): Effect.Effect<string, ParseResult.ParseError> {
-  return Schema.encode(Schema.parseJson(schema, { space: 2 }))(value).pipe(
+): Effect.Effect<string, Schema.SchemaError> {
+  return Schema.encodeEffect(Schema.fromJsonString(schema, { space: 2 }))(value).pipe(
     Effect.map((encoded) => `${encoded}\n`),
   );
 }
@@ -118,7 +117,7 @@ export function writeReviewInfoFiles(
   reviewInfo: ReviewInfo,
 ): Effect.Effect<
   ReviewInfoFilePaths,
-  PlatformError | ParseResult.ParseError | UnsafeWorkDirectory,
+  PlatformError | Schema.SchemaError | UnsafeWorkDirectory,
   FileSystem.FileSystem | Path.Path
 > {
   return Effect.gen(function* () {
@@ -175,7 +174,7 @@ export function writeReviewInfoFiles(
       { concurrency: "unbounded" },
     );
 
-    return yield* Schema.decodeUnknown(ReviewInfoFilePathsSchema)({
+    return yield* Schema.decodeUnknownEffect(ReviewInfoFilePathsSchema)({
       context,
       patch,
       commits,

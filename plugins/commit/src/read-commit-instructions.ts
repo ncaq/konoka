@@ -1,6 +1,5 @@
-import { FileSystem } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect, Option } from "effect";
+import { FileSystem, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 
 const commitInstructionsPath = ".github/git-commit-instructions.md" as const;
 
@@ -18,8 +17,6 @@ export const readCommitInstructions: Effect.Effect<
   const fs = yield* FileSystem.FileSystem;
   return yield* fs.readFileString(commitInstructionsPath, "utf8").pipe(
     Effect.map(Option.some),
-    Effect.catchTag("SystemError", (err) =>
-      err.reason === "NotFound" ? Effect.succeed(Option.none<string>()) : Effect.fail(err),
-    ),
+    Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(Option.none<string>())),
   );
 });

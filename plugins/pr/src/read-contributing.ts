@@ -1,6 +1,5 @@
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect, Option } from "effect";
+import { FileSystem, Path, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { findCaseInsensitive, readIfExists } from "./read-if-exists";
 
 /**
@@ -57,7 +56,7 @@ export function readContributing(
       contributingLocations.map((location) => readAtLocation(root, location)),
       { concurrency: "unbounded" },
     );
-    return Option.fromNullable(candidates.find(Option.isSome)).pipe(Option.flatten);
+    return Option.fromNullishOr(candidates.find(Option.isSome)).pipe(Option.flatten);
   });
 }
 

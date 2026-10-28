@@ -3,6 +3,7 @@
  */
 
 import { Schema } from "effect";
+import { PositiveIntSchema } from "./positive-int";
 import { PrNumberSchema } from "./reply-schema";
 
 /**
@@ -26,9 +27,9 @@ export type PrIdentifier = typeof PrIdentifierSchema.Type;
  */
 export const FocusSchema = Schema.Struct({
   /** 対象の種別。 */
-  kind: Schema.Literal("review", "review-comment", "issue-comment"),
+  kind: Schema.Literals(["review", "review-comment", "issue-comment"]),
   /** GitHubのdatabase ID。URLフラグメントに含まれる数値。 */
-  databaseId: Schema.Number.pipe(Schema.int(), Schema.positive()),
+  databaseId: PositiveIntSchema,
 });
 
 export type Focus = typeof FocusSchema.Type;
@@ -42,11 +43,11 @@ export type Focus = typeof FocusSchema.Type;
  */
 export const RespondContextSchema = Schema.Struct({
   /** 対象のPR。URL指定またはカレントブランチから特定できた場合のみ含まれます。 */
-  pr: Schema.optionalWith(PrIdentifierSchema, { exact: true }),
+  pr: Schema.optionalKey(PrIdentifierSchema),
   /** GitHubのホスト名。URLでPRを指定した場合のみ含まれます。 */
-  host: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  host: Schema.optionalKey(Schema.NonEmptyString),
   /** URLフラグメントから抽出した優先対応対象。省略時はPR全体が対象。 */
-  focus: Schema.optionalWith(FocusSchema, { exact: true }),
+  focus: Schema.optionalKey(FocusSchema),
 });
 
 export type RespondContext = typeof RespondContextSchema.Type;

@@ -1,6 +1,6 @@
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { Cause, ConfigProvider, Effect, Exit, Option } from "effect";
+import { Cause, ConfigProvider, Effect, Exit, Result } from "effect";
 import { expect, test } from "vitest";
 import {
   buildEditorInvocation,
@@ -57,37 +57,54 @@ describe("buildEditorInvocation", () => {
 describe("editorCommand", () => {
   it.effect("`EDITOR`が設定されていればその値を返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe("nano");
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "nano"]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe("nano");
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "nano" }),
+      ),
     ),
   );
 
   it.effect("`EDITOR`に引数付きコマンドを設定してもそのまま返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe("code --wait");
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "code --wait"]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe("code --wait");
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "code --wait" }),
+      ),
     ),
   );
 
   it.effect("`EDITOR`が未設定の場合はデフォルトを返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe(defaultEditor);
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map())),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe(defaultEditor);
+        }),
+      ),
+      Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromUnknown({})),
     ),
   );
 
   it.effect("`EDITOR`が空文字列の場合もデフォルトを返す", () =>
     editorCommand.pipe(
-      Effect.tap((cmd) => {
-        expect(cmd).toBe(defaultEditor);
-      }),
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", ""]]))),
+      Effect.tap((cmd) =>
+        Effect.sync(() => {
+          expect(cmd).toBe(defaultEditor);
+        }),
+      ),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "" }),
+      ),
     ),
   );
 });
@@ -95,8 +112,11 @@ describe("editorCommand", () => {
 describe("konokaEdit", () => {
   it.effect("`EDITOR`が0で終わる場合は成功する", () =>
     konokaEdit("/tmp/konoka-editor-test-arg").pipe(
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "true"]]))),
-      Effect.provide(NodeContext.layer),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "true" }),
+      ),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -105,17 +125,20 @@ describe("konokaEdit", () => {
       const exit = yield* Effect.exit(konokaEdit("/tmp/konoka-editor-test-arg"));
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit)) {
-        const defect = Cause.dieOption(exit.cause);
-        expect(Option.isSome(defect)).toBe(true);
-        if (Option.isSome(defect)) {
-          expect(String(defect.value)).toContain(
+        const defect = Cause.findDefect(exit.cause);
+        expect(Result.isSuccess(defect)).toBe(true);
+        if (Result.isSuccess(defect)) {
+          expect(String(defect.success)).toContain(
             `EditorFailedError: Editor command "false" failed with exit code 1.`,
           );
         }
       }
     }).pipe(
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", "false"]]))),
-      Effect.provide(NodeContext.layer),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: "false" }),
+      ),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -125,8 +148,11 @@ describe("konokaEdit", () => {
     const arg = "/tmp/konoka-editor-passthrough-test";
     const editor = `sh -c 'test "$1" = "${arg}"' --`;
     return konokaEdit(arg).pipe(
-      Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["EDITOR", editor]]))),
-      Effect.provide(NodeContext.layer),
+      Effect.provideService(
+        ConfigProvider.ConfigProvider,
+        ConfigProvider.fromUnknown({ EDITOR: editor }),
+      ),
+      Effect.provide(NodeServices.layer),
     );
   });
 });

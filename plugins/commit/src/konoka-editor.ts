@@ -1,16 +1,16 @@
-import { Command, FileSystem } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect } from "effect";
+import { Data, Effect, type FileSystem } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { type ChildProcess, ChildProcessSpawner } from "effect/process";
 import { appendDiffToEditmsg, removeDiffFromEditmsg } from "./attach-diff";
 import { getEditor } from "./get-editor";
 
 export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
-  readonly editor: Command.Command;
+  readonly editor: ChildProcess.StandardCommand;
   readonly exitCode: number;
 }> {
   override get message(): string {
-    return `Editor command "${String(this.editor)}" failed with exit code ${this.exitCode}.`;
+    const command = [this.editor.command, ...this.editor.args].join(" ");
+    return `Editor command "${command}" failed with exit code ${this.exitCode}.`;
   }
 }
 
@@ -24,14 +24,19 @@ export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
 export function konokaEdit(
   commitEditmsgPath: string,
   patchPath: string,
-): Effect.Effect<void, PlatformError | EditorFailedError, CommandExecutor | FileSystem.FileSystem> {
+): Effect.Effect<
+  void,
+  PlatformError | EditorFailedError,
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem
+> {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const editor = yield* getEditor(commitEditmsgPath);
     yield* Effect.acquireUseRelease(
       appendDiffToEditmsg(commitEditmsgPath, patchPath),
       () =>
         Effect.gen(function* () {
-          const code = yield* Command.exitCode(editor); // テキストエディタが実際に起動します。
+          const code = yield* spawner.exitCode(editor); // テキストエディタが実際に起動します。
           if (code !== 0) {
             return yield* new EditorFailedError({ editor, exitCode: code });
           }

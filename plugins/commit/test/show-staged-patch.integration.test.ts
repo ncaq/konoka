@@ -1,10 +1,9 @@
 import process from "node:process";
-import { FileSystem, Path, Terminal } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import type { Scope } from "effect";
-import { ConfigProvider, Effect, Layer } from "effect";
+import { FileSystem, Path, Terminal, ConfigProvider, Effect, Layer } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { afterEach, describe, expect } from "vitest";
 import { defaultWidth, showStagedPatch } from "../src/show-staged-patch";
 
@@ -13,17 +12,19 @@ import { defaultWidth, showStagedPatch } from "../src/show-staged-patch";
  * 標準出力へ実際に書き出す代わりに出力内容を検査できるようにします。
  */
 function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
-  return Layer.succeed(Terminal.Terminal, {
-    columns: Effect.succeed(80),
-    rows: Effect.succeed(24),
-    isTTY: Effect.succeed(false),
-    readInput: Effect.dieMessage("readInput is not used in this test"),
-    readLine: Effect.dieMessage("readLine is not used in this test"),
-    display: (input) =>
-      Effect.sync(() => {
-        sink.push(input);
-      }),
-  });
+  return Layer.succeed(
+    Terminal.Terminal,
+    Terminal.make({
+      columns: Effect.succeed(80),
+      rows: Effect.succeed(24),
+      readInput: Effect.die(new Error("readInput is not used in this test")),
+      readLine: Effect.die(new Error("readLine is not used in this test")),
+      display: (input) =>
+        Effect.sync(() => {
+          sink.push(input);
+        }),
+    }),
+  );
 }
 
 /**
@@ -65,7 +66,7 @@ function makeStubDeltaDir(
  * `COLUMNS`を含む環境変数を空にした設定でEffectを実行します。
  * 実行環境の`COLUMNS`がテスト結果へ紛れ込まないようにするためです。
  */
-const emptyConfig = ConfigProvider.fromMap(new Map());
+const emptyConfig = ConfigProvider.fromUnknown({});
 
 describe("showStagedPatch", () => {
   const originalPath = process.env["PATH"];
@@ -78,7 +79,7 @@ describe("showStagedPatch", () => {
     }
   });
 
-  it.scoped("deltaが使えるときはパッチをstdinで渡してその出力を表示する", () =>
+  it.effect("deltaが使えるときはパッチをstdinで渡してその出力を表示する", () =>
     Effect.gen(function* () {
       const patch = "diff --git a/x.ts b/x.ts\n+added\n";
       const patchPath = yield* writePatchFile(patch);
@@ -87,13 +88,13 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(emptyConfig),
+        Effect.provideService(ConfigProvider.ConfigProvider, emptyConfig),
       );
       expect(output.join("")).toBe(`HIGHLIGHTED:${patch}`);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("deltaが見つからないときは素のパッチをそのまま表示する", () =>
+  it.effect("deltaが見つからないときは素のパッチをそのまま表示する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const patch = "diff --git a/x.ts b/x.ts\n+added\n";
@@ -103,13 +104,13 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(emptyConfig),
+        Effect.provideService(ConfigProvider.ConfigProvider, emptyConfig),
       );
       expect(output.join("")).toBe(patch);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("deltaが非0で終わるときは素のパッチをそのまま表示する", () =>
+  it.effect("deltaが非0で終わるときは素のパッチをそのまま表示する", () =>
     Effect.gen(function* () {
       const patch = "diff --git a/x.ts b/x.ts\n+added\n";
       const patchPath = yield* writePatchFile(patch);
@@ -118,13 +119,13 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(emptyConfig),
+        Effect.provideService(ConfigProvider.ConfigProvider, emptyConfig),
       );
       expect(output.join("")).toBe(patch);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("コードフェンス記号を含むパッチもフォールバックで無加工のまま全文表示する", () =>
+  it.effect("コードフェンス記号を含むパッチもフォールバックで無加工のまま全文表示する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       // 旧実装はLLMがdiffコードフェンスで再出力していたため、
@@ -136,13 +137,13 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(emptyConfig),
+        Effect.provideService(ConfigProvider.ConfigProvider, emptyConfig),
       );
       expect(output.join("")).toBe(patch);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("環境変数COLUMNSの値が`--width`としてdeltaに渡る", () =>
+  it.effect("環境変数COLUMNSの値が`--width`としてdeltaに渡る", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -156,13 +157,16 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(ConfigProvider.fromMap(new Map([["COLUMNS", "123"]]))),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ COLUMNS: "123" }),
+        ),
       );
       expect(yield* fs.readFileString(argsPath)).toBe("--paging=never\n--width=123\n");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("COLUMNSが未設定なら既定の幅が`--width`としてdeltaに渡る", () =>
+  it.effect("COLUMNSが未設定なら既定の幅が`--width`としてdeltaに渡る", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -176,9 +180,9 @@ describe("showStagedPatch", () => {
       const output: string[] = [];
       yield* showStagedPatch(patchPath).pipe(
         Effect.provide(captureTerminal(output)),
-        Effect.withConfigProvider(emptyConfig),
+        Effect.provideService(ConfigProvider.ConfigProvider, emptyConfig),
       );
       expect(yield* fs.readFileString(argsPath)).toBe(`--paging=never\n--width=${defaultWidth}\n`);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

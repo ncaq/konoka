@@ -6,9 +6,8 @@
 import { tmpdir } from "node:os";
 import { isAbsolute } from "node:path";
 import process from "node:process";
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Config, Data, Effect, Option, ParseResult, Schema } from "effect";
+import { FileSystem, Path, Config, Data, Effect, Option, Schema } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { RespondContextSchema, type RespondContext } from "./context-type";
 import { ConversationSchema, type Conversation } from "./conversation";
 
@@ -61,13 +60,13 @@ function ensurePrivateDirectory(
   });
 }
 
-const AbsolutePathSchema = Schema.NonEmptyString.pipe(
-  Schema.filter(isAbsolute, { description: "absolute file path" }),
+const AbsolutePathSchema = Schema.NonEmptyString.check(
+  Schema.makeFilter((path) => isAbsolute(path), { description: "absolute file path" }),
 );
 
 export const RespondInfoFilePathsSchema = Schema.Struct({
   context: AbsolutePathSchema,
-  conversation: Schema.optionalWith(AbsolutePathSchema, { exact: true }),
+  conversation: Schema.optionalKey(AbsolutePathSchema),
 });
 
 export type RespondInfoFilePaths = typeof RespondInfoFilePathsSchema.Type;
@@ -78,16 +77,16 @@ export interface RespondInfo {
   readonly conversation?: Conversation;
 }
 
-const personalWorkDirectory = Config.nonEmptyString("RUNNER_TEMP").pipe(
-  Effect.orElse(() => Config.nonEmptyString("XDG_RUNTIME_DIR")),
+const personalWorkDirectory = Config.NonEmptyString("RUNNER_TEMP").pipe(
+  Config.orElse(() => Config.NonEmptyString("XDG_RUNTIME_DIR")),
   Effect.orElseSucceed(() => tmpdir()),
 );
 
 function encodeJson<A, I>(
-  schema: Schema.Schema<A, I>,
+  schema: Schema.Codec<A, I>,
   value: A,
-): Effect.Effect<string, ParseResult.ParseError> {
-  return Schema.encode(Schema.parseJson(schema, { space: 2 }))(value).pipe(
+): Effect.Effect<string, Schema.SchemaError> {
+  return Schema.encodeEffect(Schema.fromJsonString(schema, { space: 2 }))(value).pipe(
     Effect.map((encoded) => `${encoded}\n`),
   );
 }
@@ -97,7 +96,7 @@ export function writeRespondInfoFiles(
   respondInfo: RespondInfo,
 ): Effect.Effect<
   RespondInfoFilePaths,
-  PlatformError | ParseResult.ParseError | UnsafeWorkDirectory,
+  PlatformError | Schema.SchemaError | UnsafeWorkDirectory,
   FileSystem.FileSystem | Path.Path
 > {
   return Effect.gen(function* () {
@@ -129,7 +128,7 @@ export function writeRespondInfoFiles(
       { concurrency: "unbounded" },
     );
 
-    return yield* Schema.decodeUnknown(RespondInfoFilePathsSchema)({
+    return yield* Schema.decodeUnknownEffect(RespondInfoFilePathsSchema)({
       context,
       ...(conversationValue == null ? {} : { conversation: conversationPath }),
     });

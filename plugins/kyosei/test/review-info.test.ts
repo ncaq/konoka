@@ -7,7 +7,7 @@ import { getConversation } from "../src/conversation";
 import { getIncrementalChangeset, IncrementalChangesetSchema } from "../src/incremental-changeset";
 import { pickPreviousKyoseiReview, PreviousReviewSchema } from "../src/previous-review";
 import { getReviewInfo } from "../src/review-info";
-import { fakeCommandExecutor } from "./fake-command";
+import { fakeChildProcessSpawner } from "./fake-command";
 
 vi.mock("../src/changeset", () => ({
   getChangeset: vi.fn(),
@@ -80,8 +80,8 @@ const dummyIncrementalChangeset = Schema.decodeUnknownSync(IncrementalChangesetS
   status: "tree-identical",
 });
 
-const noCommandLayer = fakeCommandExecutor(() =>
-  Effect.die(new Error("CommandExecutor should not be invoked")),
+const noCommandLayer = fakeChildProcessSpawner(() =>
+  Effect.die(new Error("ChildProcessSpawner should not be invoked")),
 );
 
 describe("getReviewInfo", () => {

@@ -1,7 +1,6 @@
-import { Command } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
 import { Config, Data, Effect } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
   readonly editor: string;
@@ -24,7 +23,7 @@ export const defaultEditor = "emacsclient --reuse-frame --alternate-editor=emacs
  * `EDITOR`はユーザが設定するものなので信頼できる文字列として扱います。
  * シェルが解釈するコマンド文字列としてそのまま`sh -c`に渡される前提です。
  */
-export const editorCommand: Effect.Effect<string> = Config.nonEmptyString("EDITOR").pipe(
+export const editorCommand: Effect.Effect<string> = Config.NonEmptyString("EDITOR").pipe(
   Effect.orElseSucceed(() => defaultEditor),
 );
 
@@ -60,20 +59,19 @@ export function buildEditorInvocation(
  */
 export function konokaEdit(
   editmsgArg: string,
-): Effect.Effect<void, PlatformError, CommandExecutor> {
+): Effect.Effect<void, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const editor = yield* editorCommand;
     const [executable, ...args] = buildEditorInvocation(editor, editmsgArg);
-    const cmd = Command.make(executable, ...args).pipe(
-      Command.stdin("inherit"),
-      Command.stdout("inherit"),
-      Command.stderr("inherit"),
-    );
-    yield* Command.exitCode(cmd).pipe(
-      Effect.filterOrDie(
-        (code) => code === 0,
-        (code) => new EditorFailedError({ editor, exitCode: code }),
-      ),
-    );
+    const cmd = ChildProcess.make(executable, args, {
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    const exitCode = yield* spawner.exitCode(cmd);
+    if (exitCode !== 0) {
+      return yield* Effect.die(new EditorFailedError({ editor, exitCode }));
+    }
   });
 }

@@ -3,15 +3,17 @@ import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { decodeReviewSubmission } from "../src/review-decoder";
 import { buildFooterView, buildReviewBody } from "../src/review-metadata";
-import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner } from "./fake-command";
 
 // `claude --version`の呼び出しを失敗させ、`Option.none`にフォールバックさせます。
-const claudeFakeLayer = fakeCommandExecutor(() =>
+const claudeFakeLayer = fakeChildProcessSpawner(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 
 // `claude --version`がバージョンを返す環境を模倣します。
-const claudeVersionFakeLayer = fakeCommandExecutor(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+const claudeVersionFakeLayer = fakeChildProcessSpawner(() =>
+  Effect.succeed("2.1.234 (Claude Code)\n"),
+);
 
 // `baseInput`のリポジトリに対応するリンク先。
 const repositoryUrl = "https://github.com/test-owner/test-repo";

@@ -1,14 +1,14 @@
-import { type CommandExecutor } from "@effect/platform";
 import { it } from "@effect/vitest";
 import { Effect } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { describe, expect } from "vitest";
 import { detectRespondContext, InvalidPrUrlArgument } from "../src/context";
-import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner } from "./fake-command";
 
 const dummyOctokit = {} as Octokit;
 
-const failingCommandLayer = fakeCommandExecutor(() =>
+const failingCommandLayer = fakeChildProcessSpawner(() =>
   Effect.fail(new FakeCommandError({ message: "simulated git failure" })),
 );
 
@@ -18,7 +18,7 @@ describe("detectRespondContext", () => {
     // フェイクgitが失敗することでrejectされます。
     const expectLocalFallthrough = (
       argument: string | undefined,
-    ): Effect.Effect<void, never, CommandExecutor.CommandExecutor> =>
+    ): Effect.Effect<void, never, ChildProcessSpawner.ChildProcessSpawner> =>
       detectRespondContext(dummyOctokit, argument).pipe(
         // 成功してしまった場合はテストの前提が崩れているので`die`させて落とします。
         Effect.flip,
@@ -30,7 +30,7 @@ describe("detectRespondContext", () => {
     // PR URLとして解釈できない引数はローカル解決に落とさずエラーになります。
     const expectInvalidArgument = (
       argument: string,
-    ): Effect.Effect<void, never, CommandExecutor.CommandExecutor> =>
+    ): Effect.Effect<void, never, ChildProcessSpawner.ChildProcessSpawner> =>
       detectRespondContext(dummyOctokit, argument).pipe(
         Effect.flip,
         Effect.orDie,

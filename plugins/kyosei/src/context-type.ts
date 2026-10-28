@@ -41,11 +41,11 @@ export type GitHubOutputContext = typeof GitHubOutputContextSchema.Type;
  */
 export const LocalOutputContextSchema = Schema.Struct({
   output: Schema.Literal("local"),
-  pr: Schema.optionalWith(PrIdentifierSchema, { exact: true }),
+  pr: Schema.optionalKey(PrIdentifierSchema),
   /** diff対象のベースブランチ名。PRのベースまたはリポジトリのデフォルトブランチ。 */
   baseBranch: Schema.NonEmptyString,
   /** gitリモート名。省略時はリモートなし扱い。 */
-  remoteName: Schema.optionalWith(Schema.NonEmptyString, { exact: true }),
+  remoteName: Schema.optionalKey(Schema.NonEmptyString),
 });
 
 export type LocalOutputContext = typeof LocalOutputContextSchema.Type;
@@ -53,9 +53,9 @@ export type LocalOutputContext = typeof LocalOutputContextSchema.Type;
 /**
  * レビューコンテキストの判別共用体。
  */
-export const ReviewContextSchema = Schema.Union(
+export const ReviewContextSchema = Schema.Union([
   GitHubOutputContextSchema,
   LocalOutputContextSchema,
-);
+]);
 
 export type ReviewContext = typeof ReviewContextSchema.Type;

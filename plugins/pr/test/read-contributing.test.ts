@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { afterEach, beforeEach, expect, test } from "vitest";
@@ -20,10 +20,12 @@ describe("readContributing", () => {
 
   it.effect("CONTRIBUTING.mdが存在しない場合は`Option.none`を返す", () =>
     readContributing(root).pipe(
-      Effect.tap((result) => {
-        expect(Option.isNone(result)).toBe(true);
-      }),
-      Effect.provide(NodeContext.layer),
+      Effect.tap((result) =>
+        Effect.sync(() => {
+          expect(Option.isNone(result)).toBe(true);
+        }),
+      ),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -37,7 +39,7 @@ describe("readContributing", () => {
           content: "# direct\n",
         }),
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect(".github/CONTRIBUTING.mdを読み込む", () =>
@@ -53,7 +55,7 @@ describe("readContributing", () => {
           content: "# github dir\n",
         }),
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("複数候補が存在する場合は.github/CONTRIBUTING.mdを優先する", () =>
@@ -65,7 +67,7 @@ describe("readContributing", () => {
       );
       const result = yield* readContributing(root);
       expect(Option.isSome(result) && result.value.path).toBe(".github/CONTRIBUTING.md");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
 

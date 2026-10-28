@@ -1,7 +1,6 @@
-import { Command } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { String, Data, Effect, Option, pipe, Stream } from "effect";
+import { Data, Effect, Option, Stream } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, type ChildProcessSpawner } from "effect/process";
 
 /**
  * 子プロセスが非0で終了した場合に投げる構造化エラーです。
@@ -25,7 +24,7 @@ export class CommandFailedError extends Data.TaggedError("CommandFailedError")<{
  * `Stream`を`string`にお手軽に変換します。
  */
 const runString = <E, R>(stream: Stream.Stream<Uint8Array, E, R>): Effect.Effect<string, E, R> =>
-  stream.pipe(Stream.decodeText(), Stream.runFold(String.empty, String.concat));
+  stream.pipe(Stream.decodeText(), Stream.mkString);
 
 /**
  * 子プロセスを実行し、標準出力をtrim済みの文字列で返します。
@@ -34,27 +33,26 @@ const runString = <E, R>(stream: Stream.Stream<Uint8Array, E, R>): Effect.Effect
 export function runStdout(
   cmd: string,
   args: readonly string[],
-): Effect.Effect<string, CommandFailedError | PlatformError, CommandExecutor> {
+): Effect.Effect<
+  string,
+  CommandFailedError | PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.scoped(
     Effect.gen(function* () {
-      const command = Command.make(cmd, ...args);
-      const [exitCode, stdout, stderr] = yield* pipe(
-        // Start running the command and return a handle to the running process
-        Command.start(command),
-        Effect.flatMap((process) =>
-          Effect.all(
-            [
-              // Waits for the process to exit and returns
-              // the ExitCode of the command that was run
-              process.exitCode,
-              // The standard output stream of the process
-              runString(process.stdout),
-              // The standard error stream of the process
-              runString(process.stderr),
-            ],
-            { concurrency: 3 },
-          ),
-        ),
+      // Start running the command and return a handle to the running process
+      const process = yield* ChildProcess.make(cmd, args);
+      const [exitCode, stdout, stderr] = yield* Effect.all(
+        [
+          // Waits for the process to exit and returns
+          // the ExitCode of the command that was run
+          process.exitCode,
+          // The standard output stream of the process
+          runString(process.stdout),
+          // The standard error stream of the process
+          runString(process.stderr),
+        ],
+        { concurrency: 3 },
       );
       if (exitCode !== 0) {
         return yield* new CommandFailedError({
@@ -79,7 +77,7 @@ export function runStdout(
 export function tryRunStdout(
   cmd: string,
   args: readonly string[],
-): Effect.Effect<Option.Option<string>, PlatformError, CommandExecutor> {
+): Effect.Effect<Option.Option<string>, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return runStdout(cmd, args).pipe(
     Effect.map(Option.some),
     Effect.catchTag("CommandFailedError", () => Effect.succeed(Option.none<string>())),

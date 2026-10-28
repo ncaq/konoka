@@ -4,9 +4,9 @@ import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
 import { getChangeset } from "../src/changeset";
 import type { GitHubOutputContext, LocalOutputContext } from "../src/context-type";
-import { fakeCommandExecutor } from "./fake-command";
+import { fakeChildProcessSpawner } from "./fake-command";
 
-const noGitLayer = fakeCommandExecutor(() =>
+const noGitLayer = fakeChildProcessSpawner(() =>
   Effect.die(new Error("git should not be invoked in GitHub mode")),
 );
 
@@ -84,7 +84,7 @@ describe("getChangeset", () => {
           remoteName: "origin",
         };
         const calls: { command: string; args: readonly string[] }[] = [];
-        const layer = fakeCommandExecutor((command, args) => {
+        const layer = fakeChildProcessSpawner((command, args) => {
           calls.push({ command, args });
           if (args.at(0) === "diff") {
             return Effect.succeed("local diff");
@@ -114,7 +114,7 @@ describe("getChangeset", () => {
           baseBranch: "master",
         };
         const calls: { command: string; args: readonly string[] }[] = [];
-        const layer = fakeCommandExecutor((command, args) => {
+        const layer = fakeChildProcessSpawner((command, args) => {
           calls.push({ command, args });
           return Effect.succeed("");
         });

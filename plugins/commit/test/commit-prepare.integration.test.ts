@@ -1,8 +1,8 @@
 import { cwd, chdir } from "node:process";
-import { Command, FileSystem, Path, Terminal } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { Effect, Layer } from "effect";
+import { Effect, FileSystem, Layer, Path, Terminal } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { prepareCommit } from "../src/commit-prepare";
 
@@ -11,17 +11,19 @@ import { prepareCommit } from "../src/commit-prepare";
  * 標準出力へ実際に書き出す代わりに出力内容を検査できるようにします。
  */
 function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
-  return Layer.succeed(Terminal.Terminal, {
-    columns: Effect.succeed(80),
-    rows: Effect.succeed(24),
-    isTTY: Effect.succeed(false),
-    readInput: Effect.dieMessage("readInput is not used in this test"),
-    readLine: Effect.dieMessage("readLine is not used in this test"),
-    display: (input) =>
-      Effect.sync(() => {
-        sink.push(input);
-      }),
-  });
+  return Layer.succeed(
+    Terminal.Terminal,
+    Terminal.make({
+      columns: Effect.succeed(80),
+      rows: Effect.succeed(24),
+      readInput: Effect.die(new Error("readInput is not used in this test")),
+      readLine: Effect.die(new Error("readLine is not used in this test")),
+      display: (input) =>
+        Effect.sync(() => {
+          sink.push(input);
+        }),
+    }),
+  );
 }
 
 describe("prepareCommit", () => {
@@ -31,15 +33,14 @@ describe("prepareCommit", () => {
     chdir(originalCwd);
   });
 
-  it.scoped("editmsgPathとpatchPathのJSONを標準出力へ出力する", () =>
+  it.effect("editmsgPathとpatchPathのJSONを標準出力へ出力する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       // 変更のあるGitリポジトリを用意します。
       const repo = yield* fs.makeTempDirectoryScoped();
-      yield* Command.make("git", "init", "--quiet").pipe(
-        Command.workingDirectory(repo),
-        Command.exitCode,
+      yield* ChildProcessSpawner.ChildProcessSpawner.use((spawner) =>
+        spawner.exitCode(ChildProcess.make("git", ["init", "--quiet"], { cwd: repo })),
       );
       yield* fs.writeFileString(path.join(repo, "a.txt"), "hello\n");
       chdir(repo);
@@ -62,6 +63,6 @@ describe("prepareCommit", () => {
       expect(yield* fs.exists(editmsgPath)).toBe(false);
       // patchPathのファイルは実際に生成されていることを確認します。
       expect(yield* fs.exists(patchPath)).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

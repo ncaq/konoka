@@ -1,6 +1,5 @@
-import { FileSystem } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect } from "effect";
+import { FileSystem, Effect } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 
 /**
  * Gitが`--verbose`などで、

@@ -5,9 +5,10 @@
  */
 
 import { Data, Effect, Schema } from "effect";
-import type { UnknownException } from "effect/Cause";
+import type { UnknownError } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
+import { PositiveIntSchema } from "./positive-int";
 
 /** GraphQLレスポンスに期待したconnectionが含まれていない場合の失敗。 */
 class GraphQlConnectionMissing extends Data.TaggedError("GraphQlConnectionMissing")<{
@@ -63,8 +64,8 @@ export const ConversationReviewThreadSchema = Schema.Struct({
   isOutdated: Schema.Boolean,
   resolvedBy: Schema.NullOr(Schema.NonEmptyString),
   path: Schema.NonEmptyString,
-  line: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
-  startLine: Schema.NullOr(Schema.Number.pipe(Schema.int(), Schema.positive())),
+  line: Schema.NullOr(PositiveIntSchema),
+  startLine: Schema.NullOr(PositiveIntSchema),
   diffSide: Schema.NonEmptyString,
   comments: Schema.Array(ReviewThreadCommentSchema),
 });
@@ -419,7 +420,7 @@ function paginateConnection<TNode>(
   nodeFields: string,
   pageInfo: PageInfo,
   accumulator: TNode[],
-): Effect.Effect<void, GraphQlConnectionMissing | UnknownException> {
+): Effect.Effect<void, GraphQlConnectionMissing | UnknownError> {
   return Effect.gen(function* () {
     const query = buildPageQuery(connectionName, nodeFields);
     let cursor = pageInfo.endCursor;

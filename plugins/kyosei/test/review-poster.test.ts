@@ -4,9 +4,9 @@ import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
 import { decodeReviewSubmission } from "../src/review-decoder";
 import { previewReview, submitReview } from "../src/review-poster";
-import { FakeCommandError, fakeCommandExecutor } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner } from "./fake-command";
 
-const claudeFakeLayer = fakeCommandExecutor(() =>
+const claudeFakeLayer = fakeChildProcessSpawner(() =>
   Effect.fail(new FakeCommandError({ message: "claude not installed in test environment" })),
 );
 

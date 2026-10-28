@@ -4,8 +4,8 @@
  * PRが特定できかつ前回kyoseiレビューがある場合は、増分changesetも併せて返します。
  */
 
-import { type CommandExecutor } from "@effect/platform";
 import { Effect, Option } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import type { Changeset } from "./changeset";
 import { getChangeset } from "./changeset";
@@ -32,7 +32,7 @@ export interface ReviewInfo {
 export function getReviewInfo(
   octokit: Octokit,
   context: ReviewContext,
-): Effect.Effect<ReviewInfo, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<ReviewInfo, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     if (context.pr == null) {
       const changeset = yield* getChangeset(octokit, context);

@@ -2,7 +2,7 @@ import { it } from "@effect/vitest";
 import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { getRemoteName, getRemoteRepo, NoGitRemotes } from "../src/remote";
-import { FakeCommandError, fakeCommandExecutor, type CommandHandler } from "./fake-command";
+import { FakeCommandError, fakeChildProcessSpawner, type CommandHandler } from "./fake-command";
 
 const sequenceHandler = (responses: Effect.Effect<string, Error>[]): CommandHandler => {
   let index = 0;
@@ -19,7 +19,7 @@ describe("getRemoteName", () => {
   it.effect("upstreamが設定されている場合はupstreamからリモート名を取得する", () =>
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("origin"))),
-      Effect.provide(fakeCommandExecutor(sequenceHandler([Effect.succeed("origin/master\n")]))),
+      Effect.provide(fakeChildProcessSpawner(sequenceHandler([Effect.succeed("origin/master\n")]))),
     ),
   );
 
@@ -27,7 +27,7 @@ describe("getRemoteName", () => {
     getRemoteName().pipe(
       Effect.tap((name) => Effect.sync(() => expect(name).toBe("upstream"))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("upstream\norigin\n"),
@@ -42,7 +42,7 @@ describe("getRemoteName", () => {
       Effect.flip,
       Effect.tap((err) => Effect.sync(() => expect(err).toBeInstanceOf(NoGitRemotes))),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.fail(new FakeCommandError({ message: "fatal: no upstream configured" })),
             Effect.succeed("\n"),
@@ -66,7 +66,7 @@ describe("getRemoteRepo", () => {
         ),
       ),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             Effect.succeed("https://github.com/test-owner/test-repo.git\n"),
@@ -88,7 +88,7 @@ describe("getRemoteRepo", () => {
         ),
       ),
       Effect.provide(
-        fakeCommandExecutor(
+        fakeChildProcessSpawner(
           sequenceHandler([
             Effect.succeed("origin/master\n"),
             Effect.succeed("git@github.com:test-owner/test-repo.git\n"),

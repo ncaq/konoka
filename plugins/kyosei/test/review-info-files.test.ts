@@ -1,7 +1,6 @@
-import { FileSystem, Path } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { ConfigProvider, Effect, Schema } from "effect";
+import { FileSystem, Path, ConfigProvider, Effect, Schema } from "effect";
 import { describe, expect } from "vitest";
 import { IncrementalChangesetSchema } from "../src/incremental-changeset";
 import { PreviousReviewSchema } from "../src/previous-review";
@@ -61,35 +60,35 @@ const localReviewInfo = {
 } as const satisfies ReviewInfo;
 
 describe("writeReviewInfoFiles", () => {
-  it.scoped("`RUNNER_TEMP`を`XDG_RUNTIME_DIR`より優先する", () =>
+  it.effect("`RUNNER_TEMP`を`XDG_RUNTIME_DIR`より優先する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runnerTemp = yield* fs.makeTempDirectoryScoped();
       const xdgRuntimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeReviewInfoFiles(localReviewInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(
-            new Map([
-              ["RUNNER_TEMP", runnerTemp],
-              ["XDG_RUNTIME_DIR", xdgRuntimeDirectory],
-            ]),
-          ),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({
+            RUNNER_TEMP: runnerTemp,
+            XDG_RUNTIME_DIR: xdgRuntimeDirectory,
+          }),
         ),
       );
 
       expect(filePaths.context.startsWith(path.join(runnerTemp, "coding-agent-work"))).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("レビュー情報を用途別のファイルへ書き出す", () =>
+  it.effect("レビュー情報を用途別のファイルへ書き出す", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeReviewInfoFiles(completeReviewInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
       );
 
@@ -120,7 +119,9 @@ describe("writeReviewInfoFiles", () => {
       );
       const previousReviewFile = yield* fs.readFileString(filePaths.previousReview ?? "");
       expect(
-        yield* Schema.decodeUnknown(Schema.parseJson(PreviousReviewFileSchema))(previousReviewFile),
+        yield* Schema.decodeUnknownEffect(Schema.fromJsonString(PreviousReviewFileSchema))(
+          previousReviewFile,
+        ),
       ).toEqual(completeReviewInfo.previousReview);
       expect(JSON.parse(previousReviewFile)).toMatchObject({
         metadata: {
@@ -131,16 +132,17 @@ describe("writeReviewInfoFiles", () => {
       expect(JSON.parse(yield* fs.readFileString(filePaths.incrementalChangeset ?? ""))).toEqual(
         completeReviewInfo.incrementalChangeset,
       );
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("存在しない任意情報のファイルとパスを省略する", () =>
+  it.effect("存在しない任意情報のファイルとパスを省略する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
       const filePaths = yield* writeReviewInfoFiles(localReviewInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
       );
 
@@ -150,10 +152,10 @@ describe("writeReviewInfoFiles", () => {
       expect(filePaths).not.toHaveProperty("incrementalChangeset");
       expect(yield* fs.readFileString(filePaths.patch)).toBe(localReviewInfo.changeset.diff);
       expect(yield* fs.readFileString(filePaths.commits)).toBe(localReviewInfo.changeset.log);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("ベースディレクトリがgroup/otherから読める場合は失敗する", () =>
+  it.effect("ベースディレクトリがgroup/otherから読める場合は失敗する", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -163,29 +165,28 @@ describe("writeReviewInfoFiles", () => {
       yield* fs.makeDirectory(baseDirectory, { recursive: true });
       yield* fs.chmod(baseDirectory, 0o755);
       const error = yield* writeReviewInfoFiles(localReviewInfo).pipe(
-        Effect.withConfigProvider(
-          ConfigProvider.fromMap(new Map([["XDG_RUNTIME_DIR", runtimeDirectory]])),
+        Effect.provideService(
+          ConfigProvider.ConfigProvider,
+          ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory }),
         ),
         Effect.flip,
       );
       expect(error).toMatchObject({ _tag: "UnsafeWorkDirectory" });
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("呼び出しごとに一意な作業ディレクトリを作る", () =>
+  it.effect("呼び出しごとに一意な作業ディレクトリを作る", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const runtimeDirectory = yield* fs.makeTempDirectoryScoped();
-      const configProvider = ConfigProvider.fromMap(
-        new Map([["XDG_RUNTIME_DIR", runtimeDirectory]]),
-      );
+      const configProvider = ConfigProvider.fromUnknown({ XDG_RUNTIME_DIR: runtimeDirectory });
       const [first, second] = yield* Effect.all(
         [writeReviewInfoFiles(localReviewInfo), writeReviewInfoFiles(localReviewInfo)],
         { concurrency: "unbounded" },
-      ).pipe(Effect.withConfigProvider(configProvider));
+      ).pipe(Effect.provideService(ConfigProvider.ConfigProvider, configProvider));
 
       expect(path.dirname(first.context)).not.toBe(path.dirname(second.context));
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

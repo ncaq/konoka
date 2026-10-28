@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Exit } from "effect";
 import { formatSyncAndPush, syncAndPush } from "../sync-and-push";
 
@@ -14,7 +14,7 @@ const program = syncAndPush().pipe(
   Effect.tapError((err) => Console.error(err.message)),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)), {
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)), {
   disableErrorReporting: true,
   teardown: (exit, onExit) => onExit(Exit.isSuccess(exit) ? 0 : 1),
 });

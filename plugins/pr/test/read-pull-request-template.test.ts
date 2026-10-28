@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 import { afterEach, beforeEach, expect, test } from "vitest";
@@ -23,10 +23,12 @@ describe("readPullRequestTemplates", () => {
 
   it.effect("テンプレートが存在しない場合は空配列を返す", () =>
     readPullRequestTemplates(root).pipe(
-      Effect.tap((templates) => {
-        expect(templates).toEqual([]);
-      }),
-      Effect.provide(NodeContext.layer),
+      Effect.tap((templates) =>
+        Effect.sync(() => {
+          expect(templates).toEqual([]);
+        }),
+      ),
+      Effect.provide(NodeServices.layer),
     ),
   );
 
@@ -40,7 +42,7 @@ describe("readPullRequestTemplates", () => {
       expect(templates).toEqual([
         { path: ".github/pull_request_template.md", content: "default body\n" },
       ]);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("PULL_REQUEST_TEMPLATEディレクトリ配下の.mdファイルを全て読み込む", () =>
@@ -64,7 +66,7 @@ describe("readPullRequestTemplates", () => {
         ".github/PULL_REQUEST_TEMPLATE/bug.md",
         ".github/PULL_REQUEST_TEMPLATE/feature.md",
       ]);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("単一テンプレートと複数テンプレートが両方ある場合は全てを返す", () =>
@@ -81,7 +83,7 @@ describe("readPullRequestTemplates", () => {
 
       const templates = yield* readPullRequestTemplates(root);
       expect(templates).toHaveLength(2);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
 

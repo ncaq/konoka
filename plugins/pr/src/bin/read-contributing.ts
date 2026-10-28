@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Effect, Option } from "effect";
 import { formatContributing, readContributing } from "../read-contributing";
 
@@ -15,4 +15,4 @@ const program = readContributing().pipe(
   ),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));

@@ -5,8 +5,8 @@
  * ローカル出力の場合はブランチ情報を解決してベースブランチを特定します。
  */
 
-import { type CommandExecutor } from "@effect/platform";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { parsePrUrl } from "./context-github";
 import { resolveLocalContext } from "./context-local";
@@ -20,16 +20,16 @@ import type { ReviewContext } from "./context-type";
 export function detectReviewContext(
   octokit: Octokit,
   argument: string | undefined,
-): Effect.Effect<ReviewContext, Error, CommandExecutor.CommandExecutor> {
+): Effect.Effect<ReviewContext, Error, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     // 引数が指定されていればURLからPRのコンテキストの取得を試みます。
     if (argument != null && argument.trim() !== "") {
       const parsed = parsePrUrl(argument);
-      if (Either.isRight(parsed)) {
-        return parsed.right;
+      if (Result.isSuccess(parsed)) {
+        return parsed.success;
       }
       yield* Effect.logWarning(
-        `argument: "${argument}" is not a recognizable PR URL (${parsed.left});` +
+        `argument: "${argument}" is not a recognizable PR URL (${parsed.failure});` +
           " falling back to local context.",
       );
     }

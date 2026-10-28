@@ -1,13 +1,12 @@
-import process from "node:process";
-import { Args, Command } from "@effect/cli";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
+import { Argument, Command } from "effect/cli";
 import { konokaEdit } from "../konoka-editor";
 
 /**
  * コマンドライン引数として渡された`PULLREQ_EDITMSG`ファイル。
  */
-const pullreqEditmsgArg = Args.file({ name: "PULLREQ_EDITMSG", exists: "yes" });
+const pullreqEditmsgArg = Argument.File("PULLREQ_EDITMSG", { mustExist: true });
 
 /**
  * コマンド処理の本体。
@@ -20,7 +19,6 @@ const command = Command.make("konoka-editor", { pullreqEditmsgArg }, ({ pullreqE
  * メタデータを含んだコマンド全体。
  */
 const cli = Command.run(command, {
-  name: "konoka-editor",
   version: "0.0.0", // あくまで内部プログラムでありバージョンはプラグイン側にあるのでダミー。
 });
 
@@ -28,7 +26,7 @@ const cli = Command.run(command, {
  * エントリーポイントとしてコマンドを起動します。
  */
 function main(): void {
-  cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+  cli.pipe(Effect.provide(NodeServices.layer), NodeRuntime.runMain);
 }
 
 main();

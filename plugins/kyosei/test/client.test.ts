@@ -2,7 +2,7 @@ import process from "node:process";
 import { Effect } from "effect";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createOctokitClient, tokenEnvironmentVariableNameList } from "../src/client";
-import { fakeCommandExecutor } from "./fake-command";
+import { fakeChildProcessSpawner } from "./fake-command";
 
 /**
  * テスト中に環境変数を差し替えるヘルパー。
@@ -114,7 +114,7 @@ describe("createOctokitClient", () => {
         try {
           const requestedUrls = mockFetchAndCaptureUrls();
 
-          const layer = fakeCommandExecutor(() =>
+          const layer = fakeChildProcessSpawner(() =>
             Effect.die(new Error("gh should not be invoked when token env is set")),
           );
           const octokit = await Effect.runPromise(
@@ -152,7 +152,7 @@ describe("createOctokitClient", () => {
       try {
         const requestedUrls = mockFetchAndCaptureUrls();
 
-        const layer = fakeCommandExecutor(() =>
+        const layer = fakeChildProcessSpawner(() =>
           Effect.die(new Error("gh should not be invoked when token env is set")),
         );
         const octokit = await Effect.runPromise(createOctokitClient().pipe(Effect.provide(layer)));

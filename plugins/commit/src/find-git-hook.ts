@@ -1,7 +1,6 @@
-import { Command, FileSystem, Path } from "@effect/platform";
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, Option } from "effect";
+import { Data, Effect, FileSystem, Option, Path } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 /** Raised when a git command outputs nothing, which means it did not answer the question. */
 export class GitCommandFailedError extends Data.TaggedError("GitCommandFailedError")<{
@@ -25,15 +24,20 @@ export class GitCommandFailedError extends Data.TaggedError("GitCommandFailedErr
  */
 function git(
   ...args: readonly string[]
-): Effect.Effect<string, PlatformError | GitCommandFailedError, CommandExecutor> {
-  return Command.make("git", ...args).pipe(
-    Command.stderr("inherit"),
-    Command.string,
-    Effect.map((output) => output.trimEnd()),
-    Effect.flatMap((output) =>
-      output === "" ? new GitCommandFailedError({ args }) : Effect.succeed(output),
-    ),
-  );
+): Effect.Effect<
+  string,
+  PlatformError | GitCommandFailedError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
+  return Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const output = yield* spawner.string(ChildProcess.make("git", args, { stderr: "inherit" }));
+    const trimmed = output.trimEnd();
+    if (trimmed === "") {
+      return yield* new GitCommandFailedError({ args });
+    }
+    return trimmed;
+  });
 }
 
 /**
@@ -45,7 +49,7 @@ function git(
 export const gitTopLevel: Effect.Effect<
   string,
   PlatformError | GitCommandFailedError,
-  CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > = git("rev-parse", "--show-toplevel");
 
 /**
@@ -59,7 +63,7 @@ export const gitTopLevel: Effect.Effect<
 export const gitHooksPath: Effect.Effect<
   string,
   PlatformError | GitCommandFailedError,
-  CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > = git("rev-parse", "--path-format=absolute", "--git-path", "hooks");
 
 /**
@@ -82,7 +86,7 @@ export function findGitHook(
 ): Effect.Effect<
   Option.Option<string>,
   PlatformError | GitCommandFailedError,
-  CommandExecutor | FileSystem.FileSystem | Path.Path
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Path.Path
 > {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
@@ -90,10 +94,8 @@ export function findGitHook(
     const hookPath = path.join(yield* gitHooksPath, hookName);
     const info = yield* fs.stat(hookPath).pipe(
       Effect.map(Option.some),
-      Effect.catchTag("SystemError", (err) =>
-        err.reason === "NotFound"
-          ? Effect.succeed(Option.none<FileSystem.File.Info>())
-          : Effect.fail(err),
+      Effect.catchReason("PlatformError", "NotFound", () =>
+        Effect.succeed(Option.none<FileSystem.File.Info>()),
       ),
     );
     return Option.filter(info, isExecutableFile).pipe(Option.as(hookPath));

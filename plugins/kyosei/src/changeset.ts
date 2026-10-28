@@ -5,11 +5,12 @@
  * gitコマンドで差分を取得します。
  */
 
-import { Command, type CommandExecutor } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
 import { Data, Effect } from "effect";
-import type { UnknownException } from "effect/Cause";
+import type { UnknownError } from "effect/Cause";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
+import { commandString } from "./command";
 import type { GitHubOutputContext, LocalOutputContext, ReviewContext } from "./context-type";
 
 /** mediaType diff指定に対して文字列以外のレスポンスが返ってきた場合の失敗。 */
@@ -38,7 +39,7 @@ export interface Changeset {
 function getPrChangeset(
   octokit: Octokit,
   context: GitHubOutputContext,
-): Effect.Effect<Changeset, UnexpectedDiffResponseType | UnknownException> {
+): Effect.Effect<Changeset, UnexpectedDiffResponseType | UnknownError> {
   return Effect.gen(function* () {
     const [diffResponse, allCommits] = yield* Effect.all(
       [
@@ -100,8 +101,8 @@ function getLocalChangeset(
   context: LocalOutputContext,
 ): Effect.Effect<
   Changeset,
-  UnexpectedDiffResponseType | PlatformError | UnknownException,
-  CommandExecutor.CommandExecutor
+  UnexpectedDiffResponseType | PlatformError | UnknownError,
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const base =
@@ -111,8 +112,8 @@ function getLocalChangeset(
     const range = `${base}...HEAD`;
     const [diff, log] = yield* Effect.all(
       [
-        Command.string(Command.make("git", "diff", "--end-of-options", range)),
-        Command.string(Command.make("git", "log", "--end-of-options", range)),
+        commandString("git", ["diff", "--end-of-options", range]),
+        commandString("git", ["log", "--end-of-options", range]),
       ],
       { concurrency: "unbounded" },
     );
@@ -128,8 +129,8 @@ export function getChangeset(
   context: ReviewContext,
 ): Effect.Effect<
   Changeset,
-  UnexpectedDiffResponseType | PlatformError | UnknownException,
-  CommandExecutor.CommandExecutor
+  UnexpectedDiffResponseType | PlatformError | UnknownError,
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   if (context.output === "github") {
     return getPrChangeset(octokit, context);

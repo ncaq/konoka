@@ -134,7 +134,9 @@
                             nodejs
                             pkgs.claude-code
                             pkgs.git
+                            pkgs.importNpmLock.hooks.linkNodeModulesHook
                           ];
+                          npmDeps = nodeModules;
                         }
                         ''
                           cp -r ${tsRoot}/. .
@@ -142,7 +144,10 @@
                           # 書き込みを伴うツールが動くように書き込み権限を付与する。
                           # viteのconfig bundleやvitestのキャッシュ書き出しなどが該当する。
                           chmod -R u+w $NIX_BUILD_TOP
-                          ln -s ${nodeModules}/node_modules node_modules
+                          # vitestはnode_modules/.vitest-cacheなどに書き込むため、
+                          # node_modules自体をストアへのリンクにするのではなく、
+                          # 書き込み可能なディレクトリを作って中身をリンクする。
+                          linkNodeModulesHook
                           cd plugins/${pluginName}
                           npm run ${script}
                           touch $out

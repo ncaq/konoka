@@ -1,6 +1,6 @@
-import type { CommandExecutor } from "@effect/platform/CommandExecutor";
-import type { PlatformError } from "@effect/platform/Error";
-import { Data, Effect, type ParseResult, Schema } from "effect";
+import { Data, Effect, Schema, SchemaTransformation } from "effect";
+import type { PlatformError } from "effect/PlatformError";
+import type { ChildProcessSpawner } from "effect/process";
 import { CommandFailedError, runStdout } from "./run";
 
 export interface SyncBaseResult {
@@ -15,23 +15,22 @@ export interface SyncBaseResult {
  * `gh repo view --json owner,name,defaultBranchRef`の出力スキーマ。
  *
  * JSON文字列を受け取り、必要なフィールドだけを抽出した整形済みの`RepoInfo`へ変換します。
- * `Schema.transform`でフィールド名の付け替えとネスト解決も一気に行います。
+ * `Schema.decodeTo`でフィールド名の付け替えとネスト解決も一気に行います。
  */
-const RepoInfoFromJson = Schema.parseJson(
+const RepoInfoFromJson = Schema.fromJsonString(
   Schema.Struct({
     owner: Schema.Struct({ login: Schema.String }),
     name: Schema.String,
     defaultBranchRef: Schema.Struct({ name: Schema.String }),
   }),
 ).pipe(
-  Schema.transform(
+  Schema.decodeTo(
     Schema.Struct({
       owner: Schema.String,
       repo: Schema.String,
       baseBranch: Schema.String,
     }),
-    {
-      strict: true,
+    SchemaTransformation.transform({
       decode: (raw) => ({
         owner: raw.owner.login,
         repo: raw.name,
@@ -42,7 +41,7 @@ const RepoInfoFromJson = Schema.parseJson(
         name: info.repo,
         defaultBranchRef: { name: info.baseBranch },
       }),
-    },
+    }),
   ),
 );
 
@@ -71,10 +70,10 @@ export class RebaseFailedError extends Data.TaggedError("RebaseFailedError")<{
 /**
  * `gh repo view`が返したJSONをデコードして`RepoInfo`を返します。
  *
- * 検証とデコードを`Schema`に委ねるため、失敗時のエラー型は`ParseResult.ParseError`になります。
+ * 検証とデコードを`Schema`に委ねるため、失敗時のエラー型は`Schema.SchemaError`になります。
  */
-export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, ParseResult.ParseError> {
-  return Schema.decodeUnknown(RepoInfoFromJson)(json);
+export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, Schema.SchemaError> {
+  return Schema.decodeUnknownEffect(RepoInfoFromJson)(json);
 }
 
 /**
@@ -86,7 +85,11 @@ export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, ParseResult
 function pullBase(
   baseBranch: string,
   currentBranch: string,
-): Effect.Effect<void, CommandFailedError | PlatformError, CommandExecutor> {
+): Effect.Effect<
+  void,
+  CommandFailedError | PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.gen(function* () {
     yield* runStdout("git", ["switch", "--", baseBranch]);
     yield* runStdout("git", ["pull", "--ff-only"]);
@@ -102,12 +105,8 @@ function pullBase(
  */
 export function syncBase(): Effect.Effect<
   SyncBaseResult,
-  | CommandFailedError
-  | PlatformError
-  | ParseResult.ParseError
-  | CurrentIsBaseError
-  | RebaseFailedError,
-  CommandExecutor
+  CommandFailedError | PlatformError | Schema.SchemaError | CurrentIsBaseError | RebaseFailedError,
+  ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
     const repoInfoJson = yield* runStdout("gh", [

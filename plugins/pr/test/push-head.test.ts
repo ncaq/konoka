@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Option, ParseResult } from "effect";
+import { Cause, Effect, Exit, Option, Schema } from "effect";
 import { describe, expect, test } from "vitest";
 import { parseAheadBehind, parseOpenPr, RevListParseError } from "../src/push-head";
 
@@ -16,7 +16,7 @@ describe("parseAheadBehind", () => {
     const exit = Effect.runSyncExit(parseAheadBehind("foo"));
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
+      const failure = Cause.findErrorOption(exit.cause);
       expect(Option.isSome(failure) && failure.value instanceof RevListParseError).toBe(true);
     }
   });
@@ -48,21 +48,21 @@ describe("parseOpenPr", () => {
     );
   });
 
-  test("numberが数値でない場合は`Schema`の`ParseError`で失敗する", () => {
+  test("numberが数値でない場合は`Schema`の`SchemaError`で失敗する", () => {
     const exit = Effect.runSyncExit(parseOpenPr('[{"number":"42"}]'));
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
-      expect(Option.isSome(failure) && ParseResult.isParseError(failure.value)).toBe(true);
+      const failure = Cause.findErrorOption(exit.cause);
+      expect(Option.isSome(failure) && Schema.isSchemaError(failure.value)).toBe(true);
     }
   });
 
-  test("JSONとしてパースできない文字列も`Schema`の`ParseError`で失敗する", () => {
+  test("JSONとしてパースできない文字列も`Schema`の`SchemaError`で失敗する", () => {
     const exit = Effect.runSyncExit(parseOpenPr("not json"));
     expect(Exit.isFailure(exit)).toBe(true);
     if (Exit.isFailure(exit)) {
-      const failure = Cause.failureOption(exit.cause);
-      expect(Option.isSome(failure) && ParseResult.isParseError(failure.value)).toBe(true);
+      const failure = Cause.findErrorOption(exit.cause);
+      expect(Option.isSome(failure) && Schema.isSchemaError(failure.value)).toBe(true);
     }
   });
 });

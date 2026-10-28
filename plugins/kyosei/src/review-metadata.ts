@@ -12,15 +12,16 @@
  * `MetadataSchema`には含めずレンダリング時のビューにだけ足します。
  *
  * 各値の正規化(SHA形式の判定、SemVer形式の判定、空文字フォールバックなど)は、
- * 個別のヘルパー関数ではなく`Schema.transform`でスキーマ自体に組み込んでいます。
+ * 個別のヘルパー関数ではなく`Schema.decodeTo`による変換でスキーマ自体に組み込んでいます。
  * 不正値や未指定は`decodeUnknownSync`を通すだけで自動的に`"unknown"`に正規化されます。
  */
 
 import process from "node:process";
-import { Command, type CommandExecutor } from "@effect/platform";
 import { Effect, Option, Schema } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import mustache from "mustache";
 import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" };
+import { commandString } from "./command";
 import { getGitHubHostname } from "./github-host";
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
@@ -50,7 +51,7 @@ export const MetadataSchema = Schema.Struct({
   claudeCodeVersion: SemVerOrUnknownSchema,
   model: NonEmptyStringOrUnknownSchema,
   execution: ExecutionSchema,
-  runUrl: Schema.optionalWith(Schema.URL, { exact: true }),
+  runUrl: Schema.optionalKey(Schema.URLFromString),
 });
 
 /**
@@ -61,9 +62,9 @@ export const MetadataSchema = Schema.Struct({
 function detectClaudeCodeVersion(): Effect.Effect<
   Option.Option<string>,
   never,
-  CommandExecutor.CommandExecutor
+  ChildProcessSpawner.ChildProcessSpawner
 > {
-  return Command.string(Command.make("claude", "--version")).pipe(
+  return commandString("claude", ["--version"]).pipe(
     Effect.matchEffect({
       onFailure: (err) =>
         Effect.logWarning(`failed to detect Claude Code version: ${err.message}`).pipe(
@@ -73,7 +74,7 @@ function detectClaudeCodeVersion(): Effect.Effect<
         Effect.gen(function* () {
           // `claude --version` の出力は `2.1.114 (Claude Code)\n` のような形式。
           // 先頭の空白区切りトークンがバージョン文字列。
-          const versionToken = Option.fromNullable(pickNonBlank(stdout.split(/\s+/)[0]));
+          const versionToken = Option.fromNullishOr(pickNonBlank(stdout.split(/\s+/)[0]));
           if (Option.isNone(versionToken)) {
             yield* Effect.logWarning(`empty 'claude --version' output: ${stdout.trim()}`);
           }
@@ -102,8 +103,8 @@ function lookupExecution(): typeof ExecutionSchema.Type {
  */
 function lookupRunUrlString(serverUrl: string): Option.Option<string> {
   return Option.all({
-    repository: Option.fromNullable(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
-    runId: Option.fromNullable(pickNonBlank(process.env["GITHUB_RUN_ID"])),
+    repository: Option.fromNullishOr(pickNonBlank(process.env["GITHUB_REPOSITORY"])),
+    runId: Option.fromNullishOr(pickNonBlank(process.env["GITHUB_RUN_ID"])),
   }).pipe(
     Option.map(({ repository, runId }) => `${serverUrl}/${repository}/actions/runs/${runId}`),
   );
@@ -131,7 +132,7 @@ const parseUrl = Option.liftThrowable((raw: string) => new URL(raw));
 function lookupServerUrl(): Effect.Effect<string> {
   return getGitHubHostname().pipe(
     Effect.map((hostname) => `https://${hostname}`),
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.logWarning(`failed to resolve GitHub hostname from ${error.name}`).pipe(
         Effect.as("https://github.com"),
       ),
@@ -253,14 +254,14 @@ function buildLinkedValues(
 export function buildFooterView(
   submission: typeof ReviewSubmissionSchema.Type,
   serverUrl: string,
-): Effect.Effect<typeof MetadataSchema.Type, never, CommandExecutor.CommandExecutor> {
+): Effect.Effect<typeof MetadataSchema.Type, never, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     const claudeCodeVersion = yield* detectClaudeCodeVersion();
     const runUrl = lookupRunUrlString(serverUrl);
     // 不正値は`MetadataSchema`が`"unknown"`に正規化するため、
     // デコード失敗はプログラムの欠陥として扱い、`orDie`で欠陥に変換します。
     return yield* Effect.orDie(
-      Schema.decodeUnknown(MetadataSchema)({
+      Schema.decodeUnknownEffect(MetadataSchema)({
         commit: submission.headCommitId,
         pr: submission.prNumber,
         kyoseiVersion: pluginManifest.version,
@@ -297,7 +298,7 @@ function renderInternalErrorsSection(submission: typeof ReviewSubmissionSchema.T
  */
 export function buildReviewBody(
   submission: typeof ReviewSubmissionSchema.Type,
-): Effect.Effect<string, never, CommandExecutor.CommandExecutor> {
+): Effect.Effect<string, never, ChildProcessSpawner.ChildProcessSpawner> {
   return Effect.gen(function* () {
     const serverUrl = yield* lookupServerUrl();
     const view = yield* buildFooterView(submission, serverUrl);

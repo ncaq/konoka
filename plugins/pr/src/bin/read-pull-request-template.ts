@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Effect } from "effect";
 import {
   formatPullRequestTemplates,
@@ -16,4 +16,4 @@ const program = readPullRequestTemplates().pipe(
   ),
 );
 
-NodeRuntime.runMain(program.pipe(Effect.provide(NodeContext.layer)));
+NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));

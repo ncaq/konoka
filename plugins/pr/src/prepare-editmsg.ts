@@ -1,7 +1,6 @@
 import { tmpdir } from "node:os";
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Config, Effect } from "effect";
+import { FileSystem, Path, Config, Effect } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 
 const pluginName = "pr" as const;
 const fileName = "PULLREQ_EDITMSG" as const;
@@ -15,7 +14,7 @@ export interface PrepareEditmsgOptions {
   readonly runtimeDir?: string;
 }
 
-const personalWorkDir: Effect.Effect<string> = Config.nonEmptyString("XDG_RUNTIME_DIR").pipe(
+const personalWorkDir: Effect.Effect<string> = Config.NonEmptyString("XDG_RUNTIME_DIR").pipe(
   Effect.orElseSucceed(() => tmpdir()),
 );
 

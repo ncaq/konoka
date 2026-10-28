@@ -1,6 +1,5 @@
-import { FileSystem, Path } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { Effect, Option } from "effect";
+import { FileSystem, Path, Effect, Option } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import { findCaseInsensitive, readIfExists, readdirIfExists } from "./read-if-exists";
 
 /**

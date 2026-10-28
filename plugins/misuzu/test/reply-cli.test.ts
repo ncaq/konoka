@@ -1,8 +1,7 @@
-import { FileSystem } from "@effect/platform";
-import type { PlatformError } from "@effect/platform/Error";
-import { NodeContext } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
-import { Effect, ParseResult, type Scope } from "effect";
+import { Effect, FileSystem, Schema, type Scope } from "effect";
+import type { PlatformError } from "effect/PlatformError";
 import type { Octokit } from "octokit";
 import { describe, expect, vi } from "vitest";
 import { runReplyAndResolve } from "../src/reply-cli";
@@ -56,7 +55,7 @@ function makeFailingOctokit(): Octokit {
 }
 
 describe("runReplyAndResolve", () => {
-  it.scoped("dry-runは投稿せずに検証済みデータを出力する", () =>
+  it.effect("dry-runは投稿せずに検証済みデータを出力する", () =>
     Effect.gen(function* () {
       const files = yield* writeInputFiles(validSubmission, matchingContext);
       const outcome = yield* runReplyAndResolve({
@@ -69,10 +68,10 @@ describe("runReplyAndResolve", () => {
         dryRun: true,
         submission: validSubmission,
       });
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("スキーマに合わないJSONファイルはParseErrorで失敗する", () =>
+  it.effect("スキーマに合わないJSONファイルはSchemaErrorで失敗する", () =>
     Effect.gen(function* () {
       const files = yield* writeInputFiles({ owner: "ncaq" }, matchingContext);
       const error = yield* runReplyAndResolve({
@@ -80,11 +79,11 @@ describe("runReplyAndResolve", () => {
         dryRun: true,
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
-      expect(ParseResult.isParseError(error)).toBe(true);
-    }).pipe(Effect.provide(NodeContext.layer)),
+      expect(Schema.isSchemaError(error)).toBe(true);
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("存在しないファイルパスは失敗する", () =>
+  it.effect("存在しないファイルパスは失敗する", () =>
     Effect.gen(function* () {
       const error = yield* runReplyAndResolve({
         submissionPath: "/nonexistent/reply-submission.json",
@@ -93,10 +92,10 @@ describe("runReplyAndResolve", () => {
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
       expect(error).toBeDefined();
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("投稿先がcontextのPRと一致しない場合は投稿せずに失敗する", () =>
+  it.effect("投稿先がcontextのPRと一致しない場合は投稿せずに失敗する", () =>
     Effect.gen(function* () {
       const files = yield* writeInputFiles(
         { ...validSubmission, repo: "another-repo" },
@@ -108,10 +107,10 @@ describe("runReplyAndResolve", () => {
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
       expect(error).toMatchObject({ _tag: "SubmissionTargetMismatch" });
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("PRのないローカルコンテキストへの投稿は失敗する", () =>
+  it.effect("PRのないローカルコンテキストへの投稿は失敗する", () =>
     Effect.gen(function* () {
       const files = yield* writeInputFiles(validSubmission, localContextWithoutPr);
       const error = yield* runReplyAndResolve({
@@ -120,10 +119,10 @@ describe("runReplyAndResolve", () => {
         makeOctokit: octokitMustNotBeUsed,
       }).pipe(Effect.flip);
       expect(error).toMatchObject({ _tag: "ContextWithoutPr" });
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("投稿に成功するとpartialFailureはfalseで結果JSONを出力する", () =>
+  it.effect("投稿に成功するとpartialFailureはfalseで結果JSONを出力する", () =>
     Effect.gen(function* () {
       const graphql = vi.fn().mockResolvedValue({
         addPullRequestReviewThreadReply: {
@@ -142,10 +141,10 @@ describe("runReplyAndResolve", () => {
       const result = JSON.parse(outcome.output) as { succeeded: unknown[]; failed: unknown[] };
       expect(result.succeeded).toHaveLength(1);
       expect(result.failed).toHaveLength(0);
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.scoped("一部の投稿が失敗するとpartialFailureがtrueになる", () =>
+  it.effect("一部の投稿が失敗するとpartialFailureがtrueになる", () =>
     Effect.gen(function* () {
       const octokit = makeFailingOctokit();
       const files = yield* writeInputFiles(validSubmission, matchingContext);
@@ -157,6 +156,6 @@ describe("runReplyAndResolve", () => {
       expect(outcome.partialFailure).toBe(true);
       const result = JSON.parse(outcome.output) as { failed: { threadId: string }[] };
       expect(result.failed[0]?.threadId).toBe("PRRT_1");
-    }).pipe(Effect.provide(NodeContext.layer)),
+    }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
