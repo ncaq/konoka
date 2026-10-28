@@ -27,7 +27,6 @@ allowed-tools: >-
   mcp__github__search_code,
   mcp__github__search_issues,
   mcp__github__search_pull_requests
-effort: medium
 ---
 
 あなたはソフトウェアシステムの全レイヤーにわたる、
