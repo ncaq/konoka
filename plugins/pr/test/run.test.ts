@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { Cause, Effect, Exit, Option, Result } from "effect";
+import { Effect, Option } from "effect";
 import { isPlatformError } from "effect/PlatformError";
 import { expect } from "vitest";
 import { CommandFailedError, runStdout, tryRunStdout } from "../src/run";
@@ -18,31 +18,16 @@ describe("runStdout", () => {
     () =>
       Effect.gen(function* () {
         const args = ["-c", "echo out; echo err >&2; exit 3"];
-        const exit = yield* Effect.exit(runStdout("sh", args));
-        expect(Exit.isFailure(exit)).toBe(true);
-        if (Exit.isFailure(exit)) {
-          const failure = Cause.findErrorOption(exit.cause);
-          expect(Option.isSome(failure)).toBe(true);
-          if (Option.isSome(failure)) {
-            expect(failure.value).toBeInstanceOf(CommandFailedError);
-            if (failure.value instanceof CommandFailedError) {
-              expect(failure.value.command).toBe("sh");
-              expect(failure.value.args).toEqual(args);
-              expect(failure.value.exitCode).toBe(3);
-              expect(failure.value.stderr).toBe("err\n");
-            }
-          }
-        }
+        const failure = yield* Effect.flip(runStdout("sh", args));
+        expect(failure).toBeInstanceOf(CommandFailedError);
+        expect(failure).toMatchObject({ command: "sh", args, exitCode: 3, stderr: "err\n" });
       }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("存在しないコマンドは`PlatformError`で失敗する", () =>
     Effect.gen(function* () {
-      const result = yield* Effect.result(runStdout("konoka-pr-no-such-command", []));
-      expect(Result.isFailure(result)).toBe(true);
-      if (Result.isFailure(result)) {
-        expect(isPlatformError(result.failure)).toBe(true);
-      }
+      const failure = yield* Effect.flip(runStdout("konoka-pr-no-such-command", []));
+      expect(isPlatformError(failure)).toBe(true);
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
@@ -64,11 +49,8 @@ describe("tryRunStdout", () => {
 
   it.effect("存在しないコマンドは`PlatformError`のまま伝播する", () =>
     Effect.gen(function* () {
-      const result = yield* Effect.result(tryRunStdout("konoka-pr-no-such-command", []));
-      expect(Result.isFailure(result)).toBe(true);
-      if (Result.isFailure(result)) {
-        expect(isPlatformError(result.failure)).toBe(true);
-      }
+      const failure = yield* Effect.flip(tryRunStdout("konoka-pr-no-such-command", []));
+      expect(isPlatformError(failure)).toBe(true);
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
