@@ -8,7 +8,7 @@ import { Data, Effect, Schema } from "effect";
 import type { UnknownError } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
-import { PositiveIntSchema } from "./review-schema";
+import { PositiveIntSchema } from "./positive-int";
 
 /** GraphQLレスポンスに期待したconnectionが含まれていない場合の失敗。 */
 class GraphQlConnectionMissing extends Data.TaggedError("GraphQlConnectionMissing")<{

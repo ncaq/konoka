@@ -5,6 +5,7 @@
 
 import { Schema, SchemaTransformation } from "effect";
 import { valid as semverValid } from "semver";
+import { PositiveIntSchema } from "./positive-int";
 
 /** 入力が空文字や空白のみの場合に`undefined`扱いとして正規化するためのバリデーター。 */
 export function pickNonBlank(raw: unknown): string | undefined {
@@ -73,9 +74,6 @@ function isSha(value: string): boolean {
 function isSemVer(value: string): boolean {
   return semverValid(value) !== null;
 }
-
-/** 正の整数。 */
-export const PositiveIntSchema = Schema.Int.check(Schema.isGreaterThan(0));
 
 /** GitのSHA形式(短縮7桁から完全40桁の16進)。 */
 export const ShaSchema = Schema.NonEmptyString.pipe(
