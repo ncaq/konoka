@@ -38,9 +38,9 @@ export function getRemoteName(): Effect.Effect<
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     // 現在のブランチのupstreamからリモート名を取得します。
     // 例: @{upstream}が"origin/main"ならリモート名は"origin"です。
-    // upstream未設定時の`git rev-parse`非ゼロ終了は想定通りなのでgit remoteのフォールバックに進めます。
-    // ここでExitCodeError以外の失敗を区別したいが、`ChildProcessSpawner.string`は現状PlatformError系をそのまま返すため、
-    // 細かいタグ判別はせずgit remoteへフォールバックします。
+    // `ChildProcessSpawner.string`は終了コードを検査しないため、
+    // upstream未設定時の`git rev-parse`非ゼロ終了は空出力となり`Option.none`経由でgit remoteへフォールバックします。
+    // 起動失敗などの`PlatformError`も区別せず`Effect.catch`で同じくフォールバックします。
     const fromUpstream = yield* spawner
       .string(
         ChildProcess.make("git", [
