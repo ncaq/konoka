@@ -4,9 +4,10 @@
  */
 
 import { Effect, Schema } from "effect";
+import { PositiveIntSchema } from "./positive-int";
 
 /** PR 番号は正の整数。 */
-export const PrNumberSchema = Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0));
+export const PrNumberSchema = PositiveIntSchema;
 
 /**
  * 1つのレビュースレッドへの返信指定。

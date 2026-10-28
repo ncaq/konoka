@@ -3,6 +3,7 @@
  */
 
 import { Schema } from "effect";
+import { PositiveIntSchema } from "./positive-int";
 import { PrNumberSchema } from "./reply-schema";
 
 /**
@@ -28,7 +29,7 @@ export const FocusSchema = Schema.Struct({
   /** 対象の種別。 */
   kind: Schema.Literals(["review", "review-comment", "issue-comment"]),
   /** GitHubのdatabase ID。URLフラグメントに含まれる数値。 */
-  databaseId: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)),
+  databaseId: PositiveIntSchema,
 });
 
 export type Focus = typeof FocusSchema.Type;

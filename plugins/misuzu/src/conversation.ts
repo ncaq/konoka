@@ -8,6 +8,7 @@ import { Data, Effect, Schema } from "effect";
 import type { UnknownError } from "effect/Cause";
 import type { Octokit } from "octokit";
 import type { PrIdentifier } from "./context-type";
+import { PositiveIntSchema } from "./positive-int";
 
 /** GraphQLレスポンスに期待したconnectionが含まれていない場合の失敗。 */
 class GraphQlConnectionMissing extends Data.TaggedError("GraphQlConnectionMissing")<{
@@ -63,8 +64,8 @@ export const ConversationReviewThreadSchema = Schema.Struct({
   isOutdated: Schema.Boolean,
   resolvedBy: Schema.NullOr(Schema.NonEmptyString),
   path: Schema.NonEmptyString,
-  line: Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))),
-  startLine: Schema.NullOr(Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0))),
+  line: Schema.NullOr(PositiveIntSchema),
+  startLine: Schema.NullOr(PositiveIntSchema),
   diffSide: Schema.NonEmptyString,
   comments: Schema.Array(ReviewThreadCommentSchema),
 });

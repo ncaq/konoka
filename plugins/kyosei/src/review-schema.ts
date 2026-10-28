@@ -75,7 +75,7 @@ function isSemVer(value: string): boolean {
 }
 
 /** 正の整数。 */
-const PositiveIntSchema = Schema.Number.pipe(Schema.check(Schema.isInt(), Schema.isGreaterThan(0)));
+export const PositiveIntSchema = Schema.Int.check(Schema.isGreaterThan(0));
 
 /** GitのSHA形式(短縮7桁から完全40桁の16進)。 */
 export const ShaSchema = Schema.NonEmptyString.pipe(
