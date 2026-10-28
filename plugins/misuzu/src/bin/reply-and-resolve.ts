@@ -11,8 +11,6 @@ import { dryRunFlag } from "../cli-params";
 import { createOctokitClient } from "../client";
 import { PartialSubmissionFailure, runReplyAndResolve } from "../reply-cli";
 
-const dryRun = dryRunFlag;
-
 const submissionPath = Argument.String("submission-path").pipe(
   Argument.withDescription(
     "返信+resolve投稿用のJSONファイルのパス(ReplySubmissionSchemaに準拠)。" +
@@ -29,7 +27,7 @@ const contextPath = Argument.String("context-path").pipe(
 
 const command = Command.make(
   "reply-and-resolve",
-  { dryRun, submissionPath, contextPath },
+  { dryRun: dryRunFlag, submissionPath, contextPath },
   ({ dryRun, submissionPath, contextPath }) =>
     Effect.gen(function* () {
       const outcome = yield* runReplyAndResolve({

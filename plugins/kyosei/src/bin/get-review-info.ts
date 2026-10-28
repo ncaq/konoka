@@ -12,9 +12,7 @@ import { detectReviewContext } from "../context";
 import { getReviewInfo } from "../review-info";
 import { ReviewInfoFilePathsSchema, writeReviewInfoFiles } from "../review-info-files";
 
-const prUrl = prUrlArgument;
-
-const command = Command.make("get-review-info", { prUrl }, ({ prUrl }) =>
+const command = Command.make("get-review-info", { prUrl: prUrlArgument }, ({ prUrl }) =>
   Effect.gen(function* () {
     const octokit = yield* createOctokitClient();
     const context = yield* detectReviewContext(octokit, Option.getOrUndefined(prUrl));

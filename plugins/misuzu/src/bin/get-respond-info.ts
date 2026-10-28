@@ -13,9 +13,7 @@ import { getConversation } from "../conversation";
 import { verifyContextHost } from "../host-check";
 import { RespondInfoFilePathsSchema, writeRespondInfoFiles } from "../respond-info-files";
 
-const prUrl = prUrlArgument;
-
-const command = Command.make("get-respond-info", { prUrl }, ({ prUrl }) =>
+const command = Command.make("get-respond-info", { prUrl: prUrlArgument }, ({ prUrl }) =>
   Effect.gen(function* () {
     const octokit = yield* createOctokitClient();
     const context = yield* detectRespondContext(octokit, Option.getOrUndefined(prUrl));

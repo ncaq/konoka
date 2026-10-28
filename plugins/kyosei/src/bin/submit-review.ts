@@ -11,13 +11,11 @@ import { createOctokitClient } from "../client";
 import { decodeReviewSubmission } from "../review-decoder";
 import { previewReview, submitReview } from "../review-poster";
 
-const dryRun = dryRunFlag;
-
 const json = Argument.String("json").pipe(
   Argument.withDescription("レビュー投稿用のJSON文字列(ReviewSubmissionSchemaに準拠)。"),
 );
 
-const command = Command.make("submit-review", { dryRun, json }, ({ dryRun, json }) =>
+const command = Command.make("submit-review", { dryRun: dryRunFlag, json }, ({ dryRun, json }) =>
   Effect.gen(function* () {
     const submission = decodeReviewSubmission(json);
     if (dryRun) {
