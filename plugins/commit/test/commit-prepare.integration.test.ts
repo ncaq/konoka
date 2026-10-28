@@ -2,7 +2,7 @@ import { cwd, chdir } from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Effect, FileSystem, Layer, Path, Terminal } from "effect";
-import { ChildProcess, ChildProcessSpawner  } from "effect/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { prepareCommit } from "../src/commit-prepare";
 

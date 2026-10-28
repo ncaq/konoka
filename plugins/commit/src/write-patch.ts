@@ -14,15 +14,19 @@ export class EmptyCommitError extends Data.TaggedError("EmptyCommitError")<{
 function git(
   ...args: readonly string[]
 ): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
-  return ChildProcessSpawner.ChildProcessSpawner.use((spawner) => spawner.string(ChildProcess.make("git", args))).pipe(
-    Effect.map((s) => s.trimEnd()),
-  );
+  return ChildProcessSpawner.ChildProcessSpawner.use((spawner) =>
+    spawner.string(ChildProcess.make("git", args)),
+  ).pipe(Effect.map((s) => s.trimEnd()));
 }
 
 /**
  * 機械に優しい方法で`git status`を出力します。
  */
-function gitStatusPorcelain(): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+function gitStatusPorcelain(): Effect.Effect<
+  string,
+  PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return git("status", "--porcelain");
 }
 
@@ -36,7 +40,11 @@ function gitAddAll(): Effect.Effect<void, PlatformError, ChildProcessSpawner.Chi
 /**
  * コミット前に相応しいgitのdiffを生成します。
  */
-function gitDiffForCommit(): Effect.Effect<string, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+function gitDiffForCommit(): Effect.Effect<
+  string,
+  PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return git("diff", "--cached", "--no-color", "--no-ext-diff");
 }
 
@@ -55,18 +63,21 @@ export function hasStagedChanges(status: string): boolean {
  * 現在の状態をチェックして、
  * 変更があるのにステージされたファイルが存在しない場合は全てステージします。
  */
-const ensureStaged: Effect.Effect<void, PlatformError | EmptyCommitError, ChildProcessSpawner.ChildProcessSpawner> =
-  Effect.gen(function* () {
-    const status = yield* gitStatusPorcelain();
-    if (status === "") {
-      // 差分がまったくない場合はエラー。
-      return yield* new EmptyCommitError({ message: "No changes to commit." });
-    }
-    if (!hasStagedChanges(status)) {
-      // 変更があるのにステージされていない場合は全てステージする。
-      yield* gitAddAll();
-    }
-  });
+const ensureStaged: Effect.Effect<
+  void,
+  PlatformError | EmptyCommitError,
+  ChildProcessSpawner.ChildProcessSpawner
+> = Effect.gen(function* () {
+  const status = yield* gitStatusPorcelain();
+  if (status === "") {
+    // 差分がまったくない場合はエラー。
+    return yield* new EmptyCommitError({ message: "No changes to commit." });
+  }
+  if (!hasStagedChanges(status)) {
+    // 変更があるのにステージされていない場合は全てステージする。
+    yield* gitAddAll();
+  }
+});
 
 /**
  * Gitの前処理を行って、

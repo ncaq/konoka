@@ -3,7 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Layer, Option, Path, type Scope, Terminal } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { ChildProcess, ChildProcessSpawner  } from "effect/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import { CommitMsgHookFailedError, runCommitMsgHook } from "../src/run-commit-msg-hook";
 

@@ -3,7 +3,7 @@ import { NodeServices } from "@effect/platform-node";
 import { it } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Option, Path, type Scope } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { ChildProcess, ChildProcessSpawner  } from "effect/process";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { afterEach, assert, describe, expect } from "vitest";
 import {
   findGitHook,

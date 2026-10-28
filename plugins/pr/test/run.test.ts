@@ -13,25 +13,27 @@ describe("runStdout", () => {
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 
-  it.effect("非0で終了したときは終了コードと標準エラー出力を含む`CommandFailedError`で失敗する", () =>
-    Effect.gen(function* () {
-      const args = ["-c", "echo out; echo err >&2; exit 3"];
-      const exit = yield* Effect.exit(runStdout("sh", args));
-      expect(Exit.isFailure(exit)).toBe(true);
-      if (Exit.isFailure(exit)) {
-        const failure = Cause.findErrorOption(exit.cause);
-        expect(Option.isSome(failure)).toBe(true);
-        if (Option.isSome(failure)) {
-          expect(failure.value).toBeInstanceOf(CommandFailedError);
-          if (failure.value instanceof CommandFailedError) {
-            expect(failure.value.command).toBe("sh");
-            expect(failure.value.args).toEqual(args);
-            expect(failure.value.exitCode).toBe(3);
-            expect(failure.value.stderr).toBe("err\n");
+  it.effect(
+    "非0で終了したときは終了コードと標準エラー出力を含む`CommandFailedError`で失敗する",
+    () =>
+      Effect.gen(function* () {
+        const args = ["-c", "echo out; echo err >&2; exit 3"];
+        const exit = yield* Effect.exit(runStdout("sh", args));
+        expect(Exit.isFailure(exit)).toBe(true);
+        if (Exit.isFailure(exit)) {
+          const failure = Cause.findErrorOption(exit.cause);
+          expect(Option.isSome(failure)).toBe(true);
+          if (Option.isSome(failure)) {
+            expect(failure.value).toBeInstanceOf(CommandFailedError);
+            if (failure.value instanceof CommandFailedError) {
+              expect(failure.value.command).toBe("sh");
+              expect(failure.value.args).toEqual(args);
+              expect(failure.value.exitCode).toBe(3);
+              expect(failure.value.stderr).toBe("err\n");
+            }
           }
         }
-      }
-    }).pipe(Effect.provide(NodeServices.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 
   it.effect("存在しないコマンドは`PlatformError`で失敗する", () =>

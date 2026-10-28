@@ -77,11 +77,7 @@ export function runStdout(
 export function tryRunStdout(
   cmd: string,
   args: readonly string[],
-): Effect.Effect<
-  Option.Option<string>,
-  PlatformError,
-  ChildProcessSpawner.ChildProcessSpawner
-> {
+): Effect.Effect<Option.Option<string>, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
   return runStdout(cmd, args).pipe(
     Effect.map(Option.some),
     Effect.catchTag("CommandFailedError", () => Effect.succeed(Option.none<string>())),

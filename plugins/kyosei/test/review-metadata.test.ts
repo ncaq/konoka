@@ -11,7 +11,9 @@ const claudeFakeLayer = fakeChildProcessSpawner(() =>
 );
 
 // `claude --version`がバージョンを返す環境を模倣します。
-const claudeVersionFakeLayer = fakeChildProcessSpawner(() => Effect.succeed("2.1.234 (Claude Code)\n"));
+const claudeVersionFakeLayer = fakeChildProcessSpawner(() =>
+  Effect.succeed("2.1.234 (Claude Code)\n"),
+);
 
 // `baseInput`のリポジトリに対応するリンク先。
 const repositoryUrl = "https://github.com/test-owner/test-repo";
