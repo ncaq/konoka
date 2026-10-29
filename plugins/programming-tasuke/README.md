@@ -11,6 +11,7 @@ General-purpose programming guidance for AI coding assistants.
 - エラー処理
 - テスト方針
 - JSONやYAMLの処理
+- sopsで暗号化されたシークレットの取り扱い
 
 など、
 おおよその開発環境で共通して役立つ知識を扱います。
@@ -52,6 +53,7 @@ Claudeが関連するコンテキストを検出すると自動的に参照す�
 | `naming-rule`         | `common`や`util`など意味のない単語の禁止、原形単数の推奨            |
 | `prefer-jq`           | JSONの読み取りや変換にPythonなどではなく`jq`を使う                  |
 | `prefer-yq`           | YAMLやXMLやTOMLやCSVの読み取りや変換に`yq`を使う                    |
+| `sops`                | sopsで暗号化されたシークレットを復号して会話に出さない              |
 | `test`                | テストコードを安易に変更しない、テストデータに依存した実装をしない  |
 | `use-error-info`      | catchやcaseで受け取ったエラーデータをログ等に活用し、安易に捨てない |
 
