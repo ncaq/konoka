@@ -32,7 +32,7 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- `Node.js >= 22.22.2`
+- `Node.js >= 24.0.0`
 - npm。Node.jsに同梱されているはずです。
 - [commitプラグイン](../commit/README.md)。
   タイトルと本文の検査に`run-commit-msg-hook`を使うため、

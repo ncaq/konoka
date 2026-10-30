@@ -30,7 +30,7 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- `Node.js >= 22.22.2`
+- `Node.js >= 24.0.0`
 - npm。Node.jsに同梱されているはずです。
 - [delta](https://github.com/dandavison/delta)。任意ですが推奨します。
   ステージされた差分をシンタックスハイライト付きで表示するのに使います。

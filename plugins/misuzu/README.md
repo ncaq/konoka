@@ -36,7 +36,7 @@ Claude Codeで以下を実行します。
 
 ## 要件
 
-- `Node.js >= 22.22.2`
+- `Node.js >= 24.0.0`
 - npm。Node.jsに同梱されているはずです。
 - GitHubのトークン。
   環境変数(`GH_TOKEN`, `GITHUB_TOKEN`等)か、

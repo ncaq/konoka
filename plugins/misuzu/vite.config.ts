@@ -9,7 +9,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     ssr: true,
-    target: "node20.20",
+    target: "node24",
     outDir: "dist/bin",
     emptyOutDir: true,
     sourcemap: true,
