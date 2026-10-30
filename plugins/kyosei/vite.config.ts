@@ -12,7 +12,7 @@ export default defineConfig({
   assetsInclude: ["**/*.mustache"],
   build: {
     ssr: true,
-    target: "node20.20",
+    target: "node24",
     outDir: "dist/bin",
     emptyOutDir: true,
     sourcemap: true,
