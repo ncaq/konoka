@@ -13,9 +13,9 @@ const baseComment: typeof ReviewCommentSchema.Type = {
 
 describe("formatReviewCommentBody", () => {
   test("tagsが空配列ならタグラベル行を出力しない", () => {
-    const result = formatReviewCommentBody({ ...baseComment, level: "IMPORTANT", tags: [] });
+    const result = formatReviewCommentBody({ ...baseComment, level: "WARNING", tags: [] });
 
-    expect(result).toBe("> [!IMPORTANT]\n\nfix this");
+    expect(result).toBe("> [!WARNING]\n\nfix this");
   });
 
   test("単一tagはラベルが付与される", () => {
@@ -31,11 +31,11 @@ describe("formatReviewCommentBody", () => {
   test("複数tagは半角スペース区切りで連結される", () => {
     const result = formatReviewCommentBody({
       ...baseComment,
-      level: "IMPORTANT",
+      level: "WARNING",
       tags: ["security", "performance"],
     });
 
-    expect(result).toBe("> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix this");
+    expect(result).toBe("> [!WARNING]\n> 🔒 Security ⚡ Performance\n\nfix this");
   });
 
   test.each([
@@ -51,7 +51,7 @@ describe("formatReviewCommentBody", () => {
     expect(result).toBe(`> [!NOTE]\n> ${label}\n\nfix this`);
   });
 
-  test.each(["CAUTION", "WARNING", "IMPORTANT", "TIP", "NOTE"] as const)(
+  test.each(["CAUTION", "WARNING", "NOTE"] as const)(
     "レベル%sがGitHub Alertの種別にそのまま反映される",
     (level) => {
       const result = formatReviewCommentBody({ ...baseComment, level, tags: [] });

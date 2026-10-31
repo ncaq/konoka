@@ -102,16 +102,14 @@ export const DiffSideSchema = Schema.Literals(["LEFT", "RIGHT"]);
 /**
  * レビューコメントの重要度レベル。
  * GitHub Alertの定義と合わせています。
- * スキーマレベルで順位はつけていいませんが、
+ * スキーマレベルで順位はつけていませんが、
  * 重要度は左の方が高いです。
+ *
+ * - CAUTION: マージを止めるべき問題。REQUEST_CHANGESの根拠になる
+ * - WARNING: 修正すべきだが、マージは止めない問題
+ * - NOTE: 情報提供や軽い提案
  */
-export const ReviewLevelSchema = Schema.Literals([
-  "CAUTION",
-  "WARNING",
-  "IMPORTANT",
-  "TIP",
-  "NOTE",
-]);
+export const ReviewLevelSchema = Schema.Literals(["CAUTION", "WARNING", "NOTE"]);
 
 /** サブエージェントと対応するタグ。 */
 export const ReviewTagSchema = Schema.Literals([
