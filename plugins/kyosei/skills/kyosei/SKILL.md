@@ -243,7 +243,7 @@ prefixを省略すると見つからない旨のエラーになります。
 統合時のルール:
 
 - `level`が異なる場合: 以下の順でより高い重大度を採用する
-  - `CAUTION` > `WARNING` > `IMPORTANT` > `TIP` > `NOTE`
+  - `CAUTION` > `WARNING` > `NOTE`
 - `tags`が異なる場合: 両方のタグを重複なく含める
 - `body`が異なる場合: 両方の固有の情報を含めてマージする
 - `line`がずれている場合: より正確な行を採用する
@@ -319,11 +319,9 @@ see https://github.com/jlord/sheetsee.js/issues/26
     - `"security"`
     - `"test"`
   - `level`: 指摘の重大度。以下のいずれか。
-    - `"CAUTION"`
-    - `"WARNING"`
-    - `"IMPORTANT"`
-    - `"TIP"`
-    - `"NOTE"`
+    - `"CAUTION"`: マージを止めるべき問題。`REQUEST_CHANGES`の根拠になる
+    - `"WARNING"`: 修正すべきだが、マージは止めない問題
+    - `"NOTE"`: 情報提供や軽い提案。修正は任意
 - `metadata`: LLM 自身しか確実には知らないメタデータ(省略可)
   - `model`: 現在使っている Claude モデルの識別子。
     例: `"claude-opus-4-7"`。
@@ -407,11 +405,11 @@ see https://github.com/jlord/sheetsee.js/issues/26
 以下の全てを満たす場合。
 
 - 今回のコメントに`CAUTION`レベルの指摘がない。
-  `WARNING`, `IMPORTANT`, `TIP`, `NOTE`の指摘しかない場合や、
+  `WARNING`, `NOTE`の指摘しかない場合や、
   コメントなしの場合が該当します。
 - 前回のレビューでの`CAUTION`相当の指摘が全て対応済みであること。
 
-`WARNING`や`IMPORTANT`の指摘が残っていても`APPROVE`するのは直感に反するかもしれませんが、
+`WARNING`の指摘が残っていても`APPROVE`するのは直感に反するかもしれませんが、
 あまり機械によるレビューが厳しすぎないようにするための措置です。
 
 `REQUEST_CHANGES`や`COMMENT`はGitHubの承認要求を満たさないため、

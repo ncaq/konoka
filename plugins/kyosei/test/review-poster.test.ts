@@ -73,7 +73,7 @@ describe("submitReview", () => {
               path: "src/foo.ts",
               body: "fix",
               line: 42,
-              level: "IMPORTANT",
+              level: "WARNING",
               tags: ["code-quality"],
             },
           ],
@@ -85,7 +85,7 @@ describe("submitReview", () => {
         const comment = call?.comments?.[0];
         expect(comment).toEqual({
           path: "src/foo.ts",
-          body: "> [!IMPORTANT]\n> 🧹 Code Quality\n\nfix",
+          body: "> [!WARNING]\n> 🧹 Code Quality\n\nfix",
           line: 42,
           side: "RIGHT",
         });
@@ -97,13 +97,13 @@ describe("submitReview", () => {
         const octokit = createMockOctokit();
         const input = {
           ...validInput,
-          comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "IMPORTANT", tags: [] }],
+          comments: [{ path: "src/foo.ts", body: "fix", line: 42, level: "WARNING", tags: [] }],
         };
         const submission = decodeReviewSubmission(JSON.stringify(input));
         yield* submitReview(octokit, submission);
 
         const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-        expect(call?.comments?.[0]?.body).toBe("> [!IMPORTANT]\n\nfix");
+        expect(call?.comments?.[0]?.body).toBe("> [!WARNING]\n\nfix");
       }),
     );
 
@@ -117,7 +117,7 @@ describe("submitReview", () => {
               path: "src/foo.ts",
               body: "fix",
               line: 42,
-              level: "IMPORTANT",
+              level: "WARNING",
               tags: ["security", "performance"],
             },
           ],
@@ -126,9 +126,7 @@ describe("submitReview", () => {
         yield* submitReview(octokit, submission);
 
         const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
-        expect(call?.comments?.[0]?.body).toBe(
-          "> [!IMPORTANT]\n> 🔒 Security ⚡ Performance\n\nfix",
-        );
+        expect(call?.comments?.[0]?.body).toBe("> [!WARNING]\n> 🔒 Security ⚡ Performance\n\nfix");
       }),
     );
 
@@ -167,7 +165,7 @@ describe("submitReview", () => {
               line: 20,
               startLine: 10,
               side: "LEFT",
-              level: "TIP",
+              level: "NOTE",
               tags: ["test"],
             },
           ],
@@ -179,7 +177,7 @@ describe("submitReview", () => {
         const comment = call?.comments?.[0];
         expect(comment).toEqual({
           path: "src/bar.ts",
-          body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
+          body: "> [!NOTE]\n> 🧪 Test\n\nrefactor",
           line: 20,
           start_line: 10,
           side: "LEFT",
@@ -199,7 +197,7 @@ describe("submitReview", () => {
               body: "x",
               line: 20,
               startLine: 10,
-              level: "TIP",
+              level: "NOTE",
               tags: ["test"],
             },
           ],
@@ -209,7 +207,7 @@ describe("submitReview", () => {
         const call = vi.mocked(octokit.rest.pulls.createReview).mock.calls[0]?.[0];
         expect(call?.comments?.[0]).toEqual({
           path: "src/foo.ts",
-          body: "> [!TIP]\n> 🧪 Test\n\nx",
+          body: "> [!NOTE]\n> 🧪 Test\n\nx",
           line: 20,
           start_line: 10,
           side: "RIGHT",
@@ -285,7 +283,7 @@ describe("previewReview", () => {
                 line: 20,
                 startLine: 10,
                 side: "LEFT",
-                level: "TIP",
+                level: "NOTE",
                 tags: ["test"],
               },
             ],
@@ -296,7 +294,7 @@ describe("previewReview", () => {
         expect(params.comments).toEqual([
           {
             path: "src/bar.ts",
-            body: "> [!TIP]\n> 🧪 Test\n\nrefactor",
+            body: "> [!NOTE]\n> 🧪 Test\n\nrefactor",
             line: 20,
             start_line: 10,
             side: "LEFT",

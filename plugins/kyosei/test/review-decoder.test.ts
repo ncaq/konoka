@@ -54,7 +54,7 @@ describe("decodeReviewSubmission", () => {
           line: 20,
           startLine: 15,
           side: "LEFT",
-          level: "TIP",
+          level: "NOTE",
           tags: ["test"],
         },
       ],
