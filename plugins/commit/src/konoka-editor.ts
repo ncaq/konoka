@@ -1,6 +1,6 @@
 import { Data, Effect, type FileSystem } from "effect";
 import type { PlatformError } from "effect/PlatformError";
-import { type ChildProcess, ChildProcessSpawner } from "effect/process";
+import { type ChildProcess, ChildProcessSpawner, CommandLine } from "effect/process";
 import { appendDiffToEditmsg, removeDiffFromEditmsg } from "./attach-diff";
 import { getEditor } from "./get-editor";
 
@@ -9,7 +9,8 @@ export class EditorFailedError extends Data.TaggedError("EditorFailedError")<{
   readonly exitCode: number;
 }> {
   override get message(): string {
-    const command = [this.editor.command, ...this.editor.args].join(" ");
+    // 引数には`Redacted`が混ざり得るので、表示用に整形してくれる`CommandLine.display`に任せます。
+    const command = CommandLine.display([this.editor.command, ...this.editor.args]);
     return `Editor command "${command}" failed with exit code ${this.exitCode}.`;
   }
 }
