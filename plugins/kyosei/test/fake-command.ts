@@ -5,7 +5,7 @@
  * テストがgitコマンド等の出力を制御したい時に使用します。
  */
 
-import { Data, Effect, Layer, Stream } from "effect";
+import { Data, Effect, Layer, Redacted, Stream } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcess } from "effect/process";
 import { ChildProcessSpawner } from "effect/process";
@@ -48,7 +48,11 @@ export function fakeChildProcessSpawner(
     lines: () => Effect.die(unsupported("lines")),
     string: (command) => {
       const standard = firstStandardCommand(command);
-      return handler(standard.command, standard.args) as Effect.Effect<string, PlatformError>;
+      // テストでは引数を素の文字列として検査したいので、`Redacted`は中身を取り出して渡します。
+      const args = standard.args.map((word) =>
+        typeof word === "string" ? word : Redacted.value(word),
+      );
+      return handler(standard.command, args) as Effect.Effect<string, PlatformError>;
     },
   };
   return Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, fake);

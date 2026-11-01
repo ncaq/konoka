@@ -17,6 +17,7 @@ function captureTerminal(sink: string[]): Layer.Layer<Terminal.Terminal> {
     Terminal.make({
       columns: Effect.succeed(80),
       rows: Effect.succeed(24),
+      size: Effect.die(new Error("size is not used in this test")),
       readInput: Effect.die(new Error("readInput is not used in this test")),
       readLine: Effect.die(new Error("readLine is not used in this test")),
       display: (input) =>
