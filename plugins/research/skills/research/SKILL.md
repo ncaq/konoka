@@ -3,7 +3,6 @@ name: research
 description: Investigate any topic by querying multiple external sources (web, official docs, GitHub, MCP servers). Use whenever a question requires information not already in the working context, including library behavior, API specifications, error diagnostics, version comparisons, or general factual lookup.
 argument-hint: "query"
 allowed-tools: Agent(claude-code-guide), Skill(research:survey)
-model: opus
 effort: medium
 ---
 
