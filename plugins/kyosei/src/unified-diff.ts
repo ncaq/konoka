@@ -459,36 +459,51 @@ interface MarkedLine {
  * 本文1行。行番号付き形式では先頭の行番号を読み飛ばします。
  * 一部のツールは空の文脈行の先頭の空白を落とすため、空行も文脈行として扱います。
  */
-function markedLine(format: DiffFormat): P.Parser<C.Char, MarkedLine> {
-  const prefix =
-    format === "numbered"
-      ? pipe(
-          P.optional(lineNumberPrefix),
-          P.map(() => undefined),
-        )
-      : P.succeed<C.Char, undefined>(undefined);
-  return pipe(
-    prefix,
-    P.apSecond(restOfLine),
-    P.chain((raw) => {
-      const marker = raw.slice(0, 1);
-      const content = raw.slice(1);
-      switch (marker) {
-        case "-": {
-          return P.succeed<C.Char, MarkedLine>({ kind: "delete", raw, content });
-        }
-        case "+": {
-          return P.succeed<C.Char, MarkedLine>({ kind: "add", raw, content });
-        }
-        case " ":
-        case "": {
-          return P.succeed<C.Char, MarkedLine>({ kind: "context", raw, content });
-        }
-        default: {
-          return P.fail<C.Char, MarkedLine>();
-        }
+/**
+ * 行番号の付いていない本文1行。先頭のマーカーで分類します。
+ * 一部のツールは空の文脈行の先頭の空白を落とすため、空行も文脈行として扱います。
+ */
+const rawMarkedLine: P.Parser<C.Char, MarkedLine> = pipe(
+  restOfLine,
+  P.chain((raw) => {
+    const marker = raw.slice(0, 1);
+    const content = raw.slice(1);
+    switch (marker) {
+      case "-": {
+        return P.succeed<C.Char, MarkedLine>({ kind: "delete", raw, content });
       }
-    }),
+      case "+": {
+        return P.succeed<C.Char, MarkedLine>({ kind: "add", raw, content });
+      }
+      case " ":
+      case "": {
+        return P.succeed<C.Char, MarkedLine>({ kind: "context", raw, content });
+      }
+      default: {
+        return P.fail<C.Char, MarkedLine>();
+      }
+    }
+  }),
+);
+
+/**
+ * 本文1行。
+ * 行番号付き形式では、行番号を読んでから本文を分類する分岐を先に試し、
+ * 失敗したら行番号なしの分岐に戻ります。
+ * `P.optional`で行番号だけを任意にすると、
+ * 生のdiffの` 42 foo`のような文脈行で行番号の読み取りだけが成功してしまい、
+ * その後のマーカー判定に失敗しても行番号なしの分岐には戻れないためです。
+ * `P.alt`は失敗時に元の位置から次の分岐を試すので、
+ * 行番号付きのパッチに生のdiffの行が混ざっていてもベストエフォートで読めます。
+ */
+function markedLine(format: DiffFormat): P.Parser<C.Char, MarkedLine> {
+  if (format === "raw") {
+    return rawMarkedLine;
+  }
+  return pipe(
+    lineNumberPrefix,
+    P.apSecond(rawMarkedLine),
+    P.alt(() => rawMarkedLine),
   );
 }
 
@@ -741,7 +756,12 @@ export function parseUnifiedDiff(diff: string): readonly DiffFile[] {
   return Arr.getSomes(parseDiffDocument(diff, "raw").files.map(toDiffFile));
 }
 
-/** 行番号付きdiff(get-review-infoの`changeset.patch`)を解析します。 */
+/**
+ * 行番号付きdiff(get-review-infoの`changeset.patch`)を解析します。
+ * 行番号の付いていない行も生のdiffとして読めますが、
+ * 本文が「数字と空白」で始まる行は行番号付きと区別できないため、
+ * 生のdiffに対する結果は保証しません。
+ */
 export function parseNumberedDiff(diff: string): readonly DiffFile[] {
   return Arr.getSomes(parseDiffDocument(diff, "numbered").files.map(toDiffFile));
 }

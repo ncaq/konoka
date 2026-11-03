@@ -290,7 +290,38 @@ describe("parseNumberedDiff", () => {
     );
   });
 
-  test("行番号の付いていない行もそのまま読める", () => {
-    expect(parseNumberedDiff(modifiedFileDiff)).toEqual(parseUnifiedDiff(modifiedFileDiff));
+  /**
+   * 本文が「空白、数字、空白」や「数字、空白」で始まる行は、
+   * 行番号の読み取りだけが成功してしまう恐れがある形です。
+   * 行番号なしの分岐に戻れることを確かめます。
+   */
+  const digitLeadingDiff = diffLines(
+    "diff --git a/numbers.txt b/numbers.txt",
+    "--- a/numbers.txt",
+    "+++ b/numbers.txt",
+    "@@ -1,3 +1,3 @@",
+    " 42 apples",
+    "-7 pears",
+    "+12 plums",
+    "@@ -10,1 +10,1 @@",
+    "-x",
+    "+y",
+  );
+
+  test("行番号の付いていない生のdiffもベストエフォートで読める", () => {
+    const parsed = parseNumberedDiff(digitLeadingDiff);
+    expect(parsed).toEqual(parseUnifiedDiff(digitLeadingDiff));
+    expect(hunksOf(parsed[0])).toHaveLength(2);
+    expect(hunksOf(parsed[0])[0]?.lines).toEqual([
+      { kind: "context", content: "42 apples", oldLine: 1, newLine: 1 },
+      { kind: "delete", content: "7 pears", oldLine: 2 },
+      { kind: "add", content: "12 plums", newLine: 2 },
+    ]);
+  });
+
+  test("数字で始まる本文の行も行番号を付けて読み戻せる", () => {
+    expect(parseNumberedDiff(numberDiff(digitLeadingDiff))).toEqual(
+      parseUnifiedDiff(digitLeadingDiff),
+    );
   });
 });
