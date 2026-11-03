@@ -214,7 +214,6 @@ export function parseHunkHeader(line: string): Option.Option<HunkHeader> {
 
 // ファイルヘッダのパス。
 
-const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 /** 8進数字。 */
@@ -253,8 +252,19 @@ const simpleEscape: P.Parser<C.Char, number[]> = pipe(
   }),
 );
 
-/** クォート内の1文字分のバイト列。 */
-const quotedChar: P.Parser<C.Char, number[]> = pipe(
+/**
+ * クォート内の1要素。
+ * エスケープはバイト列として、そのままの文字はUTF-16のコード単位1つとして持ちます。
+ * 入力は`split("")`でコード単位に分割されているため、
+ * サロゲートペアの文字は2つの`text`要素に分かれて届きます。
+ * ここでコード単位ごとにUTF-8へ変換すると孤立サロゲートになって壊れるので、
+ * 文字列は文字列のまま連結し、バイト列だけをまとめてデコードします。
+ */
+type QuotedPiece =
+  | { readonly kind: "bytes"; readonly bytes: readonly number[] }
+  | { readonly kind: "text"; readonly text: string };
+
+const quotedPiece: P.Parser<C.Char, QuotedPiece> = pipe(
   C.char("\\"),
   P.apSecond(
     pipe(
@@ -262,23 +272,52 @@ const quotedChar: P.Parser<C.Char, number[]> = pipe(
       P.alt(() => simpleEscape),
     ),
   ),
+  P.map((bytes): QuotedPiece => ({ kind: "bytes", bytes })),
   P.alt(() =>
     pipe(
       C.notOneOf('"\n'),
-      P.map((c) => [...textEncoder.encode(c)]),
+      P.map((text): QuotedPiece => ({ kind: "text", text })),
     ),
   ),
 );
 
+/** 連続するバイト列はまとめてUTF-8としてデコードし、文字列はそのまま繋ぎます。 */
+function joinQuotedPieces(pieces: readonly QuotedPiece[]): string {
+  let result = "";
+  let pendingBytes: number[] = [];
+  const flush = (): void => {
+    if (pendingBytes.length > 0) {
+      result += textDecoder.decode(Uint8Array.from(pendingBytes));
+      pendingBytes = [];
+    }
+  };
+  for (const piece of pieces) {
+    switch (piece.kind) {
+      case "bytes": {
+        pendingBytes.push(...piece.bytes);
+        break;
+      }
+      case "text": {
+        flush();
+        result += piece.text;
+        break;
+      }
+    }
+  }
+  flush();
+  return result;
+}
+
 /**
  * gitの`core.quotePath`形式でクォートされたパス。
- * 非ASCIIは8進エスケープのバイト列で来るため、バイト列を集めてからUTF-8として復元します。
+ * 既定では非ASCIIは8進エスケープのバイト列で来ますが、
+ * `core.quotePath=false`では`"`や制御文字だけがエスケープされ非ASCIIはそのまま入ります。
  */
 const quotedPath: P.Parser<C.Char, string> = pipe(
   C.char('"'),
-  P.apSecond(P.many(quotedChar)),
+  P.apSecond(P.many(quotedPiece)),
   P.apFirst(C.char('"')),
-  P.map((chunks) => textDecoder.decode(Uint8Array.from(chunks.flat()))),
+  P.map(joinQuotedPieces),
 );
 
 /** クォートなしのパス。GNU diff形式のタブ以降(タイムスタンプ)は読みません。 */

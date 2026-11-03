@@ -116,6 +116,16 @@ const fixtures = {
     "-x",
     "+y",
   ),
+  // `core.quotePath=false`では非ASCIIがそのまま入り、`"`だけがエスケープされます。
+  // 絵文字はUTF-16ではサロゲートペアなので、コード単位ごとに変換すると壊れます。
+  サロゲートペアを含むクォート付きパス: diffLines(
+    'diff --git "a/\\343\\201\\202😀 \\"q\\".ts" "b/\\343\\201\\202😀 \\"q\\".ts"',
+    '--- "a/\\343\\201\\202😀 \\"q\\".ts"',
+    '+++ "b/\\343\\201\\202😀 \\"q\\".ts"',
+    "@@ -1 +1 @@",
+    "-x",
+    "+y",
+  ),
   plainなunified_diff: diffLines(
     "--- a/first.ts\t2026-01-01",
     "+++ b/first.ts\t2026-01-02",
@@ -277,6 +287,11 @@ describe("parseUnifiedDiff", () => {
   test("空白を含むパスと8進エスケープされた非ASCIIパスを復元する", () => {
     const files = parseUnifiedDiff(fixtures.クォート付きパスと空白を含むパス);
     expect(files.map((file) => file.path)).toEqual(["あ b.ts", "dir with space/c.ts"]);
+  });
+
+  test("クォート内のサロゲートペアを壊さずに8進エスケープと混在させて復元する", () => {
+    const files = parseUnifiedDiff(fixtures.サロゲートペアを含むクォート付きパス);
+    expect(files.map((file) => file.path)).toEqual(['あ😀 "q".ts']);
   });
 
   test("`diff --git`の無いplainなunified diffでも複数ファイルを区切れる", () => {
