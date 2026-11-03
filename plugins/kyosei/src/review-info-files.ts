@@ -6,6 +6,7 @@ import type { PlatformError } from "effect/PlatformError";
 import { ReviewContextSchema } from "./context-type";
 import { ConversationSchema } from "./conversation";
 import { IncrementalChangesetSchema } from "./incremental-changeset";
+import { numberDiff } from "./numbered-patch";
 import type { ReviewInfo } from "./review-info";
 import {
   ExecutionSchema,
@@ -148,7 +149,9 @@ export function writeReviewInfoFiles(
         encodeJson(ReviewContextSchema, reviewInfo.context).pipe(
           Effect.flatMap((encoded) => fs.writeFileString(context, encoded)),
         ),
-        fs.writeFileString(patch, reviewInfo.changeset.diff),
+        // レビュワーが`Read`ツールの表示する行番号と取り違えないよう、
+        // hunk内の各行にファイル自体の行番号を前置して書き出します。
+        fs.writeFileString(patch, numberDiff(reviewInfo.changeset.diff)),
         fs.writeFileString(commits, reviewInfo.changeset.log),
         headCommitId == null
           ? Effect.void

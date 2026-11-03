@@ -37,7 +37,15 @@ const completeReviewInfo: ReviewInfo = {
     pr: { owner: "test", repo: "repo", prNumber: 1 },
   },
   changeset: {
-    diff: "diff --git a/file.ts b/file.ts\n+const answer = 42;\n",
+    diff: [
+      "diff --git a/file.ts b/file.ts",
+      "--- a/file.ts",
+      "+++ b/file.ts",
+      "@@ -1 +1,2 @@",
+      " const question = 6 * 9;",
+      "+const answer = 42;",
+      "",
+    ].join("\n"),
     log: "commit feedface\nAuthor: Test User\n",
     headCommitId: "feedfacefeedfacefeedfacefeedfacefeedface",
   },
@@ -109,7 +117,18 @@ describe("writeReviewInfoFiles", () => {
       expect(JSON.parse(yield* fs.readFileString(filePaths.context))).toEqual(
         completeReviewInfo.context,
       );
-      expect(yield* fs.readFileString(filePaths.patch)).toBe(completeReviewInfo.changeset.diff);
+      // hunk内の各行にはファイルの行番号が前置されます。
+      expect(yield* fs.readFileString(filePaths.patch)).toBe(
+        [
+          "diff --git a/file.ts b/file.ts",
+          "--- a/file.ts",
+          "+++ b/file.ts",
+          "@@ -1 +1,2 @@",
+          "   1  const question = 6 * 9;",
+          "   2 +const answer = 42;",
+          "",
+        ].join("\n"),
+      );
       expect(yield* fs.readFileString(filePaths.commits)).toBe(completeReviewInfo.changeset.log);
       expect(JSON.parse(yield* fs.readFileString(filePaths.changesetMetadata ?? ""))).toEqual({
         headCommitId: completeReviewInfo.changeset.headCommitId,
