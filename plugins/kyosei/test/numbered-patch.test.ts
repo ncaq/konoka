@@ -178,6 +178,12 @@ describe("numberDiff", () => {
     );
   });
 
+  test("先頭の空白が落ちた空の文脈行にも行番号を付ける", () => {
+    expect(numberDiff(diffLines("@@ -1,3 +1,3 @@", " first", "", "-old", "+new"))).toBe(
+      diffLines("@@ -1,3 +1,3 @@", "   1  first", "   2 ", "   3 -old", "   3 +new"),
+    );
+  });
+
   test("行数が合わない壊れたdiffでも例外にならず残りは加工しない", () => {
     expect(
       numberDiff(diffLines("@@ -1,5 +1,5 @@", " only one line", "diff --git a/b.ts b/b.ts")),
