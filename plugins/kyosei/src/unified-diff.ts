@@ -10,7 +10,6 @@
  */
 
 import { Array as Arr, Chunk, Option } from "effect";
-import { isRight } from "fp-ts/Either";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import { pipe } from "fp-ts/function";
@@ -210,7 +209,7 @@ const hunkHeaderLine: P.Parser<C.Char, { raw: string; value: HunkHeader }> = wit
 /** hunkヘッダ行なら数値部分を返します。 */
 export function parseHunkHeader(line: string): Option.Option<HunkHeader> {
   const result = hunkHeaderLine(stream(`${line}\n`.split(""), 0));
-  return isRight(result) ? Option.some(result.right.value.value) : Option.none();
+  return E.isRight(result) ? Option.some(result.right.value.value) : Option.none();
 }
 
 // ファイルヘッダのパス。
@@ -661,7 +660,7 @@ export function parseDiffDocument(diff: string, format: DiffFormat): DiffDocumen
   const normalized = diff === "" || trailingNewline ? diff : `${diff}\n`;
   const document = pipe(P.many(file(format)), P.apFirst(P.eof<C.Char>()));
   const result = document(stream(normalized.split(""), 0));
-  if (!isRight(result)) {
+  if (!E.isRight(result)) {
     // `otherHeaderLine`が任意の行を受け付けるため、ここに来るのは文法の欠陥です。
     throw new Error(`unified diff could not be parsed at offset ${result.left.input.cursor}`);
   }
