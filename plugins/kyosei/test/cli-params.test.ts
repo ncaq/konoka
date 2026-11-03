@@ -1,9 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
 import { describe, it } from "@effect/vitest";
-import { Effect, Option, Ref } from "effect";
+import { Effect, FileSystem, Option, Ref } from "effect";
 import { Argument, Command } from "effect/cli";
 import { expect } from "vitest";
-import { dryRunFlag, prUrlArgument } from "../src/cli-params";
+import { dryRunFlag, patchFlag, prUrlArgument } from "../src/cli-params";
 
 /**
  * フラグや引数の定義だけを検証するため、
@@ -49,6 +49,40 @@ describe("dryRunFlag", () => {
     Effect.gen(function* () {
       const input = yield* parseWith(params, ["json", "--dry-run"]);
       expect(input.dryRun).toBe(true);
+    }),
+  );
+});
+
+describe("patchFlag", () => {
+  const params = { patch: patchFlag, json: Argument.String("json") };
+
+  it.effect("存在するファイルのパスをそのまま受け取る", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const patch = yield* fs.makeTempFileScoped();
+      const input = yield* parseWith(params, ["--patch", patch, "json"]);
+      expect(input.patch).toBe(patch);
+      expect(input.json).toBe("json");
+    }).pipe(Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("存在しないパスは失敗する", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const directory = yield* fs.makeTempDirectoryScoped();
+      const result = yield* parseWith(params, [
+        "--patch",
+        `${directory}/missing.patch`,
+        "json",
+      ]).pipe(Effect.exit);
+      expect(result._tag).toBe("Failure");
+    }).pipe(Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("省略すると失敗する", () =>
+    Effect.gen(function* () {
+      const result = yield* parseWith(params, ["json"]).pipe(Effect.exit);
+      expect(result._tag).toBe("Failure");
     }),
   );
 });

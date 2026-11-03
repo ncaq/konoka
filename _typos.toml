@@ -7,3 +7,5 @@ HSA = "HSA"
 Hashi = "Hashi"
 # Immediately Invoked Function Expression (IIFE)の略語。camelCase分割で"IIF"をtypoと判定する。
 IIF = "IIF"
+# effectの`Array.getSomes`(`Option`の`Some`の複数形)。camelCase分割で"Somes"をtypoと判定する。
+Somes = "Somes"

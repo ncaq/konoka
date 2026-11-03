@@ -81,6 +81,11 @@ GitHub出力。
 
 レビュー対象の差分をdiffフォーマットで保存した`changeset.patch`へのパスです。
 
+hunk内の各行の先頭には、そのファイル自体の行番号が付いています。
+削除行(`-`)は旧ファイル、追加行(`+`)と文脈行は新ファイルの行番号です。
+インラインコメントの`line`と`startLine`にはこの番号を使ってください。
+`Read`ツールが左端に表示するパッチファイル自体の行番号ではありません。
+
 ### `commits`
 
 コミットログを保存した`commits.log`へのパスです。
@@ -247,6 +252,7 @@ prefixを省略すると見つからない旨のエラーになります。
 - `tags`が異なる場合: 両方のタグを重複なく含める
 - `body`が異なる場合: 両方の固有の情報を含めてマージする
 - `line`がずれている場合: より正確な行を採用する
+- `line`が`changeset.patch`の行頭の番号に現れない値の場合: パッチを読み直して行頭の番号に直す
 
 # 重複コメントの除外
 
@@ -306,9 +312,11 @@ see https://github.com/jlord/sheetsee.js/issues/26
 - `comments`: インラインコメントの配列(省略可)
   - `path`: ファイルの相対パス
   - `body`: コメント本文
-  - `line`: コメントを付ける行番号(複数行の場合は終了行)
-  - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)
-  - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行)。デフォルト`"RIGHT"`
+  - `line`: コメントを付ける行番号(複数行の場合は終了行)。
+    `changeset.patch`の行頭に付いているファイル自体の行番号を使い、hunkに含まれる行にだけ付けられます。
+  - `startLine`: 複数行コメントの開始行(省略可能で省略したときはsingle line)。
+    `line`より小さく、同じhunkに含まれている必要があります。
+  - `side`: `"LEFT"`(削除行)または`"RIGHT"`(追加行と文脈行)。デフォルト`"RIGHT"`
   - `tags`: 指摘のタグ配列。
     以下の文字列を必要なだけ指定してください。
     該当タグがない場合は空配列にしてください。
@@ -450,11 +458,19 @@ JSONがスキーマを通るか確認したいだけの場合は、
 #### 実際のコマンド
 
 以下のコマンドでレビューを一括投稿します。
-引数にJSON文字列を渡してください。
+`--patch`にはパスJSONの`patch`(`changeset.patch`の絶対パス)を、引数にJSON文字列を渡してください。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js --patch PATCH_PATH 'JSON_STRING'
 ```
+
+`--patch`は必須で、投稿前に全インラインコメントの`path`, `line`, `startLine`, `side`が、
+この差分のhunkに含まれる行を指しているかを検証します。
+検証に通らなければGitHub APIは呼ばれず、
+`invalid inline comment lines`で始まるエラーに不正なコメント全件とコメント可能な行範囲が列挙されます。
+その場合は`changeset.patch`を読み直し、行頭の番号で`line`を直してください(削除行なら`"side": "LEFT"`も必要)。
+行番号を当てずっぽうに変えて再試行せず、
+どのhunkにも対応させられない指摘は`comments`から外して`body`に書いてください。
 
 #### 指摘することがない場合
 
@@ -470,11 +486,11 @@ node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js 'JSON_STRING'
 
 ### 動作確認(`--dry-run`)
 
-組み立てたJSONがスキーマやメタデータ生成を通るかだけ検証したい場合は、
+組み立てたJSONがスキーマ、インラインコメントの行番号の検証、メタデータ生成を通るかだけ確認したい場合は、
 `--dry-run`フラグを付けて実行します。
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js --dry-run 'JSON_STRING'
+node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js --dry-run --patch PATCH_PATH 'JSON_STRING'
 ```
 
 GitHub APIへの投稿は行われず、

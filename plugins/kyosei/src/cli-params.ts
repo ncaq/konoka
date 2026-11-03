@@ -16,6 +16,18 @@ export const dryRunFlag = Flag.Boolean("dry-run").pipe(
   Flag.withDefault(false),
 );
 
+/**
+ * get-review-infoが書き出した`changeset.patch`のパス。
+ * インラインコメントの行番号が差分のhunkに含まれるかを投稿前に検証するために使います。
+ * 省略時に検証を黙って飛ばすと行番号の誤りがAPIで拒否される問題が再発するため、必須にしています。
+ */
+export const patchFlag = Flag.File("patch", { mustExist: true }).pipe(
+  Flag.withDescription(
+    "get-review-infoが返した`patch`(changeset.patch)のパス。" +
+      "インラインコメントのpath/line/startLine/sideがこの差分のhunkに含まれるか検証します。",
+  ),
+);
+
 /** 対象PRのURL。省略可能で、省略時は`Option.none`になります。 */
 export const prUrlArgument = Argument.String("pr-url").pipe(
   Argument.withDescription(

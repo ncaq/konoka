@@ -1,14 +1,18 @@
 /**
  * PRレビューをGitHub APIに投稿するモジュール。
  * レビュー本文とインラインコメントを1回のAPI呼び出しで投稿します。
+ * 投稿前にインラインコメントの行番号を差分と照合し、
+ * 1件でも不正ならAPIを呼ばずに失敗します。
  */
 
 import { Effect } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type { Octokit } from "octokit";
 import { formatReviewCommentBody } from "./review-comment-body";
+import { type InvalidReviewCommentLines, validateCommentLines } from "./review-comment-lines";
 import { buildReviewBody } from "./review-metadata";
 import { ReviewSubmissionSchema, type ReviewSubmissionResultSchema } from "./review-schema";
+import type { DiffFile } from "./unified-diff";
 
 /** `octokit.rest.pulls.createReview`に渡すパラメータ型。 */
 export type CreateReviewParams = NonNullable<
@@ -46,16 +50,20 @@ function buildCreateReviewParams(
  * `octokit.rest.pulls.createReview`を使い、
  * レビュー本文とインラインコメントを1回のAPI呼び出しで一括投稿します。
  * レビューイベントは入力の`event`フィールドで指定します。
+ * `diffFiles`はレビュー対象の差分で、インラインコメントの行番号の検証に使います。
  */
 export function submitReview(
   octokit: Octokit,
   submission: typeof ReviewSubmissionSchema.Type,
+  diffFiles: readonly DiffFile[],
 ): Effect.Effect<
   typeof ReviewSubmissionResultSchema.Type,
-  Error,
+  InvalidReviewCommentLines | Error,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
+    // メタデータ生成は子プロセス起動を伴うため、不正な入力はその前に弾きます。
+    yield* validateCommentLines(diffFiles, submission.comments ?? []);
     const body = yield* buildReviewBody(submission);
     const params = buildCreateReviewParams(submission, body);
     const response = yield* Effect.tryPromise(() => octokit.rest.pulls.createReview(params));
@@ -68,13 +76,20 @@ export function submitReview(
 
 /**
  * 投稿はせずに、`submitReview`が`octokit.rest.pulls.createReview`へ渡すであろうパラメータを組み立てて返します。
- * 入力スキーマの検証(`decodeReviewSubmission`)とメタデータフッター生成(`buildReviewBody`)を実走するため、
+ * 入力スキーマの検証(`decodeReviewSubmission`)、インラインコメントの行番号検証(`validateCommentLines`)、
+ * メタデータフッター生成(`buildReviewBody`)を実走するため、
  * パイプライン全体の動作確認に使えます。
  */
 export function previewReview(
   submission: typeof ReviewSubmissionSchema.Type,
-): Effect.Effect<CreateReviewParams, never, ChildProcessSpawner.ChildProcessSpawner> {
+  diffFiles: readonly DiffFile[],
+): Effect.Effect<
+  CreateReviewParams,
+  InvalidReviewCommentLines,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.gen(function* () {
+    yield* validateCommentLines(diffFiles, submission.comments ?? []);
     const body = yield* buildReviewBody(submission);
     return buildCreateReviewParams(submission, body);
   });
