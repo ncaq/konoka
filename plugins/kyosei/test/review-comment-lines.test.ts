@@ -69,6 +69,7 @@ describe("validateCommentLines", () => {
         comment({ path: "src/foo.ts", line: 30, side: "LEFT" }), // 削除行
         comment({ path: "src/foo.ts", line: 31, side: "LEFT" }), // 旧側の文脈行
         comment({ path: "src/foo.ts", line: 32, startLine: 28 }),
+        comment({ path: "src/foo.ts", line: 30, startLine: 28, side: "LEFT" }),
         comment({ path: "src/bar.ts", line: 2, side: "LEFT" }),
       ]);
       expect(problems).toEqual([]);
@@ -142,10 +143,16 @@ describe("validateCommentLines", () => {
         comment({ path: "src/foo.ts", line: 30, startLine: 30 }),
         comment({ path: "src/foo.ts", line: 30, startLine: 5 }),
         comment({ path: "src/foo.ts", line: 102, startLine: 30 }),
+        comment({ path: "src/foo.ts", line: 101, startLine: 30, side: "LEFT" }),
       ]);
       expect(problems.map((problem) => problem.reason)).toEqual([
         { _tag: "StartLineNotBeforeLine" },
         { _tag: "StartLineOutsideHunk" },
+        {
+          _tag: "RangeSpansHunks",
+          startHeader: "@@ -28,4 +28,5 @@ function foo() {",
+          endHeader: "@@ -100,3 +101,3 @@",
+        },
         {
           _tag: "RangeSpansHunks",
           startHeader: "@@ -28,4 +28,5 @@ function foo() {",
@@ -160,7 +167,7 @@ describe("validateCommentLines", () => {
       const error = yield* validateCommentLines(files, [
         comment({ path: "src/foo.ts", line: 10 }),
         comment({ path: "src/foo.ts", line: 30 }),
-        comment({ path: "src/missing.ts", line: 1 }),
+        comment({ path: "plugins/kyosei/src/foo.ts", line: 1 }),
       ]).pipe(Effect.flip);
       expect(error.problems.map((problem) => problem.index)).toEqual([0, 2]);
       expect(error.totalComments).toBe(3);
@@ -173,8 +180,9 @@ describe("validateCommentLines", () => {
             28-32  @@ -28,4 +28,5 @@ function foo() {
             101-103  @@ -100,3 +101,3 @@
 
-        comments[2]: path="src/missing.ts" side=RIGHT line=1
+        comments[2]: path="plugins/kyosei/src/foo.ts" side=RIGHT line=1
           reason: path is not present in the patch
+          did you mean: src/foo.ts
 
         how to fix:
           \`line\`と\`startLine\`には、パッチファイル(changeset.patch)内の行番号ではなく、
