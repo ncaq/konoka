@@ -115,10 +115,12 @@ describe("validateCommentLines", () => {
     Effect.gen(function* () {
       const problems = yield* problemsOf([
         comment({ path: "plugins/kyosei/src/foo.ts", line: 30 }),
+        comment({ path: "src/missing.ts", line: 1 }),
         comment({ path: "old.ts", line: 1 }),
       ]);
       expect(problems.map((problem) => problem.reason)).toEqual([
         { _tag: "PathNotInDiff", similarPaths: ["src/foo.ts"] },
+        { _tag: "PathNotInDiff", similarPaths: [] },
         { _tag: "PathRenamed", renamedTo: "new.ts" },
       ]);
     }),
@@ -168,11 +170,12 @@ describe("validateCommentLines", () => {
         comment({ path: "src/foo.ts", line: 10 }),
         comment({ path: "src/foo.ts", line: 30 }),
         comment({ path: "plugins/kyosei/src/foo.ts", line: 1 }),
+        comment({ path: "src/missing.ts", line: 1 }),
       ]).pipe(Effect.flip);
-      expect(error.problems.map((problem) => problem.index)).toEqual([0, 2]);
-      expect(error.totalComments).toBe(3);
+      expect(error.problems.map((problem) => problem.index)).toEqual([0, 2, 3]);
+      expect(error.totalComments).toBe(4);
       expect(error.message).toMatchInlineSnapshot(`
-        "invalid inline comment lines: 2 of 3 comments cannot be resolved against the patch
+        "invalid inline comment lines: 3 of 4 comments cannot be resolved against the patch
 
         comments[0]: path="src/foo.ts" side=RIGHT line=10
           reason: line is not inside any hunk of this file on side RIGHT
@@ -183,6 +186,9 @@ describe("validateCommentLines", () => {
         comments[2]: path="plugins/kyosei/src/foo.ts" side=RIGHT line=1
           reason: path is not present in the patch
           did you mean: src/foo.ts
+
+        comments[3]: path="src/missing.ts" side=RIGHT line=1
+          reason: path is not present in the patch
 
         how to fix:
           \`line\`と\`startLine\`には、パッチファイル(changeset.patch)内の行番号ではなく、
