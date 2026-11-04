@@ -253,12 +253,11 @@ describe("wrapBareUrls", () => {
 
   test("末尾の記号が大量に続いても例外にならず、URLの範囲だけを囲む", () => {
     // 本文はLLMの出力で、PRの内容によるプロンプトインジェクションの影響も受けます。
-    // 記号1文字ごとに再帰するとコールスタックの上限を超えて`RangeError`になります。
-    const parens = ")".repeat(50_000);
+    // 記号1文字ごとに再帰すると1万個ほどでコールスタックの上限を超えて`RangeError`になります。
+    // parser-tsの繰り返しは長さに対して二乗で遅くなるため、再現に十分な範囲で個数を抑えています。
+    const parens = ")".repeat(20_000);
 
-    expect(wrapBareUrls(`https://example.com/x${parens}`)).toBe(
-      `<https://example.com/x>${parens}`,
-    );
+    expect(wrapBareUrls(`https://example.com/x${parens}`)).toBe(`<https://example.com/x>${parens}`);
   });
 
   test("サロゲートペアを含む文章でも壊さない", () => {

@@ -89,16 +89,28 @@ function countChar(text: string, target: string): number {
   return [...text].filter((c) => c === target).length;
 }
 
-function isAsciiAlphanumeric(text: string): boolean {
-  return [...text].every((c) => {
-    const code = c.codePointAt(0);
-    return (
-      code !== undefined &&
-      ((code >= 0x30 && code <= 0x39) ||
-        (code >= 0x41 && code <= 0x5a) ||
-        (code >= 0x61 && code <= 0x7a))
-    );
-  });
+function isAsciiAlphanumeric(c: string): boolean {
+  const code = c.codePointAt(0);
+  return (
+    code !== undefined &&
+    ((code >= 0x30 && code <= 0x39) ||
+      (code >= 0x41 && code <= 0x5a) ||
+      (code >= 0x61 && code <= 0x7a))
+  );
+}
+
+/**
+ * `url`の`semicolonIndex`にある`;`が`&amp;`のような文字実体参照の末尾なら、その`&`の位置を返します。
+ * 文字実体参照の形でなければ`-1`を返します。
+ */
+function entityStartIndex(url: string, semicolonIndex: number): number {
+  // 英数字の並びの長さだけ戻る。`;`が多数続く入力でも毎回先頭まで走査しないよう、ループで手前だけを見ます。
+  let ampersandIndex = semicolonIndex - 1;
+  while (ampersandIndex >= 0 && isAsciiAlphanumeric(url.charAt(ampersandIndex))) {
+    ampersandIndex -= 1;
+  }
+  const hasName = ampersandIndex < semicolonIndex - 1;
+  return hasName && url.charAt(ampersandIndex) === "&" ? ampersandIndex : -1;
 }
 
 /**
@@ -107,25 +119,30 @@ function isAsciiAlphanumeric(text: string): boolean {
  * - `?!.,:*_~'"`は末尾から繰り返し取り除く
  * - `)`は開き括弧より閉じ括弧が多い時だけ取り除く(`https://example.com/Foo_(bar)`は保つ)
  * - `;`は`&amp;`のような文字実体参照の形ならその全体を、そうでなければ`;`だけを取り除く
+ *
+ * 記号1文字ごとに再帰すると、記号が数万個続く入力でコールスタックの上限を超えて例外になります。
+ * 本文はLLMの出力で入力の長さを制御できないため、ここは例外的にループで末尾の位置を進めます。
+ * 括弧の数も毎回数え直さず、最初に数えた値を取り除くたびに減らします。
  */
 function trimAutolinkTail(url: string): string {
-  const last = url.at(-1);
-  if (last === undefined) {
-    return url;
+  const opening = countChar(url, "(");
+  let closing = countChar(url, ")");
+  let end = url.length;
+  while (end > 0) {
+    const last = url.charAt(end - 1);
+    if (trailingPunctuation.has(last)) {
+      end -= 1;
+    } else if (last === ")" && closing > opening) {
+      closing -= 1;
+      end -= 1;
+    } else if (last === ";") {
+      const ampersandIndex = entityStartIndex(url, end - 1);
+      end = ampersandIndex === -1 ? end - 1 : ampersandIndex;
+    } else {
+      break;
+    }
   }
-  if (trailingPunctuation.has(last)) {
-    return trimAutolinkTail(url.slice(0, -1));
-  }
-  if (last === ")") {
-    return countChar(url, ")") > countChar(url, "(") ? trimAutolinkTail(url.slice(0, -1)) : url;
-  }
-  if (last === ";") {
-    const ampersand = url.lastIndexOf("&");
-    const entityName = url.slice(ampersand + 1, -1);
-    const isEntity = ampersand !== -1 && entityName.length > 0 && isAsciiAlphanumeric(entityName);
-    return trimAutolinkTail(isEntity ? url.slice(0, ampersand) : url.slice(0, -1));
-  }
-  return url;
+  return url.slice(0, end);
 }
 
 /**
@@ -401,10 +418,15 @@ const document: TextParser = pipe(
  * Markdown本文中の裸のURLを`<URL>`で囲んで返します。
  * コードスパン、フェンス付きコードブロック、HTMLブロックとインラインHTML、
  * 既にリンク構文になっている箇所の中のURLは変更しません。
- * 万一パースできなければ入力をそのまま返します。
+ * 万一パースできなかったり例外が投げられたりした場合は入力をそのまま返します。
+ * 整形は補助的な処理なので、細工された本文でレビューの投稿全体を失敗させないためです。
  */
 export function wrapBareUrls(markdown: string): string {
-  // サロゲートペアを分断しないよう、コード単位ではなくコードポイント単位で分割します。
-  const result = document(stream([...markdown], 0));
-  return isRight(result) ? result.right.value : markdown;
+  try {
+    // サロゲートペアを分断しないよう、コード単位ではなくコードポイント単位で分割します。
+    const result = document(stream([...markdown], 0));
+    return isRight(result) ? result.right.value : markdown;
+  } catch {
+    return markdown;
+  }
 }
