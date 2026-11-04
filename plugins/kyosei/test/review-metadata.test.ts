@@ -217,9 +217,10 @@ describe("buildReviewBody", () => {
 
         const output = yield* buildReviewBody(submission);
 
-        expect(
-          output.startsWith("詳細は(<https://github.com/ncaq/konoka/issues/537>)を参照。\n"),
-        ).toBe(true);
+        // 失敗時に実際の出力が差分で分かるよう、先頭行を取り出して比較します。
+        expect(output.split("\n")[0]).toBe(
+          "詳細は(<https://github.com/ncaq/konoka/issues/537>)を参照。",
+        );
         expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
       }),
     );
