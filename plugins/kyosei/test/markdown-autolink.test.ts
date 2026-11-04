@@ -147,10 +147,47 @@ describe("wrapBareUrls", () => {
     );
   });
 
-  test("短すぎるフェンスや深すぎるインデントはフェンスとして扱わない", () => {
+  test("短すぎるフェンスはフェンスとして扱わない", () => {
     expect(wrapBareUrls("``\nhttps://example.com/a)の")).toBe("``\n<https://example.com/a>)の");
-    expect(wrapBareUrls("    ```\nhttps://example.com/a)の")).toBe(
-      "    ```\n<https://example.com/a>)の",
+  });
+
+  test("リスト項目の中で4個以上インデントされたフェンスの中のURLも触らない", () => {
+    const input = [
+      "1. 手順",
+      "",
+      "    ```sh",
+      "    curl https://example.com/x)の",
+      "    ```",
+      "",
+      "2. 次 https://example.com/y)の",
+      "",
+      "    ~~~",
+      "    https://example.com/z)の",
+      "    ~~~",
+    ].join("\n");
+    expect(wrapBareUrls(input)).toBe(
+      [
+        "1. 手順",
+        "",
+        "    ```sh",
+        "    curl https://example.com/x)の",
+        "    ```",
+        "",
+        "2. 次 <https://example.com/y>)の",
+        "",
+        "    ~~~",
+        "    https://example.com/z)の",
+        "    ~~~",
+      ].join("\n"),
+    );
+  });
+
+  test("引用の中のフェンスの中のURLも触らない", () => {
+    const input = ["> ~~~", "> https://example.com/x)の", "> ~~~", "> https://example.com/y)の"].join(
+      "\n",
+    );
+    expect(wrapBareUrls(input)).toBe(
+      ["> ~~~", "> https://example.com/x)の", "> ~~~", "> <https://example.com/y>)の"].join("\n"),
     );
   });
 
