@@ -106,24 +106,21 @@ function countChar(text: string, target: string): number {
   return [...text].filter((c) => c === target).length;
 }
 
-function isAsciiAlphanumeric(c: string): boolean {
+function isAsciiLetter(c: string): boolean {
   const code = c.codePointAt(0);
-  return (
-    code !== undefined &&
-    ((code >= 0x30 && code <= 0x39) ||
-      (code >= 0x41 && code <= 0x5a) ||
-      (code >= 0x61 && code <= 0x7a))
-  );
+  return code !== undefined && ((code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a));
 }
 
 /**
  * `url`の`semicolonIndex`にある`;`が`&amp;`のような文字実体参照の末尾なら、その`&`の位置を返します。
  * 文字実体参照の形でなければ`-1`を返します。
+ * GitHubは`&`の後に英字だけが続く時しか文字実体参照とみなさず、
+ * `&a1;`のように数字を含む名前は`;`だけを取り除くため、名前の文字は英字に限ります。
  */
 function entityStartIndex(url: string, semicolonIndex: number): number {
-  // 英数字の並びの長さだけ戻る。`;`が多数続く入力でも毎回先頭まで走査しないよう、ループで手前だけを見ます。
+  // 英字の並びの長さだけ戻る。`;`が多数続く入力でも毎回先頭まで走査しないよう、ループで手前だけを見ます。
   let ampersandIndex = semicolonIndex - 1;
-  while (ampersandIndex >= 0 && isAsciiAlphanumeric(url.charAt(ampersandIndex))) {
+  while (ampersandIndex >= 0 && isAsciiLetter(url.charAt(ampersandIndex))) {
     ampersandIndex -= 1;
   }
   const hasName = ampersandIndex < semicolonIndex - 1;
@@ -135,7 +132,7 @@ function entityStartIndex(url: string, semicolonIndex: number): number {
  *
  * - `?!.,:*_~'"`は末尾から繰り返し取り除く
  * - `)`は開き括弧より閉じ括弧が多い時だけ取り除く(`https://example.com/Foo_(bar)`は保つ)
- * - `;`は`&amp;`のような文字実体参照の形ならその全体を、そうでなければ`;`だけを取り除く
+ * - `;`は`&amp;`のような文字実体参照の形(`&`と英字の並び)ならその全体を、そうでなければ`;`だけを取り除く
  *
  * 記号1文字ごとに再帰すると、記号が数万個続く入力でコールスタックの上限を超えて例外になります。
  * 本文はLLMの出力で入力の長さを制御できないため、ここは例外的にループで末尾の位置を進めます。
