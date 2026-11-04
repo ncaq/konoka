@@ -52,6 +52,24 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test.each([
+    // 記号と文字実体参照の混在。括弧の数の扱いも含む
+    ["https://example.com/x&amp;.", "<https://example.com/x>&amp;."],
+    ["https://example.com/x.&amp;)", "<https://example.com/x>.&amp;)"],
+    // 文字実体参照の連続
+    ["https://example.com/x&amp;&lt;", "<https://example.com/x>&amp;&lt;"],
+    // 名前が空の`&;`は`;`だけを外に出し`&`は残す
+    ["https://example.com/x&;", "<https://example.com/x&>;"],
+    // `&`と`;`の間に英字以外を挟むものは文字実体参照ではない
+    ["https://example.com/a&b/c;", "<https://example.com/a&b/c>;"],
+    // GitHubは`&`の後に英字だけが続く時しか文字実体参照とみなさず、数字を含む名前は`;`だけを外に出す
+    ["https://example.com/x&a1;", "<https://example.com/x&a1>;"],
+    // `;`の連続
+    ["https://example.com/x;;", "<https://example.com/x>;;"],
+  ])("末尾の除外が分岐をまたぐ入力 %s はGitHubと同じ範囲を囲む", (input, expected) => {
+    expect(wrapBareUrls(input)).toBe(expected);
+  });
+
   test("連続する末尾記号は繰り返し外に出す", () => {
     expect(wrapBareUrls("**https://example.com/x**と")).toBe("**<https://example.com/x>**と");
   });
@@ -289,8 +307,12 @@ describe("wrapBareUrls", () => {
     // 記号1文字ごとに再帰すると1万個ほどでコールスタックの上限を超えて`RangeError`になります。
     // parser-tsの繰り返しは長さに対して二乗で遅くなるため、再現に十分な範囲で個数を抑えています。
     const parens = ")".repeat(20_000);
+    const semicolons = ";".repeat(20_000);
 
     expect(wrapBareUrls(`https://example.com/x${parens}`)).toBe(`<https://example.com/x>${parens}`);
+    expect(wrapBareUrls(`https://example.com/x${semicolons}`)).toBe(
+      `<https://example.com/x>${semicolons}`,
+    );
   });
 
   test("サロゲートペアを含む文章でも壊さない", () => {
