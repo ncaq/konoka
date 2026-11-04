@@ -178,12 +178,16 @@ const codeSpan: TextParser = pipe(
 /**
  * `<...>`で囲まれた1行内の範囲。
  * 既に`<URL>`になっている自動リンクと、`<a href="...">`のようなインラインHTMLをそのまま通します。
+ * `a < b`のような比較演算子を取り違えないよう、`<`の直後が英字か`/`で始まるものに限ります。
+ * 自動リンクのスキームもタグ名も英字で始まり、閉じタグは`/`で始まるためこの条件で足ります。
  */
 const angleBracketed: TextParser = pipe(
   C.char("<"),
-  P.apSecond(C.many(C.notOneOf("<>\n"))),
+  P.apSecond(P.either(C.letter, () => C.char("/"))),
+  P.bindTo("head"),
+  P.bind("rest", () => C.many(C.notOneOf("<>\n"))),
   P.apFirst(C.char(">")),
-  P.map((inner) => `<${inner}>`),
+  P.map(({ head, rest }) => `<${head}${rest}>`),
 );
 
 /**
