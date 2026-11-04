@@ -89,6 +89,12 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test("比較演算子の<と>の間にあるURLは囲む", () => {
+    expect(wrapBareUrls("a < b なので https://example.com/x)の、c > d")).toBe(
+      "a < b なので <https://example.com/x>)の、c > d",
+    );
+  });
+
   test("インラインHTMLの属性の中のURLは触らない", () => {
     expect(
       wrapBareUrls('see <a href="https://example.com/x">x</a> and https://example.com/y'),
