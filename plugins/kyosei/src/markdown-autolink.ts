@@ -271,7 +271,11 @@ const fencedCodeBlock: TextParser = pipe(
   fencePrefix,
   P.bindTo("prefix"),
   P.bind("opening", () => P.either(fenceRun("`", 3), () => fenceRun("~", 3))),
-  P.bind("info", () => restOfLine),
+  // バッククォートのフェンスの情報文字列にはバッククォートを含められません。
+  // 含む行はフェンスではなくコードスパンなので、ここで失敗させて`codeSpan`に任せます。
+  P.bind("info", ({ opening }) =>
+    opening.startsWith("`") ? satisfying(restOfLine, (info) => !info.includes("`")) : restOfLine,
+  ),
   P.bind("body", ({ opening }) =>
     P.either(
       pipe(
