@@ -271,15 +271,89 @@ const fencedCodeBlock: TextParser = pipe(
 );
 
 /**
+ * 行頭に現れるとHTMLブロックを始めるタグ名。
+ * CommonMarkのHTMLブロック(type 6)の一覧で、大文字小文字は区別しません。
+ * `<kbd>`や`<b>`のような一般のタグは、タグだけで終わる行でないとブロックにならず、
+ * 段落を途中で打ち切ることもできないため含めません。
+ */
+const htmlBlockTagNames: ReadonlySet<string> = new Set([
+  "address",
+  "article",
+  "aside",
+  "base",
+  "basefont",
+  "blockquote",
+  "body",
+  "caption",
+  "center",
+  "col",
+  "colgroup",
+  "dd",
+  "details",
+  "dialog",
+  "dir",
+  "div",
+  "dl",
+  "dt",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "frame",
+  "frameset",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hr",
+  "html",
+  "iframe",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "menu",
+  "menuitem",
+  "nav",
+  "noframes",
+  "ol",
+  "optgroup",
+  "option",
+  "p",
+  "param",
+  "search",
+  "section",
+  "summary",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "title",
+  "tr",
+  "track",
+  "ul",
+]);
+
+/**
  * 行頭から始まるHTMLブロック。空行かEOFまで続きます。
  * GitHubはHTMLブロック内の裸のURLを自動リンクにしないため、囲まずにそのまま通します。
  * `<https://...>`のような自動リンクをタグと取り違えないよう、タグ名の直後の文字で判定します。
+ * インラインタグで始まる普通の段落を飲み込まないよう、タグ名はブロックを始めるものに限定します。
  */
 const htmlBlock: TextParser = pipe(
   C.char("<"),
   P.bindTo("open"),
   P.bind("slash", () => P.either(C.char("/"), () => P.succeed(""))),
-  P.bind("tagName", () => C.many1(C.alphanum)),
+  P.bind("tagName", () =>
+    satisfying(C.many1(C.alphanum), (tagName) => htmlBlockTagNames.has(tagName.toLowerCase())),
+  ),
   P.apFirst(
     P.either(
       pipe(
