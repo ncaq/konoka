@@ -157,6 +157,17 @@ describe("wrapBareUrls", () => {
     expect(wrapBareUrls("``\nhttps://example.com/a)の")).toBe("``\n<https://example.com/a>)の");
   });
 
+  test("情報文字列にバッククォートを含む行はフェンスではなくコードスパンとして扱う", () => {
+    // CommonMarkではバッククォートのフェンスの情報文字列にバッククォートを含められません。
+    expect(wrapBareUrls("```ts``` の後 https://example.com/x)の\nhttps://example.com/y)の")).toBe(
+      "```ts``` の後 <https://example.com/x>)の\n<https://example.com/y>)の",
+    );
+    // `~~~`のフェンスにはこの制限がありません。
+    expect(wrapBareUrls("~~~a`b\nhttps://example.com/x)の\n~~~")).toBe(
+      "~~~a`b\nhttps://example.com/x)の\n~~~",
+    );
+  });
+
   test("リスト項目の中で4個以上インデントされたフェンスの中のURLも触らない", () => {
     const input = [
       "1. 手順",
