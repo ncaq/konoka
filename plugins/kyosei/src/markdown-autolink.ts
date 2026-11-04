@@ -201,8 +201,13 @@ const inlineLink: TextParser = pipe(
   P.map(({ text, destination }) => `[${text}](${destination})`),
 );
 
-/** 空白のインデント。最大3個までがコードフェンスとして認められます。 */
-const fenceIndent: TextParser = satisfying(C.many(C.char(" ")), (indent) => indent.length <= 3);
+/**
+ * フェンスの前に置ける、空白のインデントと引用記号`>`の並び。
+ * CommonMarkではインデントは3個までですが、
+ * リスト項目や引用の中のフェンスはその分だけ深くインデントされるため、
+ * 入れ子の深さを追わずに任意の並びを許します。
+ */
+const fencePrefix: TextParser = C.many(C.oneOf(" >"));
 
 /** 同じフェンス文字を`minLength`個以上並べたもの。 */
 function fenceRun(fenceChar: string, minLength: number): TextParser {
@@ -212,12 +217,12 @@ function fenceRun(fenceChar: string, minLength: number): TextParser {
 /** 開始フェンスに対応する閉じフェンスの行。末尾の改行は消費しません。 */
 function fenceClosing(opening: string): TextParser {
   return pipe(
-    fenceIndent,
-    P.bindTo("indent"),
+    fencePrefix,
+    P.bindTo("prefix"),
     P.bind("run", () => fenceRun(opening.charAt(0), opening.length)),
     P.bind("trailing", () => C.many(C.char(" "))),
     P.apFirst(lineEnd),
-    P.map(({ indent, run, trailing }) => indent + run + trailing),
+    P.map(({ prefix, run, trailing }) => prefix + run + trailing),
   );
 }
 
@@ -244,8 +249,8 @@ function fenceBody(opening: string): TextParser {
  * 中身のURLは加工せず、ブロック全体をそのまま通します。
  */
 const fencedCodeBlock: TextParser = pipe(
-  fenceIndent,
-  P.bindTo("indent"),
+  fencePrefix,
+  P.bindTo("prefix"),
   P.bind("opening", () => P.either(fenceRun("`", 3), () => fenceRun("~", 3))),
   P.bind("info", () => restOfLine),
   P.bind("body", ({ opening }) =>
@@ -262,7 +267,7 @@ const fencedCodeBlock: TextParser = pipe(
       () => P.succeed(""),
     ),
   ),
-  P.map(({ indent, opening, info, body }) => indent + opening + info + body),
+  P.map(({ prefix, opening, info, body }) => prefix + opening + info + body),
 );
 
 /**
