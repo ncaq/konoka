@@ -32,14 +32,19 @@ const newline = C.char("\n");
 /** 改行直前までの文字列(改行は含まない)。 */
 const restOfLine: TextParser = C.many(C.notChar("\n"));
 
+/** `parser`が続くかEOF。入力は消費せず、境界の判定にだけ使います。 */
+function lookAheadOrEof<A>(parser: P.Parser<C.Char, A>): P.Parser<C.Char, void> {
+  return P.either(
+    pipe(
+      P.lookAhead(parser),
+      P.map(() => undefined),
+    ),
+    () => P.eof<C.Char>(),
+  );
+}
+
 /** 改行かEOF。入力は消費せず、行末の判定にだけ使います。 */
-const lineEnd: P.Parser<C.Char, void> = P.either(
-  pipe(
-    P.lookAhead(newline),
-    P.map(() => undefined),
-  ),
-  () => P.eof<C.Char>(),
-);
+const lineEnd: P.Parser<C.Char, void> = lookAheadOrEof(newline);
 
 /** 1行とその末尾の改行。最終行で改行が無ければEOFを受け付けます。 */
 const lineWithNewline: TextParser = pipe(
@@ -233,15 +238,8 @@ function fenceClosing(opening: string): TextParser {
 /** 開始フェンスの行より後ろの、閉じフェンスかEOFまでの本体。閉じフェンスも含めて返します。 */
 function fenceBody(opening: string): TextParser {
   const closing = fenceClosing(opening);
-  const terminator = P.either(
-    pipe(
-      P.lookAhead(closing),
-      P.map(() => undefined),
-    ),
-    () => P.eof<C.Char>(),
-  );
   return pipe(
-    P.manyTill(lineWithNewline, terminator),
+    P.manyTill(lineWithNewline, lookAheadOrEof(closing)),
     P.bindTo("lines"),
     P.bind("closing", () => P.either(closing, () => P.succeed(""))),
     P.map(({ lines, closing }) => lines.join("") + closing),
@@ -358,27 +356,8 @@ const htmlBlock: TextParser = pipe(
   P.bind("tagName", () =>
     satisfying(C.many1(C.alphanum), (tagName) => htmlBlockTagNames.has(tagName.toLowerCase())),
   ),
-  P.apFirst(
-    P.either(
-      pipe(
-        P.lookAhead(C.oneOf(" />\n")),
-        P.map(() => undefined),
-      ),
-      () => P.eof<C.Char>(),
-    ),
-  ),
-  P.bind("rest", () =>
-    P.manyTill(
-      P.item<C.Char>(),
-      P.either(
-        pipe(
-          P.lookAhead(S.string("\n\n")),
-          P.map(() => undefined),
-        ),
-        () => P.eof<C.Char>(),
-      ),
-    ),
-  ),
+  P.apFirst(lookAheadOrEof(C.oneOf(" />\n"))),
+  P.bind("rest", () => P.manyTill(P.item<C.Char>(), lookAheadOrEof(S.string("\n\n")))),
   P.map(({ open, slash, tagName, rest }) => open + slash + tagName + rest.join("")),
 );
 
