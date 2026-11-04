@@ -214,6 +214,15 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test("行頭のインラインタグはHTMLブロックと取り違えず、後続のURLは囲む", () => {
+    expect(wrapBareUrls("<kbd>Ctrl</kbd>を押すと https://example.com/x)の")).toBe(
+      "<kbd>Ctrl</kbd>を押すと <https://example.com/x>)の",
+    );
+    expect(wrapBareUrls("本文\n<b>注意</b> https://example.com/x)の")).toBe(
+      "本文\n<b>注意</b> <https://example.com/x>)の",
+    );
+  });
+
   test("行頭の<URL>はHTMLブロックと取り違えず、同じ段落の後続のURLは囲む", () => {
     expect(wrapBareUrls("<https://example.com/x> と https://example.com/y)の")).toBe(
       "<https://example.com/x> と <https://example.com/y>)の",
