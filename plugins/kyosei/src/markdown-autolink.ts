@@ -444,7 +444,12 @@ export function wrapBareUrls(markdown: string): string {
     // サロゲートペアを分断しないよう、コード単位ではなくコードポイント単位で分割します。
     const result = document(stream([...markdown], 0));
     return isRight(result) ? result.right.value : markdown;
-  } catch {
+  } catch (error) {
+    // 投稿は止めませんが、黙って囲まない結果になると気付けないので、
+    // 原因を追えるよう標準エラー出力に残します。
+    console.error(
+      `wrapBareUrls: fallback to the input (${markdown.length} chars): ${String(error)}`,
+    );
     return markdown;
   }
 }
