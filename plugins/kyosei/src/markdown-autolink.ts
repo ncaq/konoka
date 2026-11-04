@@ -15,7 +15,8 @@
  * URLの終端はGFMの規則を基本にしつつ、
  * URLはASCIIで構成される(非ASCIIはパーセントエンコードされる)ことを根拠に、
  * 最初の非ASCII文字でも打ち切ります。
- * 既にリンク構文になっている箇所やコード部分は変更しません。
+ * コードスパン、フェンス付きコードブロック、HTMLブロックとインラインHTML、
+ * 既にリンク構文になっている箇所の中のURLは変更しません。
  */
 
 import { isRight } from "fp-ts/Either";
@@ -86,8 +87,12 @@ function satisfying(parser: TextParser, predicate: (value: string) => boolean): 
 
 /**
  * 裸のURLとして扱う文字。
- * GFMは空白と`<`まで進みますが、URLはASCIIで構成されるため非ASCII文字で打ち切ります。
- * `>`は囲んだ後の`<URL>`を壊すため、バッククォートはコードスパンの開始として扱うため除外します。
+ * GFMは空白まで進みますが、URLはASCIIで構成されるため非ASCII文字で打ち切ります。
+ * 以下の3文字はそれぞれの理由で除外します。
+ *
+ * - `<`: GFMと同じく裸のURLの終端とする
+ * - `>`: 囲んだ後の`<URL>`を壊す
+ * - バッククォート: コードスパンの開始として扱う
  */
 function isUrlBodyChar(c: string): boolean {
   const code = c.codePointAt(0);
