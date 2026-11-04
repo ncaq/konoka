@@ -71,6 +71,20 @@ describe("formatReviewCommentBody", () => {
     expect(result).toBe("> [!CAUTION]\n> 🔒 Security\n\nline 1\n\nline 3");
   });
 
+  test("body内の裸のURLは<URL>で囲まれ、直後の日本語がリンクに飲み込まれない", () => {
+    const result = formatReviewCommentBody({
+      ...baseComment,
+      level: "NOTE",
+      tags: ["dependency"],
+      body: "リリースノート(https://github.com/example/repo/releases/tag/v1.9.1)の変更点",
+    });
+
+    expect(result).toBe(
+      "> [!NOTE]\n> 📦 Dependency\n\n" +
+        "リリースノート(<https://github.com/example/repo/releases/tag/v1.9.1>)の変更点",
+    );
+  });
+
   test("body内のMarkdown記号は加工されずそのまま含まれる", () => {
     const result = formatReviewCommentBody({
       ...baseComment,

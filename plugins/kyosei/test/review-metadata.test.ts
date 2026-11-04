@@ -206,6 +206,24 @@ describe("buildReviewBody", () => {
       }),
     );
 
+    it.effect("本体の裸のURLは<URL>で囲まれ、フッターのリンクはそのまま", () =>
+      Effect.gen(function* () {
+        const submission = decodeReviewSubmission(
+          JSON.stringify({
+            ...baseInput,
+            body: "詳細は(https://github.com/ncaq/konoka/issues/537)を参照。",
+          }),
+        );
+
+        const output = yield* buildReviewBody(submission);
+
+        expect(
+          output.startsWith("詳細は(<https://github.com/ncaq/konoka/issues/537>)を参照。\n"),
+        ).toBe(true);
+        expect(output).toContain(`- PR: [#178](${repositoryUrl}/pull/178)`);
+      }),
+    );
+
     it.effect("GITHUB_SERVER_URLが設定されていればそのホストのリンクになる", () =>
       Effect.gen(function* () {
         // 末尾スラッシュ付きでもダブルスラッシュにならないことを同時に確かめます。

@@ -24,6 +24,7 @@ import pluginManifest from "../.claude-plugin/plugin.json" with { type: "json" }
 import { commandString } from "./command";
 import { getGitHubHostname } from "./github-host";
 import internalErrorsSectionTemplate from "./internal-errors-section.mustache?raw";
+import { wrapBareUrls } from "./markdown-autolink";
 import reviewMetadataFooterTemplate from "./review-metadata-footer.mustache?raw";
 import reviewMetadataLinkTemplate from "./review-metadata-link.mustache?raw";
 import {
@@ -312,7 +313,8 @@ export function buildReviewBody(
       link: reviewMetadataLinkTemplate.trimEnd(),
     });
     const internalErrorsSection = renderInternalErrorsSection(submission);
-    return [submission.body, internalErrorsSection, footer]
+    // サマリー本文の裸のURLは、GitHubの自動リンクが範囲を取り違えないよう`<URL>`で囲みます。
+    return [wrapBareUrls(submission.body), internalErrorsSection, footer]
       .filter((section) => section.length > 0)
       .join("\n");
   });
