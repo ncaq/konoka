@@ -234,6 +234,13 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test("空白だけの行でもHTMLブロックは終わり、その後のURLは囲む", () => {
+    // CommonMarkでは空白とタブだけの行も空行で、HTMLブロックはそこで終わります。
+    expect(
+      wrapBareUrls("<details>\nhttps://example.com/x)の\n  \t\nhttps://example.com/y)の"),
+    ).toBe("<details>\nhttps://example.com/x)の\n  \t\n<https://example.com/y>)の");
+  });
+
   test("行頭のインラインタグはHTMLブロックと取り違えず、後続のURLは囲む", () => {
     expect(wrapBareUrls("<kbd>Ctrl</kbd>を押すと https://example.com/x)の")).toBe(
       "<kbd>Ctrl</kbd>を押すと <https://example.com/x>)の",
