@@ -189,9 +189,12 @@ describe("wrapBareUrls", () => {
   });
 
   test("引用の中のフェンスの中のURLも触らない", () => {
-    const input = ["> ~~~", "> https://example.com/x)の", "> ~~~", "> https://example.com/y)の"].join(
-      "\n",
-    );
+    const input = [
+      "> ~~~",
+      "> https://example.com/x)の",
+      "> ~~~",
+      "> https://example.com/y)の",
+    ].join("\n");
     expect(wrapBareUrls(input)).toBe(
       ["> ~~~", "> https://example.com/x)の", "> ~~~", "> <https://example.com/y>)の"].join("\n"),
     );
@@ -235,6 +238,19 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test("インデントコードブロックはリストの続きの段落と区別しないため、中のURLも囲む", () => {
+    // 4スペースのインデントはリスト項目の続きの段落にも使われ、
+    // 入れ子の深さを追わずには区別できないので、意図して対象外にしています。
+    expect(wrapBareUrls("本文\n\n    curl https://example.com/x)の")).toBe(
+      "本文\n\n    curl <https://example.com/x>)の",
+    );
+  });
+
+  test("スキームの無いwww.のURLは対象外なのでそのまま返す", () => {
+    // GFMは`www.`も自動リンクにしますが、`<www...>`はCommonMarkの自動リンクにならないため扱えません。
+    expect(wrapBareUrls("see www.example.com/xの変更点")).toBe("see www.example.com/xの変更点");
+  });
+
   test("サロゲートペアを含む文章でも壊さない", () => {
     expect(wrapBareUrls("😀 https://example.com/x😀 と")).toBe("😀 <https://example.com/x>😀 と");
   });
@@ -243,5 +259,31 @@ describe("wrapBareUrls", () => {
     const input = "line 1\n\n- item\n- `code`\n\n> quote";
     expect(wrapBareUrls(input)).toBe(input);
     expect(wrapBareUrls("")).toBe("");
+  });
+
+  test.each([
+    "リリースノート(https://github.com/example/repo/releases/tag/v1.9.1)の変更点",
+    "see https://example.com/x。次 https://example.com/y ok",
+    "https://example.com/a_b_ と https://example.com/a. と https://example.com/y?!",
+    "(https://example.com/x) と https://example.com/(a)) と https://en.wikipedia.org/wiki/Foo_(bar)",
+    "https://example.com/x&amp; と https://example.com/y; と",
+    "**https://example.com/x**と",
+    "foohttps://example.com/x と ノートhttps://example.com/y と https:// と",
+    "see <https://example.com/x>の後",
+    "[https://example.com/x](https://example.com/x)の後 ![alt](https://example.com/a.png)",
+    "[壊れたリンク](https://example.com/x の後 https://example.com/y)の",
+    "> [!NOTE]\n> see https://example.com/x)の後 [x](y)",
+    "a < b なので https://example.com/x)の、c > d",
+    'see <a href="https://example.com/x">x</a> and https://example.com/y',
+    "`https://example.com/x)の` と ` https://example.com/y)の",
+    "```ts\nhttps://example.com/a)の\n```\nhttps://example.com/b)の",
+    "> ~~~\n> https://example.com/x)の\n> ~~~\n> https://example.com/y)の",
+    "<details>\nhttps://example.com/x)の\n\nhttps://example.com/y)の\n\n</details>",
+    "<kbd>Ctrl</kbd>を押すと https://example.com/x)の",
+    "😀 https://example.com/x😀 と",
+  ])("冪等性: %j", (input) => {
+    const once = wrapBareUrls(input);
+
+    expect(wrapBareUrls(once)).toBe(once);
   });
 });
