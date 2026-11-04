@@ -251,6 +251,16 @@ describe("wrapBareUrls", () => {
     expect(wrapBareUrls("see www.example.com/xの変更点")).toBe("see www.example.com/xの変更点");
   });
 
+  test("末尾の記号が大量に続いても例外にならず、URLの範囲だけを囲む", () => {
+    // 本文はLLMの出力で、PRの内容によるプロンプトインジェクションの影響も受けます。
+    // 記号1文字ごとに再帰するとコールスタックの上限を超えて`RangeError`になります。
+    const parens = ")".repeat(50_000);
+
+    expect(wrapBareUrls(`https://example.com/x${parens}`)).toBe(
+      `<https://example.com/x>${parens}`,
+    );
+  });
+
   test("サロゲートペアを含む文章でも壊さない", () => {
     expect(wrapBareUrls("😀 https://example.com/x😀 と")).toBe("😀 <https://example.com/x>😀 と");
   });
