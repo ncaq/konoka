@@ -211,6 +211,21 @@ describe("wrapBareUrls", () => {
     );
   });
 
+  test("既知の制限: フェンスの前置きの対応は見ないため、引用が終わってもフェンスは閉じない", () => {
+    // `fencePrefix`は空白と`>`の任意の並びを受け付けるだけで、
+    // 開始と閉じの前置きが揃っているかや、引用やリストの外へ出たかは見ません。
+    // CommonMarkでは引用が終わると中のフェンスも閉じますが、
+    // ここでは閉じフェンスが無いままEOFまで続き、引用の外のURLも囲まれません。
+    // 安全側(囲まずに残す)に倒れる失敗として受け入れています。
+    expect(wrapBareUrls("> ```\n> code\n\nafter https://example.com/x)の")).toBe(
+      "> ```\n> code\n\nafter https://example.com/x)の",
+    );
+    // 同じ理由で、`> ~~~`で開いたフェンスは行頭の`~~~`でも閉じます。
+    expect(wrapBareUrls("> ~~~\n> https://example.com/x)の\n~~~\nhttps://example.com/y)の")).toBe(
+      "> ~~~\n> https://example.com/x)の\n~~~\n<https://example.com/y>)の",
+    );
+  });
+
   test("HTMLブロックの中のURLは空行まで触らず、空行の後は囲む", () => {
     const input = [
       "<details>",
@@ -305,6 +320,7 @@ describe("wrapBareUrls", () => {
     "`https://example.com/x)の` と ` https://example.com/y)の",
     "```ts\nhttps://example.com/a)の\n```\nhttps://example.com/b)の",
     "> ~~~\n> https://example.com/x)の\n> ~~~\n> https://example.com/y)の",
+    "1. 手順\n\n    ```sh\n    curl https://example.com/x)の\n    ```\n\n2. 次 https://example.com/y)の",
     "<details>\nhttps://example.com/x)の\n\nhttps://example.com/y)の\n\n</details>",
     "<kbd>Ctrl</kbd>を押すと https://example.com/x)の",
     "😀 https://example.com/x😀 と",
