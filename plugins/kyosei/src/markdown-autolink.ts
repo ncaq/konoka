@@ -46,6 +46,18 @@ function lookAheadOrEof<A>(parser: P.Parser<C.Char, A>): P.Parser<C.Char, void> 
 /** 改行かEOF。入力は消費せず、行末の判定にだけ使います。 */
 const lineEnd: P.Parser<C.Char, void> = lookAheadOrEof(newline);
 
+/**
+ * 行末から始まる空行。改行の後に空白とタブだけが続き、改行かEOFで終わるもの。
+ * CommonMarkでは空白とタブだけの行も空行なので、`\n\n`に限定しません。
+ */
+const blankLine: TextParser = pipe(
+  newline,
+  P.bindTo("newline"),
+  P.bind("spaces", () => C.many(C.oneOf(" \t"))),
+  P.apFirst(lineEnd),
+  P.map(({ newline, spaces }) => newline + spaces),
+);
+
 /** 1行とその末尾の改行。最終行で改行が無ければEOFを受け付けます。 */
 const lineWithNewline: TextParser = pipe(
   restOfLine,
@@ -378,7 +390,7 @@ const htmlBlock: TextParser = pipe(
     satisfying(C.many1(C.alphanum), (tagName) => htmlBlockTagNames.has(tagName.toLowerCase())),
   ),
   P.apFirst(lookAheadOrEof(C.oneOf(" />\n"))),
-  P.bind("rest", () => P.manyTill(P.item<C.Char>(), lookAheadOrEof(S.string("\n\n")))),
+  P.bind("rest", () => P.manyTill(P.item<C.Char>(), lookAheadOrEof(blankLine))),
   P.map(({ open, slash, tagName, rest }) => open + slash + tagName + rest.join("")),
 );
 
