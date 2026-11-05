@@ -1,7 +1,7 @@
 ---
 name: pr-style
 description: Pull request style guidelines covering title, body, assignee, and label selection. Use when writing or proposing GitHub pull requests, including direct `gh pr create` invocations outside the /pr skill.
-allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), Skill(commit:commit-style), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
 user-invocable: false
 effort: low
 ---
@@ -16,6 +16,29 @@ GitHubのpull requestを作成するときのスタイルガイドラインで�
 
 リポジトリ固有のスタイルがある場合は、
 ここに書かれたデフォルトより優先してください。
+
+# 文章の共通規則
+
+`Skill`ツールで`commit:commit-style`スキルを呼び出し、
+文章の規則はそちらに従ってください。
+プラグイン名を含めた完全修飾名(`commit:commit-style`)を指定してください。
+
+PRのタイトルと本文はコミットメッセージと同じ`commit-msg`フックで検査されるため、
+コミットメッセージと同じ規則が適用されます。
+このスキルでは規則を繰り返さず、
+以下を`commit-style`に委譲します。
+
+- 言語
+- 文体
+- タイトルの長さと末尾の文字
+- 行長と改行
+- コードシンボル
+- 列挙
+- issueやPRの参照
+- 使ってはいけないもの
+
+`commit-style`はコミット履歴とプロジェクト固有のコミットメッセージガイドラインも読み込みます。
+それらもPRのスタイルの参考にしてください。
 
 # リポジトリ固有のCONTRIBUTING
 
@@ -58,7 +81,7 @@ gh pr list --state merged --limit 20 --json number,title,body,author,labels
 gh pr view <number> --json title,body,labels
 ```
 
-bot(renovate, dependabotなど)のPRは参考になりません。
+bot(renovateやdependabotなど)のPRは参考になりません。
 `author.is_bot`が`false`のPRだけを参考にしてください。
 
 # コミット履歴とdiffの把握
@@ -78,6 +101,7 @@ git diff <base>...HEAD --stat
 リポジトリのスタイルが不明な場合のデフォルトスタイルは、
 `commit-style`スキルのガイドラインに従った、
 Conventional Commits準拠の日本語タイトルです。
+文字数の上限や末尾の文字の規則も`commit-style`に従ってください。
 
 リポジトリのスタイルがある場合はそちらを優先してください。
 
@@ -92,72 +116,7 @@ PR全体の変更を要約するタイトルを新たに書いてください。
 リポジトリ固有のテンプレートが用意されている場合は、
 そのテンプレートを埋める形で本文を書いてください。
 
-リポジトリのスタイルの個別の要素が不明な場合のデフォルトスタイルの要素は以下です。
-
-## 言語
-
-日本語で記述してください。
-
-## 文体
-
-丁寧語とですます調で書いてください。
-
-英単語と日本語が混在する場合は、
-英単語の前後にスペースを入れないでください。
-中国語の風習では普通スペースを入れますが、
-日本語ではスペースを入れないのも一般的で、
-私は基本的にスペースなしのスタイルを採用しています。
-
-## 行長と改行
-
-行長は100文字以内に収めてください。
-URLなど改行できないものを挿入する場合は例外です。
-
-改行位置は句読点の後など、
-自然な場所を選んでください。
-不自然な場所で改行はしないでください。
-改行位置が不自然になるぐらいなら文章を練りなおしてください。
-日本語は英語と違い好きに改行して良い言語ではないので、
-改行位置には十分注意してください。
-
-## コードシンボル
-
-コードのシンボル(関数名や変数名など)を本文に含める場合は、
-Markdownのインラインコード記法であるバッククォートで囲んでください。
-
-## 列挙
-
-要素の列挙が3つ以上になる場合は、
-文章に詰め込まずMarkdownのリスト形式で書いてください。
-
-例えば、
-
-```markdown
-`foo`と`bar`と`baz`の設定を追加します。
-```
-
-ではなく、
-
-```markdown
-以下の設定を追加します。
-
-- `foo`
-- `bar`
-- `baz`
-```
-
-のように書いてください。
-
-列挙する要素が2つ以下の場合は、
-文章のままで構いません。
-
-順序に意味がない場合は番号付きリストを使わないでください。
-
-# 本文の内容
-
-本文には変更の内容だけではなく、
-なぜその変更が必要だったのか、
-理由をなるべく書いてください。
+テンプレートがない場合の文章の規則は`commit-style`に従ってください。
 
 ## 1コミットPR
 
@@ -179,108 +138,6 @@ PR全体の変更を要約する本文を新たに書いてください。
 何故この変更が必要なのか、
 これをマージすることで何を達成するのか、
 という抽象的な記述を優先してください。
-
-# 使ってはいけないもの
-
-以下はGitHub CLIやコーディングエージェントが自動挿入しがちですが、
-意味のない汚染になるため使いません。
-PR本文を生成するときに混入させないでください。
-
-## 固定見出しテンプレート
-
-`## Summary`, `## Test plan`, `## Changes`のような固定見出しは、
-リポジトリのテンプレートで指定されていない限り使いません。
-内容に応じて自由に文章で書いてください。
-
-## 自動生成フッター
-
-`Generated with Claude Code`のような署名や、
-`Co-Authored-By: Claude <noreply@anthropic.com>`のようなトレーラーを付けないでください。
-
-Claude Codeはテキストエディタの延長線上でしかないので、
-ツールの名前をわざわざ書く必要はないと考えているからです。
-
-## Markdownの強調シンタックス
-
-Markdownの、
-
-- `*emphasis*`
-- `**strong**`
-- `_emphasis_`
-- `__strong__`
-
-などの強調シンタックスは基本的に使いません。
-
-LLMによって乱用されがちなためです。
-
-強調しなくても意味が通じる場合は強調シンタックスを使わないでください。
-
-強調が意味的に必要な場合は許可されます。
-
-## 絵文字
-
-ユーザが明示的に要求しない限り絵文字は使わないでください。
-
-## 全角形(Fullwidth Forms)
-
-ASCIIに対応する全角形は使用禁止です。
-
-- 全角括弧`()`は半角`()`を使ってください。
-- 全角コロン`:`は半角`:`を使ってください。
-- 全角カンマ`,`は半角`,`を使ってください。
-- 全角数字`0-9`は半角`0-9`を使ってください。
-
-# issueやPRとの関連付け
-
-## 参照は完全なURL
-
-issueやpull requestを参照する場合は、
-`#123`や`owner/repo#123`のような短縮記法は使わず、
-完全なURLを使ってください。
-
-同じリポジトリのissueやPRであっても完全なURLを使ってください。
-
-短縮記法はGitHub上でしか解決されず、
-ローカルの`git log`の出力やエディタからは移動出来ないためです。
-
-## issueをクローズする場合
-
-そのPRがissueをクローズする場合は、
-原型小文字の`close`キーワードとURLを本文に含めてください。
-
-例:
-
-```
-close https://github.com/owner/repo/issues/123
-```
-
-- `closes`
-- `closed`
-- `fix`
-- `fixes`
-- `fixed`
-- `resolve`
-- `resolves`
-- `resolved`
-
-などの活用形や別キーワードは使いません。
-
-原型小文字の`close`に統一してください。
-
-## 関連を示す場合
-
-クローズせず関連を示すだけの場合は、
-原型小文字の`ref`を使ってください。
-
-例:
-
-```
-ref https://github.com/owner/repo/issues/456
-ref https://github.com/owner/repo/pull/789
-```
-
-`refs`, `references`などは使いません。
-原型小文字の`ref`に統一してください。
 
 # アサインの決定
 
