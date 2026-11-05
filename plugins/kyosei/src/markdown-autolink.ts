@@ -17,9 +17,15 @@
  * 最初の非ASCII文字でも打ち切ります。
  * コードスパン、フェンス付きコードブロック、HTMLブロックとインラインHTML、
  * 既にリンク構文になっている箇所の中のURLは変更しません。
+ *
+ * 本文はLLMの出力で、PRの内容によるプロンプトインジェクションの影響も受けるため、
+ * 入力の長さを制御できません。
+ * 同じ記号や英字が数万個続くような入力でも本文の長さに比例した時間で終わるよう、
+ * 繰り返しは結果を複製しない結合子で組み立てています。
  */
 
-import { isRight } from "fp-ts/Either";
+import { tailRec } from "fp-ts/ChainRec";
+import * as E from "fp-ts/Either";
 import { pipe } from "fp-ts/function";
 import * as P from "parser-ts/Parser";
 import { stream } from "parser-ts/Stream";
@@ -28,10 +34,63 @@ import * as S from "parser-ts/string";
 
 type TextParser = P.Parser<C.Char, string>;
 
+// 繰り返しの結合子。
+
+/**
+ * `parser`が失敗するまで繰り返し、結果の文字列を連結します。
+ * ライブラリの`many`は1回ごとに結果の配列を複製するため、繰り返しの回数の二乗の時間がかかります。
+ * 代わりに`chainRec`で文字列を連結しながら読み進め、回数に比例した時間で終わらせます。
+ * `parser`が1文字も消費せずに成功すると止まらないため、必ず消費するものに限ります。
+ */
+function manyString(parser: TextParser): TextParser {
+  return P.ChainRec.chainRec("", (accumulated) =>
+    pipe(
+      parser,
+      P.map((value): E.Either<string, string> => E.left(accumulated + value)),
+      P.alt(() => P.succeed<C.Char, E.Either<string, string>>(E.right(accumulated))),
+    ),
+  );
+}
+
+/** `manyString`と同じですが、`parser`が1回も成功しなければ失敗します。 */
+function many1String(parser: TextParser): TextParser {
+  return pipe(
+    parser,
+    P.chain((head) =>
+      pipe(
+        manyString(parser),
+        P.map((rest) => head + rest),
+      ),
+    ),
+  );
+}
+
+/**
+ * `terminator`が成功するまで`parser`を繰り返し、結果の文字列を連結します。
+ * ライブラリの`manyTill`と同じく`terminator`は消費し、その結果は捨てます。
+ * `terminator`より先に`parser`が失敗すれば全体も失敗します。
+ */
+function manyStringTill(parser: TextParser, terminator: P.Parser<C.Char, unknown>): TextParser {
+  return P.ChainRec.chainRec("", (accumulated) =>
+    pipe(
+      terminator,
+      P.map((): E.Either<string, string> => E.right(accumulated)),
+      P.alt(() =>
+        pipe(
+          parser,
+          P.map((value): E.Either<string, string> => E.left(accumulated + value)),
+        ),
+      ),
+    ),
+  );
+}
+
+// 行の基本パーサ。
+
 const newline = C.char("\n");
 
 /** 改行直前までの文字列(改行は含まない)。 */
-const restOfLine: TextParser = C.many(C.notChar("\n"));
+const restOfLine: TextParser = manyString(C.notChar("\n"));
 
 /** `parser`が続くかEOF。入力は消費せず、境界の判定にだけ使います。 */
 function lookAheadOrEof<A>(parser: P.Parser<C.Char, A>): P.Parser<C.Char, void> {
@@ -54,7 +113,7 @@ const lineEnd: P.Parser<C.Char, void> = lookAheadOrEof(newline);
 const blankLine: TextParser = pipe(
   newline,
   P.bindTo("newline"),
-  P.bind("spaces", () => C.many(C.oneOf(" \t"))),
+  P.bind("spaces", () => manyString(C.oneOf(" \t"))),
   P.apFirst(lineEnd),
   P.map(({ newline, spaces }) => newline + spaces),
 );
@@ -84,6 +143,8 @@ function satisfying(parser: TextParser, predicate: (value: string) => boolean): 
     P.chain((value) => (predicate(value) ? P.succeed(value) : P.fail())),
   );
 }
+
+// 裸のURL。
 
 /**
  * 裸のURLとして扱う文字。
@@ -116,15 +177,22 @@ function isAsciiLetter(c: string): boolean {
  * 文字実体参照の形でなければ`-1`を返します。
  * GitHubは`&`の後に英字だけが続く時しか文字実体参照とみなさず、
  * `&a1;`のように数字を含む名前は`;`だけを取り除くため、名前の文字は英字に限ります。
+ * `;`が多数続く入力でも毎回先頭まで走査しないよう、`;`の手前の英字の並びだけを戻ります。
  */
 function entityStartIndex(url: string, semicolonIndex: number): number {
-  // 英字の並びの長さだけ戻る。`;`が多数続く入力でも毎回先頭まで走査しないよう、ループで手前だけを見ます。
-  let ampersandIndex = semicolonIndex - 1;
-  while (ampersandIndex >= 0 && isAsciiLetter(url.charAt(ampersandIndex))) {
-    ampersandIndex -= 1;
-  }
+  const ampersandIndex = tailRec(semicolonIndex - 1, (index) =>
+    index >= 0 && isAsciiLetter(url.charAt(index)) ? E.left(index - 1) : E.right(index),
+  );
   const hasName = ampersandIndex < semicolonIndex - 1;
   return hasName && url.charAt(ampersandIndex) === "&" ? ampersandIndex : -1;
+}
+
+/** `trimAutolinkTail`が末尾を縮めている間の状態。 */
+interface TrimState {
+  /** 残すと決めた範囲の終端。 */
+  readonly end: number;
+  /** `end`より手前にある閉じ括弧の数。 */
+  readonly closing: number;
 }
 
 /**
@@ -134,41 +202,29 @@ function entityStartIndex(url: string, semicolonIndex: number): number {
  * - `)`は開き括弧より閉じ括弧が多い時だけ取り除く(`https://example.com/Foo_(bar)`は保つ)
  * - `;`は`&amp;`のような文字実体参照の形(`&`と英字の並び)ならその全体を、そうでなければ`;`だけを取り除く
  *
- * 記号1文字ごとに再帰すると、記号が数万個続く入力でコールスタックの上限を超えて例外になります。
- * 本文はLLMの出力で入力の長さを制御できないため、ここは例外的にループで末尾の位置を進めます。
- * 括弧の数も毎回数え直さず、最初に数えた値を取り除くたびに減らします。
+ * 記号1文字ごとに関数を再帰させると、記号が数万個続く入力でコールスタックの上限を超えて例外になります。
+ * スタックを消費しない`tailRec`で末尾の位置を進め、括弧の数も取り除くたびに減らして数え直しを避けます。
  */
 function trimAutolinkTail(url: string): string {
   const opening = countChar(url, "(");
-  let closing = countChar(url, ")");
-  let end = url.length;
-  while (end > 0) {
+  const initial: TrimState = { end: url.length, closing: countChar(url, ")") };
+  const end = tailRec(initial, ({ end, closing }): E.Either<TrimState, number> => {
+    // 先頭まで取り除いた時は`charAt(-1)`が空文字列になり、どの条件にも当たらず終わります。
     const last = url.charAt(end - 1);
     if (trailingPunctuation.has(last)) {
-      end -= 1;
-    } else if (last === ")" && closing > opening) {
-      closing -= 1;
-      end -= 1;
-    } else if (last === ";") {
-      const ampersandIndex = entityStartIndex(url, end - 1);
-      end = ampersandIndex === -1 ? end - 1 : ampersandIndex;
-    } else {
-      break;
+      return E.left({ end: end - 1, closing });
     }
-  }
+    if (last === ")" && closing > opening) {
+      return E.left({ end: end - 1, closing: closing - 1 });
+    }
+    if (last === ";") {
+      const ampersandIndex = entityStartIndex(url, end - 1);
+      return E.left({ end: ampersandIndex === -1 ? end - 1 : ampersandIndex, closing });
+    }
+    return E.right(end);
+  });
   return url.slice(0, end);
 }
-
-/**
- * `letters://`から始まる、裸のURLとして扱う文字の連続。
- * 英字は貪欲に読むため、`foohttps://example.com`は`foohttps`がスキーム部になります。
- */
-const schemeLikeRun: P.Parser<C.Char, { readonly scheme: string; readonly body: string }> = pipe(
-  C.many1(C.letter),
-  P.apFirst(S.string("://")),
-  P.bindTo("scheme"),
-  P.bind("body", () => C.many(P.sat(isUrlBodyChar))),
-);
 
 /** GitHubと同じく大文字小文字は区別しません。 */
 function isAutolinkScheme(scheme: string): boolean {
@@ -176,37 +232,58 @@ function isAutolinkScheme(scheme: string): boolean {
 }
 
 /**
- * 裸のURLを`<URL>`で囲みます。
+ * `scheme://body`の形の裸のURLを`<URL>`で囲みます。
  * リンクに含めない末尾の記号は`>`の外側へ出します。
  *
- * 以下はGitHubも自動リンクにしないので、消費はしますが囲まずにそのまま通します。
+ * 以下はGitHubも自動リンクにしないので、囲まずにそのまま返します。
  *
  * - `http`と`https`以外のスキーム
- * - `foohttps://example.com`のように英字の直後に続くスキーム
+ * - `foohttps://example.com`のように英字の直後に続くスキーム(英字の並び全体がスキームになる)
  * - スキームだけでホストが無いもの
  */
-const bareUrl: TextParser = pipe(
-  schemeLikeRun,
-  P.map(({ scheme, body }) => {
-    const raw = `${scheme}://${body}`;
-    if (!isAutolinkScheme(scheme)) {
-      return raw;
-    }
-    const url = trimAutolinkTail(raw);
-    return url.length > `${scheme}://`.length ? `<${url}>${raw.slice(url.length)}` : raw;
-  }),
+function wrapUrl(scheme: string, body: string): string {
+  const raw = `${scheme}://${body}`;
+  if (!isAutolinkScheme(scheme)) {
+    return raw;
+  }
+  const url = trimAutolinkTail(raw);
+  return url.length > `${scheme}://`.length ? `<${url}>${raw.slice(url.length)}` : raw;
+}
+
+/**
+ * 英字の並びと、それに`://`が続く場合はその後ろの裸のURL本体。
+ * `://`が続けば英字の並びをスキームとしてURLを囲み、続かなければ英字の並びをそのまま通します。
+ *
+ * 英字の並びを1つの要素として消費するのは、裸のURLは英字の並びの途中からは始まらないためです。
+ * 英字を1文字ずつ通すと、位置ごとに残りの英字を読み直してから`://`の有無を調べることになり、
+ * 英字が長く続く入力で長さの三乗の時間がかかります。
+ */
+const wordOrBareUrl: TextParser = pipe(
+  many1String(C.letter),
+  P.chain((letters) =>
+    P.either(
+      pipe(
+        S.string("://"),
+        P.apSecond(manyString(P.sat(isUrlBodyChar))),
+        P.map((body) => wrapUrl(letters, body)),
+      ),
+      () => P.succeed(letters),
+    ),
+  ),
 );
+
+// 行内の構文。
 
 /**
  * コードスパン。開いたバッククォートと同じ長さの閉じを探します。
  * 閉じが見つからなければ失敗させ、先頭のバッククォートを普通の文字として扱わせます。
  */
 const codeSpan: TextParser = pipe(
-  C.many1(C.char("`")),
+  many1String(C.char("`")),
   P.chain((opening) =>
     pipe(
-      P.manyTill(P.item<C.Char>(), S.string(opening)),
-      P.map((chars) => opening + chars.join("") + opening),
+      manyStringTill(P.item<C.Char>(), S.string(opening)),
+      P.map((content) => opening + content + opening),
     ),
   ),
 );
@@ -221,7 +298,7 @@ const angleBracketed: TextParser = pipe(
   C.char("<"),
   P.apSecond(P.either(C.letter, () => C.char("/"))),
   P.bindTo("head"),
-  P.bind("rest", () => C.many(C.notOneOf("<>\n"))),
+  P.bind("rest", () => manyString(C.notOneOf("<>\n"))),
   P.apFirst(C.char(">")),
   P.map(({ head, rest }) => `<${head}${rest}>`),
 );
@@ -233,13 +310,15 @@ const angleBracketed: TextParser = pipe(
  */
 const inlineLink: TextParser = pipe(
   C.char("["),
-  P.apSecond(C.many(C.notOneOf("[]\n"))),
+  P.apSecond(manyString(C.notOneOf("[]\n"))),
   P.bindTo("text"),
   P.apFirst(S.string("](")),
-  P.bind("destination", () => C.many(C.notOneOf(")\n"))),
+  P.bind("destination", () => manyString(C.notOneOf(")\n"))),
   P.apFirst(C.char(")")),
   P.map(({ text, destination }) => `[${text}](${destination})`),
 );
+
+// 行頭から始まるブロック構文。
 
 /**
  * フェンスの前に置ける、空白のインデントと引用記号`>`の並び。
@@ -247,11 +326,11 @@ const inlineLink: TextParser = pipe(
  * リスト項目や引用の中のフェンスはその分だけ深くインデントされるため、
  * 入れ子の深さを追わずに任意の並びを許します。
  */
-const fencePrefix: TextParser = C.many(C.oneOf(" >"));
+const fencePrefix: TextParser = manyString(C.oneOf(" >"));
 
 /** 同じフェンス文字を`minLength`個以上並べたもの。 */
 function fenceRun(fenceChar: string, minLength: number): TextParser {
-  return satisfying(C.many1(C.char(fenceChar)), (run) => run.length >= minLength);
+  return satisfying(many1String(C.char(fenceChar)), (run) => run.length >= minLength);
 }
 
 /** 開始フェンスに対応する閉じフェンスの行。末尾の改行は消費しません。 */
@@ -260,7 +339,7 @@ function fenceClosing(opening: string): TextParser {
     fencePrefix,
     P.bindTo("prefix"),
     P.bind("run", () => fenceRun(opening.charAt(0), opening.length)),
-    P.bind("trailing", () => C.many(C.char(" "))),
+    P.bind("trailing", () => manyString(C.char(" "))),
     P.apFirst(lineEnd),
     P.map(({ prefix, run, trailing }) => prefix + run + trailing),
   );
@@ -270,10 +349,10 @@ function fenceClosing(opening: string): TextParser {
 function fenceBody(opening: string): TextParser {
   const closing = fenceClosing(opening);
   return pipe(
-    P.manyTill(lineWithNewline, lookAheadOrEof(closing)),
+    manyStringTill(lineWithNewline, lookAheadOrEof(closing)),
     P.bindTo("lines"),
     P.bind("closing", () => P.either(closing, () => P.succeed(""))),
-    P.map(({ lines, closing }) => lines.join("") + closing),
+    P.map(({ lines, closing }) => lines + closing),
   );
 }
 
@@ -389,11 +468,11 @@ const htmlBlock: TextParser = pipe(
   P.bindTo("open"),
   P.bind("slash", () => P.either(C.char("/"), () => P.succeed(""))),
   P.bind("tagName", () =>
-    satisfying(C.many1(C.alphanum), (tagName) => htmlBlockTagNames.has(tagName.toLowerCase())),
+    satisfying(many1String(C.alphanum), (tagName) => htmlBlockTagNames.has(tagName.toLowerCase())),
   ),
   P.apFirst(lookAheadOrEof(C.oneOf(" />\n"))),
-  P.bind("rest", () => P.manyTill(P.item<C.Char>(), lookAheadOrEof(blankLine))),
-  P.map(({ open, slash, tagName, rest }) => open + slash + tagName + rest.join("")),
+  P.bind("rest", () => manyStringTill(P.item<C.Char>(), lookAheadOrEof(blankLine))),
+  P.map(({ open, slash, tagName, rest }) => open + slash + tagName + rest),
 );
 
 /** 行頭でだけ始まるブロック構文。該当しなければ空文字列を返して何も消費しません。 */
@@ -414,22 +493,33 @@ const lineBreak: TextParser = pipe(
   ),
 );
 
+// 文書全体。
+
+/**
+ * 行内のどの構文も始められない文字の並び。空白や記号、日本語などの非ASCII文字です。
+ * 1文字ずつ全ての構文を試してから通すより、まとめて通したほうが本文の大半を速く読み進められます。
+ */
+const plainRun: TextParser = many1String(
+  satisfying(C.notLetter, (c) => !["`", "<", "[", "\n"].includes(c)),
+);
+
 /** 行の途中に現れる要素。どの選択肢も必ず1文字以上消費します。 */
 const inlineToken: TextParser = pipe(
   codeSpan,
   P.alt(() => angleBracketed),
   P.alt(() => inlineLink),
-  P.alt(() => bareUrl),
+  P.alt(() => wordOrBareUrl),
   P.alt(() => lineBreak),
+  P.alt(() => plainRun),
   P.alt(() => P.item<C.Char>()),
 );
 
 const document: TextParser = pipe(
   lineStartBlock,
   P.bindTo("head"),
-  P.bind("tokens", () => P.many(inlineToken)),
+  P.bind("tokens", () => manyString(inlineToken)),
   P.apFirst(P.eof<C.Char>()),
-  P.map(({ head, tokens }) => head + tokens.join("")),
+  P.map(({ head, tokens }) => head + tokens),
 );
 
 /**
@@ -443,7 +533,7 @@ export function wrapBareUrls(markdown: string): string {
   try {
     // サロゲートペアを分断しないよう、コード単位ではなくコードポイント単位で分割します。
     const result = document(stream([...markdown], 0));
-    return isRight(result) ? result.right.value : markdown;
+    return E.isRight(result) ? result.right.value : markdown;
   } catch (error) {
     // 投稿は止めませんが、黙って囲まない結果になると気付けないので、
     // 原因を追えるよう標準エラー出力に残します。

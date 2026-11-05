@@ -302,10 +302,13 @@ describe("wrapBareUrls", () => {
     expect(wrapBareUrls("see www.example.com/xの変更点")).toBe("see www.example.com/xの変更点");
   });
 
+  // 本文はLLMの出力で、PRの内容によるプロンプトインジェクションの影響も受けるため、長さを制御できません。
+  // 以下の大量の入力は、例外にならないことと、長さに比例した時間で終わることを確かめます。
+  // 比例していないと数十秒かかり、テストのタイムアウトで失敗します。
+  // CIの遅いマシンでもタイムアウトに余裕を持てるよう、個数は再現に十分な範囲に抑えています。
+
   test("末尾の記号が大量に続いても例外にならず、URLの範囲だけを囲む", () => {
-    // 本文はLLMの出力で、PRの内容によるプロンプトインジェクションの影響も受けます。
-    // 記号1文字ごとに再帰すると1万個ほどでコールスタックの上限を超えて`RangeError`になります。
-    // parser-tsの繰り返しは長さに対して二乗で遅くなるため、再現に十分な範囲で個数を抑えています。
+    // 記号1文字ごとに関数を再帰させると、1万個ほどでコールスタックの上限を超えて`RangeError`になります。
     const parens = ")".repeat(20_000);
     const semicolons = ";".repeat(20_000);
 
@@ -313,6 +316,31 @@ describe("wrapBareUrls", () => {
     expect(wrapBareUrls(`https://example.com/x${semicolons}`)).toBe(
       `<https://example.com/x>${semicolons}`,
     );
+  });
+
+  test("英字が大量に続いてもそのまま返す", () => {
+    // 英字を1文字ずつ通すと、位置ごとに残りの英字を読み直してスキームか調べるため長さの三乗の時間がかかります。
+    const letters = "a".repeat(20_000);
+
+    expect(wrapBareUrls(letters)).toBe(letters);
+    expect(wrapBareUrls(`${letters}://example.com/x`)).toBe(`${letters}://example.com/x`);
+  });
+
+  test("URLの本体や行が大量に続いても囲む", () => {
+    const path = "a".repeat(20_000);
+    const lines = "この変更は https://example.com/x を参照します。\n".repeat(500);
+    const wrappedLines = "この変更は <https://example.com/x> を参照します。\n".repeat(500);
+
+    expect(wrapBareUrls(`https://example.com/${path}`)).toBe(`<https://example.com/${path}>`);
+    expect(wrapBareUrls(lines)).toBe(wrappedLines);
+  });
+
+  test("コードスパンやHTMLブロックの中身が大量に続いてもそのまま返す", () => {
+    const codeSpan = `\`${"x".repeat(20_000)}\``;
+    const htmlBlock = `<div>\n${"https://example.com/x\n".repeat(500)}</div>`;
+
+    expect(wrapBareUrls(codeSpan)).toBe(codeSpan);
+    expect(wrapBareUrls(htmlBlock)).toBe(htmlBlock);
   });
 
   test("サロゲートペアを含む文章でも壊さない", () => {
