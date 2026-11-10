@@ -8,11 +8,29 @@ import {
   RevListParseError,
   pushHead,
 } from "./push-head";
-import { CommandFailedError } from "./run";
+import { CommandFailedError, runStdout } from "./run";
 import { CurrentIsBaseError, RebaseFailedError, type SyncBaseResult, syncBase } from "./sync-base";
 
-/** `syncBase`と`pushHead`の結果を1つにまとめた型。 */
-export type SyncAndPushResult = SyncBaseResult & PushHeadResult;
+/**
+ * `syncBase`と`pushHead`の結果に、
+ * PRに含まれるコミット数を加えた型。
+ */
+export type SyncAndPushResult = SyncBaseResult &
+  PushHeadResult & {
+    readonly commits: number;
+  };
+
+/** `git rev-list --count`の出力をコミット数として解釈します。 */
+export function parseCommitCount(out: string): Effect.Effect<number, RevListParseError> {
+  const trimmed = out.trim();
+  const count = Number(trimmed);
+  if (trimmed === "" || !Number.isInteger(count) || count < 0) {
+    return Effect.fail(
+      new RevListParseError({ message: `Failed to parse rev-list count output: ${out}` }),
+    );
+  }
+  return Effect.succeed(count);
+}
 
 /**
  * baseブランチの同期(rebase含む)に続けてremoteへのpushを実行します。
@@ -39,7 +57,12 @@ export function syncAndPush(): Effect.Effect<
     if (sync.currentBranch !== push.currentBranch) {
       yield* Effect.die("syncBase and pushHead returned results for different branches");
     }
-    return { ...sync, action: push.action };
+    // baseは`syncBase`で最新化済みなので、
+    // ローカルのbaseからの差分がそのままPRに含まれるコミットになります。
+    const commits = yield* parseCommitCount(
+      yield* runStdout("git", ["rev-list", "--count", `${sync.baseBranch}..HEAD`]),
+    );
+    return { ...sync, action: push.action, commits };
   });
 }
 
@@ -51,6 +74,7 @@ export function formatSyncAndPush(result: SyncAndPushResult): string {
     `repo=${result.repo}`,
     `rebased=${String(result.rebased)}`,
     `action=${result.action}`,
+    `commits=${String(result.commits)}`,
     "",
   ].join("\n");
 }
