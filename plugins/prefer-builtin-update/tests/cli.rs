@@ -64,6 +64,12 @@ fn denies_grep_redirect() {
 }
 
 #[test]
+fn denies_cat_heredoc_file_creation() {
+    let value = deny_json(r#"{"tool_input": {"command": "cat > a.txt <<'EOF'\nhello\nEOF"}}"#);
+    assert_eq!(value["hookSpecificOutput"]["permissionDecision"], "deny");
+}
+
+#[test]
 fn stays_silent_for_undetected_command() {
     let output = run_with_stdin(r#"{"tool_input": {"command": "ls -la"}}"#);
     assert!(output.status.success());

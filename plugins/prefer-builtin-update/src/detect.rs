@@ -404,15 +404,26 @@ fn pipes_into_file_writer(chars: &mut Peekable<Chars>) -> bool {
     }
 }
 
+/// コマンド名より後ろを走査して分かった、
+/// そのコマンドの入出力の性質。
+#[derive(Debug, Default)]
+struct IoScan {
+    /// 出力がファイルへ書き込まれる。
+    writes_file: bool,
+    /// コマンド自身の標準入力がヒアドキュメントかヒアストリング。
+    reads_heredoc: bool,
+}
+
 /// `rest`(コマンド名より後ろのコマンド文字列)から、
-/// そのコマンドの出力がファイルへ書き込まれるかを判定する。
+/// そのコマンドの出力がファイルへ書き込まれるかと、
+/// 標準入力がヒアドキュメントかを調べる。
 ///
 /// トークン列と違いシェルの引用符を解釈しながら、
 /// コマンドを含むパイプラインの終わり(`;`や`&&`や`||`や改行など)まで走査する。
 /// `grep 'a > b'`のような引数の中の`>`を、
 /// シェルのリダイレクトと取り違えないようにするため。
 ///
-/// 以下のいずれかを書き込みとみなす。
+/// 以下のいずれかをファイルへの書き込みとみなす。
 ///
 /// - 引用符の外のリダイレクト(`>`や`>>`や`>|`や`&>`)で標準出力をファイルへ向けている
 /// - パイプで繋いだ`tee`や`sponge`でファイルへ書き込んでいる
@@ -426,11 +437,20 @@ fn pipes_into_file_writer(chars: &mut Peekable<Chars>) -> bool {
 /// 書き戻しの有無は見ずにファイルへの出力そのものを検出する。
 /// `2>`のような標準出力以外のリダイレクトは対象外。
 ///
+/// ヒアドキュメント(`<<`)とヒアストリング(`<<<`)は、
+/// 最初のパイプより前にあるものだけをコマンド自身の入力とみなす。
+/// ヒアドキュメントの本文は改行の後ろにあり走査の対象外なので、
+/// `cat > a.txt <<'EOF'`と`cat <<'EOF' > a.txt`のどちらの順でも、
+/// 開始行だけを見て判定できる。
+///
 /// 括弧の深さを数えるので`<(...)`のようなプロセス置換の中の区切り文字では止まらず、
 /// コマンド自身が`$(...)`の中にある場合はその閉じ括弧で止まる。
-fn writes_output_to_file(rest: &str) -> bool {
+fn scan_io(rest: &str) -> IoScan {
+    let mut scan = IoScan::default();
     let mut chars = rest.chars().peekable();
     let mut depth: usize = 0;
+    // 最初のパイプより前のコマンド自身の引数を走査しているか。
+    let mut in_own_args = true;
     // 直前の2文字。`2>`のようなファイル記述子番号付きのリダイレクトの判別に使う。
     let mut prev: Option<char> = None;
     let mut prev2: Option<char> = None;
@@ -448,35 +468,41 @@ fn writes_output_to_file(rest: &str) -> bool {
             '(' => depth += 1,
             ')' => match depth.checked_sub(1) {
                 Some(d) => depth = d,
-                None => return false,
+                None => break,
             },
-            ';' | '\n' | '`' if depth == 0 => return false,
+            ';' | '\n' | '`' if depth == 0 => break,
             '|' if depth == 0 => {
                 if chars.next_if_eq(&'|').is_some() {
-                    return false;
+                    break;
                 }
                 // `|&`は標準エラー出力も一緒に渡すパイプ。
                 chars.next_if_eq(&'&');
+                in_own_args = false;
                 if pipes_into_file_writer(&mut chars) {
-                    return true;
+                    scan.writes_file = true;
                 }
             }
             '&' => {
                 // `&>`と`&>>`は標準出力と標準エラー出力の両方をファイルへ向ける。
                 if chars.next_if_eq(&'>').is_some() {
                     if redirect_target_is_file(&mut chars) {
-                        return true;
+                        scan.writes_file = true;
                     }
                 } else if depth == 0 {
-                    return false;
+                    break;
                 }
+            }
+            // `<<`と`<<<`。
+            // 単独の`<`による入力のリダイレクトと`<(...)`のプロセス置換は対象外。
+            '<' if depth == 0 && in_own_args && chars.next_if_eq(&'<').is_some() => {
+                scan.reads_heredoc = true;
             }
             '>' => {
                 let fd_number = prev.is_some_and(|p| p.is_ascii_digit())
                     && prev2.is_none_or(char::is_whitespace);
                 let stdout = !fd_number || prev == Some('1');
                 if redirect_target_is_file(&mut chars) && stdout {
-                    return true;
+                    scan.writes_file = true;
                 }
             }
             _ => {}
@@ -484,20 +510,27 @@ fn writes_output_to_file(rest: &str) -> bool {
         prev2 = prev;
         prev = Some(c);
     }
-    false
+    scan
 }
 
 /// コマンド名の位置にある単語から、
 /// コマンドごと拒否するコマンドと、
-/// 出力をファイルへ書き込む書き換え用途のコマンドを検出する。
+/// 出力をファイルへ書き込む書き換え用途のコマンドと、
+/// catとヒアドキュメントによるファイルの作成を検出する。
 fn detect_command(command: &str, tokens: &[Tok]) -> Option<String> {
     for (word, end) in command_words(tokens) {
         let name = command_name(word);
         if is_rejected_command(name) {
             return Some(format!("use of `{name}`, {REJECTED_COMMAND_NOTE}"));
         }
-        if is_filter_command(name) && writes_output_to_file(&command[end..]) {
+        if is_filter_command(name) && scan_io(&command[end..]).writes_file {
             return Some(format!("`{name}` output written to files"));
+        }
+        if name == "cat" {
+            let scan = scan_io(&command[end..]);
+            if scan.writes_file && scan.reads_heredoc {
+                return Some("writing files with `cat` and a heredoc".to_owned());
+            }
         }
     }
     None
@@ -521,7 +554,8 @@ pub fn detect(command: &str) -> Option<String> {
         return Some(format!("`{cmd} -i` style in-place file editing"));
     }
 
-    // sedとawkの使用と、grepなどの出力のファイルへの書き込み。
+    // sedとawkの使用と、grepなどの出力のファイルへの書き込みと、
+    // catとヒアドキュメントによるファイルの作成。
     if let Some(detected) = detect_command(command, &tokens) {
         return Some(detected);
     }
@@ -1027,6 +1061,88 @@ mod tests {
     fn skips_redirect_of_grep_used_as_argument() {
         // コマンド名の位置に無いgrepは対象外。
         assert!(detect("echo grep > b.txt").is_none());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_file_creation() {
+        // 理由文を完全比較で固定する。
+        assert_eq!(
+            detect("cat > a.txt <<'EOF'\nhello\nEOF").as_deref(),
+            Some("writing files with `cat` and a heredoc"),
+        );
+    }
+
+    #[test]
+    fn detects_cat_heredoc_with_redirect_after_marker() {
+        assert!(detect("cat <<'EOF' > a.txt\nhello\nEOF").is_some());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_append() {
+        assert!(detect("cat >> a.txt <<EOF\nhello\nEOF").is_some());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_with_tab_stripping() {
+        assert!(detect("cat <<-EOF > a.txt\n\thello\nEOF").is_some());
+    }
+
+    #[test]
+    fn detects_cat_herestring() {
+        assert!(detect("cat <<< 'hello' > a.txt").is_some());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_piped_into_tee() {
+        assert!(detect("cat <<'EOF' | tee a.txt\nhello\nEOF").is_some());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_in_compound_command() {
+        assert!(detect("mkdir -p d && cat > d/a.txt <<'EOF'\nhello\nEOF").is_some());
+    }
+
+    #[test]
+    fn detects_cat_heredoc_with_path_prefix() {
+        assert!(detect("/bin/cat > a.txt <<'EOF'\nhello\nEOF").is_some());
+    }
+
+    #[test]
+    fn skips_cat_heredoc_without_file_output() {
+        assert!(detect("cat <<'EOF'\nhello\nEOF").is_none());
+    }
+
+    #[test]
+    fn skips_cat_heredoc_in_command_substitution() {
+        // コミットメッセージを渡すためのよくある書き方はファイルを作らない。
+        assert!(detect("git commit -m \"$(cat <<'EOF'\nfeat: x\nEOF\n)\"").is_none());
+    }
+
+    #[test]
+    fn skips_cat_heredoc_piped_to_other_command() {
+        assert!(detect("cat <<'EOF' | gh pr comment 1 --body-file -\nhello\nEOF").is_none());
+    }
+
+    #[test]
+    fn skips_cat_heredoc_to_dev_null() {
+        assert!(detect("cat > /dev/null <<'EOF'\nhello\nEOF").is_none());
+    }
+
+    #[test]
+    fn skips_cat_file_redirect_without_heredoc() {
+        // ヒアドキュメントを使わないファイルの連結は対象外。
+        assert!(detect("cat a.txt b.txt > c.txt").is_none());
+    }
+
+    #[test]
+    fn skips_heredoc_of_piped_command_after_cat() {
+        // パイプの後ろのコマンドのヒアドキュメントはcat自身の入力ではない。
+        assert!(detect("cat a.txt | diff - <(cat <<'EOF'\nx\nEOF\n) > d.txt").is_none());
+    }
+
+    #[test]
+    fn skips_heredoc_marker_inside_quotes() {
+        assert!(detect("cat a.txt \"<<EOF\" > b.txt").is_none());
     }
 
     #[test]
