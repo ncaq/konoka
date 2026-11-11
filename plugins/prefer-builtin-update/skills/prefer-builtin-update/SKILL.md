@@ -1,6 +1,6 @@
 ---
 name: prefer-builtin-update
-description: Use the builtin Edit tool (or Write for full rewrites) instead of sed, awk, perl, or Python one-liners when modifying files, and do not run sed or awk at all. Use when editing, replacing, or rewriting file contents, or when about to run sed or awk.
+description: Use the builtin Edit tool (or Write for new files and full rewrites) instead of sed, awk, perl, or Python one-liners or cat heredocs when modifying or creating files, and do not run sed or awk at all. Use when editing, creating, or rewriting file contents, or when about to run sed or awk.
 user-invocable: false
 ---
 
@@ -13,6 +13,9 @@ sedやawkやperlやPythonなどのプログラムを持ち出さないでくだ�
 
 in-place編集のフラグを使わずに、
 `grep -v`などの出力を一時ファイルへリダイレクトしてから`cp`や`mv`で書き戻すのも同じです。
+
+`cat > a.txt <<'EOF'`のようなヒアドキュメントでファイルを作らないでください。
+作業ディレクトリに置く一時的なスクリプトなども`Write`ツールで作ってください。
 
 ## sedとawkは使わない
 
@@ -50,12 +53,16 @@ awk '/^foo$/ { print "bar"; next } { print }' src/main.rs > /tmp/main.rs && cp /
 grep -v '^use foo;$' src/main.rs > /tmp/main.rs && cp /tmp/main.rs src/main.rs
 perl -i -pe 's/foo/bar/' README.md
 python3 -c "content = open('config.json').read().replace('foo', 'bar'); open('config.json', 'w').write(content)"
+cat > fix.sh <<'EOF'
+...
+EOF
 ```
 
 使う:
 `Edit`ツールで書き換え前後の文字列を指定して置き換えます。
 複数箇所を書き換える場合も、
 `Edit`ツールを箇所ごとに呼び出してください。
+ファイルを作る場合は`Write`ツールを使います。
 
 ## 例外
 
@@ -77,7 +84,8 @@ bashやPythonなどで実行するスクリプトファイルに、
 このプラグインのPreToolUseフックが、
 Bashツール経由のsedとawkの使用や、
 in-place編集やワンライナーによるファイル書き込みや、
-grepの出力のファイルへの書き込みを検出して拒否します。
+grepの出力のファイルへの書き込みや、
+catとヒアドキュメントによるファイルの作成を検出して拒否します。
 リトライ往復を削減するための補助動作なので、
 依存しないでください。
 フックは全ての書き換えパターンを検出できません。
