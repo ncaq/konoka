@@ -50,6 +50,20 @@ fn denies_write_one_liner() {
 }
 
 #[test]
+fn denies_rejected_command() {
+    let value = deny_json(r#"{"tool_input": {"command": "awk '{print $1}' a.txt"}}"#);
+    assert_eq!(value["hookSpecificOutput"]["permissionDecision"], "deny");
+}
+
+#[test]
+fn denies_grep_redirect() {
+    let value = deny_json(
+        r#"{"tool_input": {"command": "grep -v x a.hs > /tmp/a.hs && cp /tmp/a.hs a.hs"}}"#,
+    );
+    assert_eq!(value["hookSpecificOutput"]["permissionDecision"], "deny");
+}
+
+#[test]
 fn stays_silent_for_undetected_command() {
     let output = run_with_stdin(r#"{"tool_input": {"command": "ls -la"}}"#);
     assert!(output.status.success());

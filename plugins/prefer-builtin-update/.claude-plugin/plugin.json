@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "prefer-builtin-update",
-  "version": "1.0.0",
-  "description": "Steers file modifications to the builtin Edit tool instead of sed/perl/Python one-liners, with a skill and a PreToolUse hook.",
+  "version": "1.1.0",
+  "description": "Steers file modifications to the builtin Edit tool instead of sed/awk/perl/Python one-liners, rejecting sed and awk entirely, with a skill and a PreToolUse hook.",
   "author": {
     "name": "ncaq",
     "email": "ncaq@ncaq.net",

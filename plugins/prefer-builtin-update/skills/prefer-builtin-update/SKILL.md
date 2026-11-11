@@ -1,15 +1,27 @@
 ---
 name: prefer-builtin-update
-description: Use the builtin Edit tool (or Write for full rewrites) instead of sed, perl, or Python one-liners when modifying files. Use when editing, replacing, or rewriting file contents.
+description: Use the builtin Edit tool (or Write for full rewrites) instead of sed, awk, perl, or Python one-liners when modifying files, and do not run sed or awk at all. Use when editing, replacing, or rewriting file contents, or when about to run sed or awk.
 user-invocable: false
 ---
 
 # ファイル更新には組み込みのEditツールを使う
 
 ファイルの内容を書き換える用事に、
-sedやperlやPythonなどのプログラムを持ち出さないでください。
+sedやawkやperlやPythonなどのプログラムを持ち出さないでください。
 組み込みの`Edit`ツールを使ってください。
 ファイルの新規作成や全体の書き直しには`Write`ツールを使ってください。
+
+in-place編集のフラグを使わずに、
+`grep -v`などの出力を一時ファイルへリダイレクトしてから`cp`や`mv`で書き戻すのも同じです。
+
+## sedとawkは使わない
+
+sedとawkは書き換えに限らず、
+用途を問わず使わないでください。
+ファイルの一部を表示する場合は、
+`sed -n`ではなく`Read`ツールの`offset`と`limit`を使ってください。
+コマンドの出力を加工する場合は、
+grepやcutやtrなどを使ってください。
 
 ## 理由
 
@@ -34,6 +46,8 @@ sedの正規表現による置換は想定外の行にもマッチして、
 
 ```console
 sed -i 's/foo/bar/' src/main.rs
+awk '/^foo$/ { print "bar"; next } { print }' src/main.rs > /tmp/main.rs && cp /tmp/main.rs src/main.rs
+grep -v '^use foo;$' src/main.rs > /tmp/main.rs && cp /tmp/main.rs src/main.rs
 perl -i -pe 's/foo/bar/' README.md
 python3 -c "content = open('config.json').read().replace('foo', 'bar'); open('config.json', 'w').write(content)"
 ```
@@ -52,13 +66,18 @@ python3 -c "content = open('config.json').read().replace('foo', 'bar'); open('co
 その場合もワンライナーは使わず、
 `Write`ツールで置換処理をスクリプトファイルとして書き出してから実行してください。
 ファイルとして残すことで人間が実行前に内容を検証できます。
+`sed -f`や`awk -f`で実行するプログラムファイルではなく、
+bashやPythonなどで実行するスクリプトファイルに、
+ファイルへの書き込みまで含めてください。
 実行前に対象ファイルの範囲と置換内容を説明し、
 実行後は`git diff`などで結果の差分を確認してください。
 
 ## hookによる補助
 
 このプラグインのPreToolUseフックが、
-Bashツール経由のin-place編集やワンライナーによるファイル書き込みを検出して拒否します。
+Bashツール経由のsedとawkの使用や、
+in-place編集やワンライナーによるファイル書き込みや、
+grepの出力のファイルへの書き込みを検出して拒否します。
 リトライ往復を削減するための補助動作なので、
 依存しないでください。
 フックは全ての書き換えパターンを検出できません。
