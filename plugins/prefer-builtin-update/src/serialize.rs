@@ -43,7 +43,11 @@ const GUIDANCE: &str = concat!(
     "If this is a huge mechanical replacement that is impractical with Edit, ",
     "write the replacement logic to a script file with the Write tool ",
     "so the user can inspect it before it runs, ",
-    "explain to the user what it does, and run that file instead of a one-liner.",
+    "explain to the user what it does, and run that file instead of a one-liner. ",
+    "Run it with an interpreter such as bash or python3 ",
+    "and let the script itself write the files, ",
+    "because sed and awk commands and redirecting grep output to files ",
+    "are rejected on the command line.",
 );
 
 /// 検出内容の説明文から拒否用のフック出力を組み立てる。
