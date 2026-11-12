@@ -2,7 +2,7 @@
 name: react-refactor-component
 description: Refactor React components to follow project conventions. Use when reorganizing, splitting, or cleaning up existing React component files.
 argument-hint: "[file-path or component-name]"
-allowed-tools: AskUserQuestion, Bash(biome:*), Bash(eslint:*), Bash(git diff:*), Bash(git mv:*), Bash(git status:*), Bash(nix:*), Bash(nix-fast-build:*), Bash(npm:*), Bash(pnpm:*), Bash(prettier:*), Bash(tsc:*), Bash(yarn:*), Edit, Glob, Grep, Read, Write
+allowed-tools: AskUserQuestion, Bash(biome:*), Bash(eslint:*), Bash(git diff:*), Bash(git mv:*), Bash(git status:*), Bash(nix build:*), Bash(nix flake check:*), Bash(nix fmt:*), Bash(nix-fast-build:*), Bash(npm run:*), Bash(pnpm run:*), Bash(prettier:*), Bash(tsc:*), Bash(yarn run:*), Edit, Glob, Grep, Read, Write
 ---
 
 # Reactコンポーネントリファクタリング
@@ -65,6 +65,9 @@ IDEで開いているファイル/ユーザーが直前に話題にしたコン�
 ### 検証
 
 リファクタリング後、プロジェクトのリンターとビルドを実行して壊していないことを確認します。
+
+パッケージマネージャ経由で実行する場合は、
+`pnpm lint`のような省略形ではなく`pnpm run lint`のように`run`を明示してください。
 
 エラーが出た場合は、原因を読み取った上で根本修正します。
 相談のない`// eslint-disable-next-line`や`as any`での回避は禁止です。
