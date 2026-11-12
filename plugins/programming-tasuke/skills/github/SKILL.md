@@ -20,17 +20,20 @@ GitHubのURLをWebFetchなどで直接取得することは避けてください
 ### GitHub MCP
 
 GitHub MCPが利用可能な場合は、これを優先して使用してください。
-`mcp__github__`で始まるツールが利用可能です。
+ツール名のプレフィクスはMCPサーバの登録方法によって異なります。
+ユーザ設定で直接登録している場合は`mcp__github__`、
+プラグイン経由で登録している場合は`mcp__plugin_<プラグイン名>_github__`
+(例: `mcp__plugin_claude-code-home-manager_github__`)で始まります。
 
 主要なツール:
 
-- `mcp__github__get_file_contents`: ファイル内容の取得
-- `mcp__github__issue_read`: Issue情報の取得
-- `mcp__github__pull_request_read`: Pull Request情報の取得
+- `get_file_contents`: ファイル内容の取得
+- `issue_read`: Issue情報の取得
+- `pull_request_read`: Pull Request情報の取得
   - method=`get_status`でGitHub Actionsのビルド・チェック結果を確認可能
-- `mcp__github__search_code`: コード検索
-- `mcp__github__search_issues`: Issue検索
-- `mcp__github__list_commits`: コミット一覧の取得
+- `search_code`: コード検索
+- `search_issues`: Issue検索
+- `list_commits`: コミット一覧の取得
 
 ### GitHub CLI
 

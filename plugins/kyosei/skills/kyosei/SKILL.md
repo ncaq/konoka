@@ -15,7 +15,8 @@ allowed-tools: >-
   Skill(kyosei:performance-reviewer),
   Skill(kyosei:security-reviewer),
   Skill(kyosei:test-reviewer),
-  mcp__github
+  mcp__github,
+  mcp__plugin_claude-code-home-manager_github
 ---
 
 # コマンドの実行方法

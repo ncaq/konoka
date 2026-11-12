@@ -1,7 +1,7 @@
 ---
 name: pr-style
 description: Pull request style guidelines covering title, body, assignee, and label selection. Use when writing or proposing GitHub pull requests, including direct `gh pr create` invocations outside the /pr skill.
-allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), Skill(commit:commit-style), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read
+allowed-tools: Bash(gh label list:*), Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh repo view:*), Bash(git diff:*), Bash(git log:*), Bash(read-contributing:*), Bash(read-pull-request-template:*), Skill(commit:commit-style), mcp__github__get_me, mcp__github__list_pull_requests, mcp__github__pull_request_read, mcp__plugin_claude-code-home-manager_github__get_me, mcp__plugin_claude-code-home-manager_github__list_pull_requests, mcp__plugin_claude-code-home-manager_github__pull_request_read
 user-invocable: false
 effort: low
 ---
@@ -71,8 +71,8 @@ GitHub MCPが利用可能な場合は優先して使ってください。
 PR一覧の応答にはラベル情報も含まれているため、
 この取得結果を後のラベル選定にも流用してください。
 
-- `mcp__github__list_pull_requests`: PR一覧の取得
-- `mcp__github__pull_request_read`: PR詳細の取得
+- `list_pull_requests`: PR一覧の取得
+- `pull_request_read`: PR詳細の取得
 
 GitHub MCPが使えない場合はGitHub CLI(`gh`)を使ってください。
 
@@ -141,7 +141,7 @@ PR全体の変更を要約する本文を新たに書いてください。
 
 # アサインの決定
 
-`mcp__github__get_me`で認証済みユーザの情報を取得し、
+GitHub MCPの`get_me`で認証済みユーザの情報を取得し、
 `login`を記憶してください。
 PRのアサインは基本的にこの自分自身を表すユーザ名を指定します。
 

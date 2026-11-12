@@ -2,7 +2,7 @@
 name: pr
 description: Generate a GitHub pull request title and body from the current branch, then let the user review before creation in manual mode or create it without confirmation in auto mode. Use when the user wants to create a pull request.
 argument-hint: "[manual|auto]"
-allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write
+allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write, mcp__plugin_claude-code-home-manager_github__create_pull_request, mcp__plugin_claude-code-home-manager_github__issue_write
 effort: low
 ---
 
@@ -242,7 +242,7 @@ PRの作成後に報告されるより、
 
 # PRの作成
 
-`mcp__github__create_pull_request`を使ってPRを作成してください。
+GitHub MCPの`create_pull_request`を使ってPRを作成してください。
 
 引数は以下の通りです。
 
@@ -276,7 +276,7 @@ PR作成からアサイン/ラベル設定までのタイムラグを最小化�
 このステップとPRの作成の間に他の処理を挟まないでください。
 アサインとラベルの選定は事前に済ませている前提です。
 
-`mcp__github__issue_write`を`update`メソッドで呼び出し、
+GitHub MCPの`issue_write`を`update`メソッドで呼び出し、
 作成したPRの番号を`issue_number`に渡し、
 `assignees`と`labels`を1回で設定してください。
 
