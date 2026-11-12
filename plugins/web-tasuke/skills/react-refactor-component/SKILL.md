@@ -2,7 +2,7 @@
 name: react-refactor-component
 description: Refactor React components to follow project conventions. Use when reorganizing, splitting, or cleaning up existing React component files.
 argument-hint: "[file-path or component-name]"
-allowed-tools: AskUserQuestion, Bash(biome:*), Bash(eslint:*), Bash(git diff:*), Bash(git mv:*), Bash(git status:*), Bash(nix build:*), Bash(nix flake check:*), Bash(nix fmt:*), Bash(nix-fast-build:*), Bash(npm run:*), Bash(pnpm run:*), Bash(prettier:*), Bash(tsc:*), Bash(yarn run:*), Edit, Glob, Grep, Read, Write
+allowed-tools: AskUserQuestion, Bash(biome check:*), Bash(biome format:*), Bash(biome lint:*), Bash(eslint:*), Bash(git diff:*), Bash(git mv:*), Bash(git status:*), Bash(nix build --no-link:*), Bash(nix flake check:*), Bash(nix fmt:*), Bash(nix-fast-build --no-link:*), Bash(npm run:*), Bash(pnpm run:*), Bash(prettier:*), Bash(tsc --noEmit:*), Bash(yarn run:*), Edit, Glob, Grep, Read, Write
 ---
 
 # Reactコンポーネントリファクタリング
@@ -68,6 +68,16 @@ IDEで開いているファイル/ユーザーが直前に話題にしたコン�
 
 パッケージマネージャ経由で実行する場合は、
 `pnpm lint`のような省略形ではなく`pnpm run lint`のように`run`を明示してください。
+
+その他のコマンドも、
+以下のように許可された形を先頭に置いて実行してください。
+
+- `nix build`と`nix-fast-build`は`--no-link`を最初の引数にして、
+  リポジトリ内に`result`シンボリックリンクを作らないようにします。
+  `--out-link`や`-o`は指定しないでください。
+- `tsc`は`--noEmit`を最初の引数にして、
+  コンパイル結果をリポジトリ内に書き出さないようにします。
+- `biome`は`check`か`format`か`lint`のサブコマンドを使います。
 
 エラーが出た場合は、原因を読み取った上で根本修正します。
 相談のない`// eslint-disable-next-line`や`as any`での回避は禁止です。
