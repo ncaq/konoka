@@ -89,16 +89,8 @@ export function syncAndPush(
 
 /** 出力用に`head`を組み立てます。 */
 export function toSyncAndPushOutput(result: SyncAndPushResult): SyncAndPushOutput {
-  return {
-    currentBranch: result.currentBranch,
-    head: formatHead(result.currentBranch, result.owner, result.pushOwner),
-    baseBranch: result.baseBranch,
-    owner: result.owner,
-    repo: result.repo,
-    rebased: result.rebased,
-    action: result.action,
-    commits: result.commits,
-  };
+  const { baseRef: _baseRef, pushOwner, ...rest } = result;
+  return { ...rest, head: formatHead(rest.currentBranch, rest.owner, pushOwner) };
 }
 
 export function formatSyncAndPush(result: SyncAndPushOutput): string {
