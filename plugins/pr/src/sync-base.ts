@@ -141,7 +141,11 @@ function listRemotes(): Effect.Effect<
  */
 export function validateBaseBranch(
   baseBranch: string,
-): Effect.Effect<void, PlatformError | InvalidBaseBranchError, ChildProcessSpawner.ChildProcessSpawner> {
+): Effect.Effect<
+  void,
+  PlatformError | InvalidBaseBranchError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return Effect.gen(function* () {
     const valid = yield* tryRunStdout("git", ["check-ref-format", `refs/heads/${baseBranch}`]);
     if (Option.isNone(valid)) {
@@ -215,7 +219,11 @@ export function fetchBase(
  */
 export function isAncestor(
   ref: string,
-): Effect.Effect<boolean, CommandFailedError | PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+): Effect.Effect<
+  boolean,
+  CommandFailedError | PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
   return runStdout("git", ["merge-base", "--is-ancestor", "--end-of-options", ref, "HEAD"]).pipe(
     Effect.as(true),
     Effect.catchTag("CommandFailedError", (err) =>

@@ -1,10 +1,6 @@
 import { Cause, Effect, Exit, Option, Schema } from "effect";
 import { describe, expect, test } from "vitest";
-import {
-  AmbiguousBaseRemoteError,
-  BaseRemoteNotFoundError,
-  parseRepoInfo,
-} from "../src/sync-base";
+import { AmbiguousBaseRemoteError, BaseRemoteNotFoundError, parseRepoInfo } from "../src/sync-base";
 
 describe("BaseRemoteNotFoundError", () => {
   test("remoteが無ければ`(none)`と表示する", () => {

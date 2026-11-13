@@ -121,9 +121,9 @@ describe("findRemotesFor", () => {
   });
 
   it("hostの違うmirrorも一致するため、複数一致した場合は全て返す", () => {
-    expect(
-      findRemotesFor([mirror, origin, upstream], { owner: "NixOS", repo: "nixpkgs" }),
-    ).toEqual([mirror, upstream]);
+    expect(findRemotesFor([mirror, origin, upstream], { owner: "NixOS", repo: "nixpkgs" })).toEqual(
+      [mirror, upstream],
+    );
   });
 
   it("一致するremoteが無ければ空配列を返す", () => {
