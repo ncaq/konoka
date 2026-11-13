@@ -14,7 +14,7 @@ export interface Remote {
  * remoteのURLの形式ごとに、
  * パス部分(`owner/repo`以降)を取り出す正規表現。
  */
-const remoteUrlPatterns: readonly RegExp[] = [
+const remoteUrlPatterns = [
   // https://github.com/owner/repo.git
   // ssh://git@github.com:22/owner/repo.git
   // git://github.com/owner/repo.git

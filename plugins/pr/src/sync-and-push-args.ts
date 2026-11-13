@@ -1,7 +1,13 @@
 import { Data, Effect, Option } from "effect";
 
 /** スキルの確認モードとして消費されるトークン。 */
-const confirmationModes: readonly string[] = ["manual", "auto"] as const;
+const confirmationModes = ["manual", "auto"] as const;
+
+type ConfirmationMode = (typeof confirmationModes)[number];
+
+function isConfirmationMode(arg: string): arg is ConfirmationMode {
+  return confirmationModes.some((mode) => mode === arg);
+}
 
 export interface SyncAndPushArgs {
   /** 明示されたbaseブランチ。省略時はリポジトリのデフォルトブランチを使います。 */
@@ -33,7 +39,7 @@ export class InvalidArgumentsError extends Data.TaggedError("InvalidArgumentsErr
 export function parseSyncAndPushArgs(
   argv: readonly string[],
 ): Effect.Effect<SyncAndPushArgs, InvalidArgumentsError> {
-  const candidates = argv.filter((arg) => arg !== "" && !confirmationModes.includes(arg));
+  const candidates = argv.filter((arg) => arg !== "" && !isConfirmationMode(arg));
   if (candidates.length > 1) {
     return Effect.fail(new InvalidArgumentsError({ candidates }));
   }
