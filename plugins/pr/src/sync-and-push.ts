@@ -1,6 +1,7 @@
 import { Effect, type Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
+import { formatHead } from "./github-remote";
 import {
   BehindUpstreamError,
   ExistingOpenPullRequestError,
@@ -9,7 +10,16 @@ import {
   pushHead,
 } from "./push-head";
 import { CommandFailedError, runStdout } from "./run";
-import { CurrentIsBaseError, RebaseFailedError, type SyncBaseResult, syncBase } from "./sync-base";
+import { InvalidArgumentsError, parseSyncAndPushArgs } from "./sync-and-push-args";
+import {
+  AmbiguousBaseRemoteError,
+  BaseRemoteNotFoundError,
+  CurrentIsBaseError,
+  InvalidBaseBranchError,
+  RebaseFailedError,
+  type SyncBaseResult,
+  syncBase,
+} from "./sync-base";
 
 /**
  * `syncBase`と`pushHead`の結果に、
@@ -19,6 +29,12 @@ export type SyncAndPushResult = SyncBaseResult &
   PushHeadResult & {
     readonly commits: number;
   };
+
+/** `formatSyncAndPush`が出力に使う値。 */
+export type SyncAndPushOutput = Omit<SyncAndPushResult, "baseRef" | "pushOwner"> & {
+  /** PR作成APIの`head`に渡す値。forkからのPRでは`<owner>:<branch>`になります。 */
+  readonly head: string;
+};
 
 /** `git rev-list --count`の出力をコミット数として解釈します。 */
 export function parseCommitCount(out: string): Effect.Effect<number, RevListParseError> {
@@ -39,36 +55,50 @@ export function parseCommitCount(out: string): Effect.Effect<number, RevListPars
  * かつ両方ともエラー時はPR作成スキルを終了するという挙動が共通しているため、
  * 1本のエントリーポイントにまとめます。
  */
-export function syncAndPush(): Effect.Effect<
+export function syncAndPush(
+  argv: readonly string[],
+): Effect.Effect<
   SyncAndPushResult,
   | CommandFailedError
   | PlatformError
   | RevListParseError
   | Schema.SchemaError
+  | InvalidArgumentsError
   | CurrentIsBaseError
+  | InvalidBaseBranchError
+  | BaseRemoteNotFoundError
+  | AmbiguousBaseRemoteError
   | RebaseFailedError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
-    const sync = yield* syncBase();
+    const args = yield* parseSyncAndPushArgs(argv);
+    const sync = yield* syncBase(args.base);
     const push = yield* pushHead();
     if (sync.currentBranch !== push.currentBranch) {
       yield* Effect.die("syncBase and pushHead returned results for different branches");
     }
-    // baseは`syncBase`で最新化済みなので、
-    // ローカルのbaseからの差分がそのままPRに含まれるコミットになります。
+    // baseのremote追跡ブランチは`syncBase`で最新化済みなので、
+    // そこからの差分がそのままPRに含まれるコミットになります。
     const commits = yield* parseCommitCount(
-      yield* runStdout("git", ["rev-list", "--count", `${sync.baseBranch}..HEAD`]),
+      yield* runStdout("git", ["rev-list", "--count", `${sync.baseRef}..HEAD`]),
     );
-    return { ...sync, action: push.action, commits };
+    return { ...sync, action: push.action, pushOwner: push.pushOwner, commits };
   });
 }
 
-export function formatSyncAndPush(result: SyncAndPushResult): string {
+/** 出力用に`head`を組み立てます。 */
+export function toSyncAndPushOutput(result: SyncAndPushResult): SyncAndPushOutput {
+  const { baseRef: _baseRef, pushOwner, ...rest } = result;
+  return { ...rest, head: formatHead(rest.currentBranch, rest.owner, pushOwner) };
+}
+
+export function formatSyncAndPush(result: SyncAndPushOutput): string {
   return [
     `current=${result.currentBranch}`,
+    `head=${result.head}`,
     `base=${result.baseBranch}`,
     `owner=${result.owner}`,
     `repo=${result.repo}`,
