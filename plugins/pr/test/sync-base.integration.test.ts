@@ -178,6 +178,14 @@ describe("syncBaseのgit操作", () => {
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
     );
 
+    it.effect("解決できない参照は祖先でないとみなさずエラーにする", () =>
+      Effect.gen(function* () {
+        yield* setupClone;
+        const error = yield* Effect.flip(isAncestor("refs/remotes/nope/nope"));
+        expect(error._tag).toBe("CommandFailedError");
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+    );
+
     it.effect("baseが進んでいなければrebaseしない", () =>
       Effect.gen(function* () {
         yield* setupClone;
