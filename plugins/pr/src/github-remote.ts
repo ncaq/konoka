@@ -50,6 +50,21 @@ export function parseGitHubRemoteUrl(url: string): Option.Option<GitHubRepositor
 }
 
 /**
+ * `git remote -v`の出力からremoteの名前とfetch用のURLを取り出します。
+ *
+ * 各remoteは`<name>\t<url> (fetch)`と`<name>\t<url> (push)`の2行で出力されるため、
+ * fetchの行だけを拾います。
+ */
+export function parseRemoteList(out: string): readonly Remote[] {
+  return out.split("\n").flatMap((line) => {
+    const match = /^(?<name>[^\t]+)\t(?<url>.+) \(fetch\)$/.exec(line);
+    const name = match?.groups?.["name"];
+    const url = match?.groups?.["url"];
+    return name == null || url == null ? [] : [{ name, url }];
+  });
+}
+
+/**
  * remoteのURLからGitHubリポジトリのownerを取り出します。
  * URLが取得できなかった場合や解釈できない場合は`Option.none`を返します。
  */

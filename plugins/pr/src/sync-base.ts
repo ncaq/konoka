@@ -1,7 +1,7 @@
 import { Data, Effect, Option, Schema, SchemaTransformation } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
-import { type Remote, findRemoteFor } from "./github-remote";
+import { type Remote, findRemoteFor, parseRemoteList } from "./github-remote";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 export interface SyncBaseResult {
@@ -111,16 +111,10 @@ function listRemotes(): Effect.Effect<
   CommandFailedError | PlatformError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
-  return Effect.gen(function* () {
-    const names = (yield* runStdout("git", ["remote"])).split("\n").filter((name) => name !== "");
-    // `git remote get-url`は`insteadOf`を展開したURLを返すため、
-    // `git config`で生の値を読むよりも実際の接続先に近い値で比較できます。
-    return yield* Effect.forEach(names, (name) =>
-      runStdout("git", ["remote", "get-url", "--", name]).pipe(
-        Effect.map((url) => ({ name, url })),
-      ),
-    );
-  });
+  // `git remote -v`は`insteadOf`を展開したURLを表示するため、
+  // `git config`で生の値を読むよりも実際の接続先に近い値で比較できます。
+  // remoteごとに`git remote get-url`を起動せず、1回の起動で全てのremoteを取得します。
+  return runStdout("git", ["remote", "-v"]).pipe(Effect.map(parseRemoteList));
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   formatHead,
   ownerFromRemoteUrl,
   parseGitHubRemoteUrl,
+  parseRemoteList,
 } from "../src/github-remote";
 
 describe("parseGitHubRemoteUrl", () => {
@@ -33,6 +34,31 @@ describe("parseGitHubRemoteUrl", () => {
     "https://gitlab.com/group/subgroup/repo.git",
   ])("%sは解釈できず`Option.none`になる", (url) => {
     expect(parseGitHubRemoteUrl(url)).toEqual(Option.none());
+  });
+});
+
+describe("parseRemoteList", () => {
+  it("空の出力は空配列になる", () => {
+    expect(parseRemoteList("")).toEqual([]);
+  });
+
+  it("fetchの行だけを拾い、pushの行と重複させない", () => {
+    const out = [
+      "origin\tgit@github.com:ncaq/nixpkgs.git (fetch)",
+      "origin\t/tmp/bare.git (push)",
+      "upstream\thttps://github.com/NixOS/nixpkgs.git (fetch)",
+      "upstream\thttps://github.com/NixOS/nixpkgs.git (push)",
+    ].join("\n");
+    expect(parseRemoteList(out)).toEqual([
+      { name: "origin", url: "git@github.com:ncaq/nixpkgs.git" },
+      { name: "upstream", url: "https://github.com/NixOS/nixpkgs.git" },
+    ]);
+  });
+
+  it("空白を含むURLもそのまま取り出す", () => {
+    expect(parseRemoteList("local\t/tmp/my repo (fetch)\nlocal\t/tmp/my repo (push)")).toEqual([
+      { name: "local", url: "/tmp/my repo" },
+    ]);
   });
 });
 
