@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vitest";
 import {
-  findRemoteFor,
+  findRemotesFor,
   formatHead,
   ownerFromRemoteUrl,
   parseGitHubRemoteUrl,
@@ -78,26 +78,42 @@ describe("ownerFromRemoteUrl", () => {
   });
 });
 
-describe("findRemoteFor", () => {
-  const remotes = [
-    { name: "origin", url: "git@github.com:ncaq/nixpkgs.git" },
-    { name: "upstream", url: "https://github.com/NixOS/nixpkgs.git" },
-  ] as const;
+describe("findRemotesFor", () => {
+  const origin = { name: "origin", url: "git@github.com:ncaq/nixpkgs.git" } as const;
+  const upstream = { name: "upstream", url: "https://github.com/NixOS/nixpkgs.git" } as const;
+  const local = { name: "local", url: "/home/ncaq/Desktop/nixpkgs" } as const;
+  const mirror = { name: "mirror", url: "https://mirror.example.com/NixOS/nixpkgs.git" } as const;
 
-  it("owner/repoが一致するremoteの名前を返す", () => {
-    expect(findRemoteFor(remotes, { owner: "NixOS", repo: "nixpkgs" })).toEqual(
-      Option.some("upstream"),
-    );
+  it("owner/repoが一致するremoteを返す", () => {
+    expect(findRemotesFor([origin, upstream], { owner: "NixOS", repo: "nixpkgs" })).toEqual([
+      upstream,
+    ]);
   });
 
   it("大文字小文字を区別せずに比較する", () => {
-    expect(findRemoteFor(remotes, { owner: "nixos", repo: "NixPkgs" })).toEqual(
-      Option.some("upstream"),
-    );
+    expect(findRemotesFor([origin, upstream], { owner: "nixos", repo: "NixPkgs" })).toEqual([
+      upstream,
+    ]);
   });
 
-  it("一致するremoteが無ければ`Option.none`を返す", () => {
-    expect(findRemoteFor(remotes, { owner: "ncaq", repo: "konoka" })).toEqual(Option.none());
+  it("URLを解釈できないremoteは読み飛ばす", () => {
+    expect(findRemotesFor([local, upstream], { owner: "NixOS", repo: "nixpkgs" })).toEqual([
+      upstream,
+    ]);
+  });
+
+  it("hostの違うmirrorも一致するため、複数一致した場合は全て返す", () => {
+    expect(
+      findRemotesFor([mirror, origin, upstream], { owner: "NixOS", repo: "nixpkgs" }),
+    ).toEqual([mirror, upstream]);
+  });
+
+  it("一致するremoteが無ければ空配列を返す", () => {
+    expect(findRemotesFor([origin, upstream], { owner: "ncaq", repo: "konoka" })).toEqual([]);
+  });
+
+  it("remoteが無ければ空配列を返す", () => {
+    expect(findRemotesFor([], { owner: "NixOS", repo: "nixpkgs" })).toEqual([]);
   });
 });
 

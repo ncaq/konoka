@@ -80,21 +80,22 @@ function equalsIgnoreCase(a: string, b: string): boolean {
 }
 
 /**
- * 指定したGitHubリポジトリを指すremoteの名前を返します。
+ * 指定したGitHubリポジトリを指すremoteを全て返します。
+ *
  * GitHubのowner名とリポジトリ名は大文字小文字を区別しないため、区別せずに比較します。
+ * hostは比較しないので、同じパスを持つ別ホストのmirrorも一致します。
+ * 複数一致した場合にどれを使うかは呼び出し側で判断します。
  */
-export function findRemoteFor(
+export function findRemotesFor(
   remotes: readonly Remote[],
   target: GitHubRepository,
-): Option.Option<string> {
-  return Option.fromNullishOr(
-    remotes.find((remote) =>
-      Option.match(parseGitHubRemoteUrl(remote.url), {
-        onNone: () => false,
-        onSome: ({ owner, repo }) =>
-          equalsIgnoreCase(owner, target.owner) && equalsIgnoreCase(repo, target.repo),
-      }),
-    )?.name,
+): readonly Remote[] {
+  return remotes.filter((remote) =>
+    Option.match(parseGitHubRemoteUrl(remote.url), {
+      onNone: () => false,
+      onSome: ({ owner, repo }) =>
+        equalsIgnoreCase(owner, target.owner) && equalsIgnoreCase(repo, target.repo),
+    }),
   );
 }
 

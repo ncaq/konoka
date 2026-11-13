@@ -12,6 +12,7 @@ import {
 import { CommandFailedError, runStdout } from "./run";
 import { InvalidArgumentsError, parseSyncAndPushArgs } from "./sync-and-push-args";
 import {
+  AmbiguousBaseRemoteError,
   BaseRemoteNotFoundError,
   CurrentIsBaseError,
   InvalidBaseBranchError,
@@ -66,6 +67,7 @@ export function syncAndPush(
   | CurrentIsBaseError
   | InvalidBaseBranchError
   | BaseRemoteNotFoundError
+  | AmbiguousBaseRemoteError
   | RebaseFailedError
   | BehindUpstreamError
   | ExistingOpenPullRequestError,

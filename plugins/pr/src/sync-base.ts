@@ -1,7 +1,7 @@
 import { Data, Effect, Option, Schema, SchemaTransformation } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
-import { type Remote, findRemoteFor, parseRemoteList } from "./github-remote";
+import { type Remote, findRemotesFor, parseRemoteList } from "./github-remote";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 export interface SyncBaseResult {
@@ -96,6 +96,22 @@ export class BaseRemoteNotFoundError extends Data.TaggedError("BaseRemoteNotFoun
   }
 }
 
+/** baseリポジトリを指すremoteが複数あり、どれからfetchするか決められない場合に投げます。 */
+export class AmbiguousBaseRemoteError extends Data.TaggedError("AmbiguousBaseRemoteError")<{
+  readonly owner: string;
+  readonly repo: string;
+  readonly candidates: readonly Remote[];
+}> {
+  override get message(): string {
+    return [
+      `Multiple git remotes point to ${this.owner}/${this.repo}.`,
+      "Keep only one remote for the base repository and retry.",
+      "Candidate remotes:",
+      ...this.candidates.map((remote) => `${remote.name}\t${remote.url}`),
+    ].join("\n");
+  }
+}
+
 /**
  * `gh repo view`が返したJSONをデコードして`RepoInfo`を返します。
  *
@@ -160,6 +176,7 @@ export function syncBase(
   | CurrentIsBaseError
   | InvalidBaseBranchError
   | BaseRemoteNotFoundError
+  | AmbiguousBaseRemoteError
   | RebaseFailedError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
@@ -189,11 +206,20 @@ export function syncBase(
     }
 
     const remotes = yield* listRemotes();
-    const baseRemote = findRemoteFor(remotes, { owner, repo });
-    if (Option.isNone(baseRemote)) {
+    // hostを比較しないため、同じパスを持つ別ホストのmirrorも一致し得ます。
+    // 取り違えたremoteからfetchしてrebaseやpushまで進まないように、複数一致はエラーにします。
+    const [baseRemote, ...otherRemotes] = findRemotesFor(remotes, { owner, repo });
+    if (baseRemote == null) {
       return yield* new BaseRemoteNotFoundError({ owner, repo, remotes });
     }
-    const baseRef = yield* fetchBase(baseRemote.value, baseBranch);
+    if (otherRemotes.length > 0) {
+      return yield* new AmbiguousBaseRemoteError({
+        owner,
+        repo,
+        candidates: [baseRemote, ...otherRemotes],
+      });
+    }
+    const baseRef = yield* fetchBase(baseRemote.name, baseBranch);
 
     // baseの先端が既に現在のブランチに含まれていればrebaseは不要です。
     // `--is-ancestor`は含まれない場合に非0で終了します。
