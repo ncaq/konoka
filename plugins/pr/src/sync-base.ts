@@ -207,13 +207,20 @@ export function fetchBase(
 
 /**
  * `ref`が`HEAD`の祖先であるかを返します。
- * `--is-ancestor`は祖先でない場合に非0で終了します。
+ *
+ * `--is-ancestor`は祖先でない場合に終了コード1を返し、
+ * 参照が解決できないなどのエラーでは128などを返します。
+ * エラーを祖先でないとみなすとrebaseに進んでしまうため、
+ * 終了コード1だけを`false`にして、それ以外はエラーとして伝播させます。
  */
 export function isAncestor(
   ref: string,
-): Effect.Effect<boolean, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
-  return tryRunStdout("git", ["merge-base", "--is-ancestor", "--end-of-options", ref, "HEAD"]).pipe(
-    Effect.map(Option.isSome),
+): Effect.Effect<boolean, CommandFailedError | PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+  return runStdout("git", ["merge-base", "--is-ancestor", "--end-of-options", ref, "HEAD"]).pipe(
+    Effect.as(true),
+    Effect.catchTag("CommandFailedError", (err) =>
+      err.exitCode === 1 ? Effect.succeed(false) : Effect.fail(err),
+    ),
   );
 }
 
