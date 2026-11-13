@@ -1,7 +1,7 @@
 import { Data, Effect, Option, Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
-import { parseGitHubRemoteUrl } from "./github-remote";
+import { ownerFromRemoteUrl } from "./github-remote";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 /** `pushHead`が取り得る動作の種類。 */
@@ -185,12 +185,8 @@ export function pushHead(): Effect.Effect<
   return Effect.gen(function* () {
     const remote = "origin";
     const currentBranch = yield* runStdout("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
-    const pushOwner = Option.map(
-      Option.flatMap(
-        yield* tryRunStdout("git", ["remote", "get-url", "--", remote]),
-        parseGitHubRemoteUrl,
-      ),
-      (repository) => repository.owner,
+    const pushOwner = ownerFromRemoteUrl(
+      yield* tryRunStdout("git", ["remote", "get-url", "--", remote]),
     );
     const action = yield* detectAction();
 

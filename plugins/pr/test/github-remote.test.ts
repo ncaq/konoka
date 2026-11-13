@@ -1,6 +1,11 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vitest";
-import { findRemoteFor, formatHead, parseGitHubRemoteUrl } from "../src/github-remote";
+import {
+  findRemoteFor,
+  formatHead,
+  ownerFromRemoteUrl,
+  parseGitHubRemoteUrl,
+} from "../src/github-remote";
 
 describe("parseGitHubRemoteUrl", () => {
   it.each([
@@ -28,6 +33,22 @@ describe("parseGitHubRemoteUrl", () => {
     "https://gitlab.com/group/subgroup/repo.git",
   ])("%sは解釈できず`Option.none`になる", (url) => {
     expect(parseGitHubRemoteUrl(url)).toEqual(Option.none());
+  });
+});
+
+describe("ownerFromRemoteUrl", () => {
+  it("URLが取得できなかった場合は`Option.none`を返す", () => {
+    expect(ownerFromRemoteUrl(Option.none())).toEqual(Option.none());
+  });
+
+  it("URLを解釈できない場合は`Option.none`を返す", () => {
+    expect(ownerFromRemoteUrl(Option.some("/home/ncaq/Desktop/nixpkgs"))).toEqual(Option.none());
+  });
+
+  it("GitHubのURLからownerを取り出す", () => {
+    expect(ownerFromRemoteUrl(Option.some("git@github.com:ncaq/nixpkgs.git"))).toEqual(
+      Option.some("ncaq"),
+    );
   });
 });
 

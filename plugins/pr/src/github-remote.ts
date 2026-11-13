@@ -49,6 +49,17 @@ export function parseGitHubRemoteUrl(url: string): Option.Option<GitHubRepositor
   return Option.none();
 }
 
+/**
+ * remoteのURLからGitHubリポジトリのownerを取り出します。
+ * URLが取得できなかった場合や解釈できない場合は`Option.none`を返します。
+ */
+export function ownerFromRemoteUrl(url: Option.Option<string>): Option.Option<string> {
+  return url.pipe(
+    Option.flatMap(parseGitHubRemoteUrl),
+    Option.map((repository) => repository.owner),
+  );
+}
+
 function equalsIgnoreCase(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
 }
