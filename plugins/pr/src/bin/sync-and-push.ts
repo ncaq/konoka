@@ -1,12 +1,12 @@
 import process from "node:process";
 import { NodeServices, NodeRuntime } from "@effect/platform-node";
 import { Console, Effect, Exit } from "effect";
-import { formatSyncAndPush, syncAndPush } from "../sync-and-push";
+import { formatSyncAndPush, syncAndPush, toSyncAndPushOutput } from "../sync-and-push";
 
-const program = syncAndPush().pipe(
+const program = syncAndPush(process.argv.slice(2)).pipe(
   Effect.tap((result) =>
     Effect.sync(() => {
-      process.stdout.write(formatSyncAndPush(result));
+      process.stdout.write(formatSyncAndPush(toSyncAndPushOutput(result)));
     }),
   ),
   // 全ての型付きエラーは`.message`に必要な情報を畳み込んでいるので、

@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { parseRepoInfo } from "../src/sync-base";
 
 describe("parseRepoInfo", () => {
-  test("gh repo viewのJSONをデコードしてowner/repo/baseBranchを取り出す", () => {
+  test("gh repo viewのJSONをデコードしてowner/repo/defaultBranchを取り出す", () => {
     const json = JSON.stringify({
       owner: { login: "ncaq" },
       name: "konoka",
@@ -12,7 +12,7 @@ describe("parseRepoInfo", () => {
     expect(Effect.runSync(parseRepoInfo(json))).toEqual({
       owner: "ncaq",
       repo: "konoka",
-      baseBranch: "master",
+      defaultBranch: "master",
     });
   });
 

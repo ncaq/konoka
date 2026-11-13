@@ -1,11 +1,14 @@
-import { Data, Effect, Schema, SchemaTransformation } from "effect";
+import { Data, Effect, Option, Schema, SchemaTransformation } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
-import { CommandFailedError, runStdout } from "./run";
+import { type Remote, findRemoteFor } from "./github-remote";
+import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 export interface SyncBaseResult {
   readonly currentBranch: string;
   readonly baseBranch: string;
+  /** 最新化したbaseブランチを指すremote追跡ブランチの参照名。 */
+  readonly baseRef: string;
   readonly owner: string;
   readonly repo: string;
   readonly rebased: boolean;
@@ -28,18 +31,18 @@ const RepoInfoFromJson = Schema.fromJsonString(
     Schema.Struct({
       owner: Schema.String,
       repo: Schema.String,
-      baseBranch: Schema.String,
+      defaultBranch: Schema.String,
     }),
     SchemaTransformation.transform({
       decode: (raw) => ({
         owner: raw.owner.login,
         repo: raw.name,
-        baseBranch: raw.defaultBranchRef.name,
+        defaultBranch: raw.defaultBranchRef.name,
       }),
       encode: (info) => ({
         owner: { login: info.owner },
         name: info.repo,
-        defaultBranchRef: { name: info.baseBranch },
+        defaultBranchRef: { name: info.defaultBranch },
       }),
     }),
   ),
@@ -67,6 +70,32 @@ export class RebaseFailedError extends Data.TaggedError("RebaseFailedError")<{
   }
 }
 
+/** baseブランチとして指定された名前がブランチ名として不正な場合に投げます。 */
+export class InvalidBaseBranchError extends Data.TaggedError("InvalidBaseBranchError")<{
+  readonly baseBranch: string;
+}> {
+  override get message(): string {
+    return `Invalid base branch name: ${this.baseBranch}`;
+  }
+}
+
+/** baseリポジトリを指すremoteが見つからない場合に投げます。 */
+export class BaseRemoteNotFoundError extends Data.TaggedError("BaseRemoteNotFoundError")<{
+  readonly owner: string;
+  readonly repo: string;
+  readonly remotes: readonly Remote[];
+}> {
+  override get message(): string {
+    const remotes = this.remotes.map((remote) => `${remote.name}\t${remote.url}`);
+    return [
+      `No git remote points to ${this.owner}/${this.repo}.`,
+      "Add a remote for the base repository and retry.",
+      "Current remotes:",
+      ...(remotes.length === 0 ? ["(none)"] : remotes),
+    ].join("\n");
+  }
+}
+
 /**
  * `gh repo view`が返したJSONをデコードして`RepoInfo`を返します。
  *
@@ -76,36 +105,68 @@ export function parseRepoInfo(json: string): Effect.Effect<RepoInfo, Schema.Sche
   return Schema.decodeUnknownEffect(RepoInfoFromJson)(json);
 }
 
-/**
- * baseブランチを最新化して、元のブランチに戻ります。
- *
- * `git pull`に失敗してもできるだけ元のブランチに戻るため、
- * `Effect.ensuring`で`git switch`をfinally相当として実行します。
- */
-function pullBase(
-  baseBranch: string,
-  currentBranch: string,
-): Effect.Effect<
-  void,
+/** 登録されているremoteの名前とURLを列挙します。 */
+function listRemotes(): Effect.Effect<
+  readonly Remote[],
   CommandFailedError | PlatformError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
-    yield* runStdout("git", ["switch", "--", baseBranch]);
-    yield* runStdout("git", ["pull", "--ff-only"]);
-  }).pipe(Effect.ensuring(Effect.ignore(runStdout("git", ["switch", "--", currentBranch]))));
+    const names = (yield* runStdout("git", ["remote"])).split("\n").filter((name) => name !== "");
+    // `git remote get-url`は`insteadOf`を展開したURLを返すため、
+    // `git config`で生の値を読むよりも実際の接続先に近い値で比較できます。
+    return yield* Effect.forEach(names, (name) =>
+      runStdout("git", ["remote", "get-url", "--", name]).pipe(
+        Effect.map((url) => ({ name, url })),
+      ),
+    );
+  });
+}
+
+/**
+ * baseブランチをremoteから取得し、remote追跡ブランチの参照名を返します。
+ *
+ * forkから上流へPRを出す場合はローカルにbaseブランチが無いことが多く、
+ * baseブランチが別のworktreeでcheckoutされていることもあるため、
+ * ローカルブランチには触らずremote追跡ブランチだけを更新します。
+ * remoteのfetch refspecが一部のブランチに絞られていても取得できるように、
+ * refspecは明示します。
+ */
+function fetchBase(
+  remote: string,
+  baseBranch: string,
+): Effect.Effect<
+  string,
+  CommandFailedError | PlatformError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
+  return Effect.gen(function* () {
+    const baseRef = `refs/remotes/${remote}/${baseBranch}`;
+    yield* runStdout("git", ["fetch", "--", remote, `+refs/heads/${baseBranch}:${baseRef}`]);
+    return baseRef;
+  });
 }
 
 /**
  * baseブランチを最新化して、必要に応じて現在のブランチをbaseの上にrebaseします。
  *
+ * `baseOverride`が無い場合はリポジトリのデフォルトブランチをbaseにします。
+ *
  * pushはこの関数では行いません。
  * upstreamの有無やrebaseの結果を踏まえたforce-with-leaseの判断は、
  * `pushHead`に委ねます。
  */
-export function syncBase(): Effect.Effect<
+export function syncBase(
+  baseOverride: Option.Option<string>,
+): Effect.Effect<
   SyncBaseResult,
-  CommandFailedError | PlatformError | Schema.SchemaError | CurrentIsBaseError | RebaseFailedError,
+  | CommandFailedError
+  | PlatformError
+  | Schema.SchemaError
+  | CurrentIsBaseError
+  | InvalidBaseBranchError
+  | BaseRemoteNotFoundError
+  | RebaseFailedError,
   ChildProcessSpawner.ChildProcessSpawner
 > {
   return Effect.gen(function* () {
@@ -115,20 +176,43 @@ export function syncBase(): Effect.Effect<
       "--json",
       "owner,name,defaultBranchRef",
     ]);
-    const { owner, repo, baseBranch } = yield* parseRepoInfo(repoInfoJson);
+    const { owner, repo, defaultBranch } = yield* parseRepoInfo(repoInfoJson);
+    const baseBranch = Option.getOrElse(baseOverride, () => defaultBranch);
     const currentBranch = yield* runStdout("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+
+    // `--branch`を付けると`@{-1}`などを展開してしまうため、
+    // `refs/heads/`を前置した完全な参照名として検証します。
+    const validBranchName = yield* tryRunStdout("git", [
+      "check-ref-format",
+      `refs/heads/${baseBranch}`,
+    ]);
+    if (Option.isNone(validBranchName)) {
+      return yield* new InvalidBaseBranchError({ baseBranch });
+    }
 
     if (currentBranch === baseBranch) {
       return yield* new CurrentIsBaseError({ baseBranch });
     }
 
-    const initialBaseSha = yield* runStdout("git", ["rev-parse", "--end-of-options", baseBranch]);
-    yield* pullBase(baseBranch, currentBranch);
+    const remotes = yield* listRemotes();
+    const baseRemote = findRemoteFor(remotes, { owner, repo });
+    if (Option.isNone(baseRemote)) {
+      return yield* new BaseRemoteNotFoundError({ owner, repo, remotes });
+    }
+    const baseRef = yield* fetchBase(baseRemote.value, baseBranch);
 
-    const newBaseSha = yield* runStdout("git", ["rev-parse", "--end-of-options", baseBranch]);
-    const rebased = initialBaseSha !== newBaseSha;
+    // baseの先端が既に現在のブランチに含まれていればrebaseは不要です。
+    // `--is-ancestor`は含まれない場合に非0で終了します。
+    const upToDate = yield* tryRunStdout("git", [
+      "merge-base",
+      "--is-ancestor",
+      "--end-of-options",
+      baseRef,
+      "HEAD",
+    ]);
+    const rebased = Option.isNone(upToDate);
     if (rebased) {
-      yield* runStdout("git", ["rebase", "--", baseBranch]).pipe(
+      yield* runStdout("git", ["rebase", "--", baseRef]).pipe(
         Effect.catchTags({
           CommandFailedError: (err) =>
             Effect.gen(function* () {
@@ -141,6 +225,6 @@ export function syncBase(): Effect.Effect<
       );
     }
 
-    return { currentBranch, baseBranch, owner, repo, rebased };
+    return { currentBranch, baseBranch, baseRef, owner, repo, rebased };
   });
 }

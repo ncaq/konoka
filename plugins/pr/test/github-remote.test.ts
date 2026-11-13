@@ -1,0 +1,69 @@
+import { Option } from "effect";
+import { describe, expect, it } from "vitest";
+import { findRemoteFor, formatHead, parseGitHubRemoteUrl } from "../src/github-remote";
+
+describe("parseGitHubRemoteUrl", () => {
+  it.each([
+    "https://github.com/NixOS/nixpkgs",
+    "https://github.com/NixOS/nixpkgs.git",
+    "https://github.com/NixOS/nixpkgs/",
+    "https://ncaq@github.com/NixOS/nixpkgs.git",
+    "http://github.com/NixOS/nixpkgs.git",
+    "git@github.com:NixOS/nixpkgs.git",
+    "git@github.com:NixOS/nixpkgs",
+    "github-work:NixOS/nixpkgs.git",
+    "ssh://git@github.com/NixOS/nixpkgs.git",
+    "ssh://git@github.com:22/NixOS/nixpkgs.git",
+    "git://github.com/NixOS/nixpkgs.git",
+    "  https://github.com/NixOS/nixpkgs.git\n",
+  ])("%sからowner/repoを取り出す", (url) => {
+    expect(parseGitHubRemoteUrl(url)).toEqual(Option.some({ owner: "NixOS", repo: "nixpkgs" }));
+  });
+
+  it.each([
+    "",
+    "/home/ncaq/Desktop/nixpkgs",
+    "file:///home/ncaq/Desktop/nixpkgs",
+    "https://github.com/NixOS",
+    "https://gitlab.com/group/subgroup/repo.git",
+  ])("%sは解釈できず`Option.none`になる", (url) => {
+    expect(parseGitHubRemoteUrl(url)).toEqual(Option.none());
+  });
+});
+
+describe("findRemoteFor", () => {
+  const remotes = [
+    { name: "origin", url: "git@github.com:ncaq/nixpkgs.git" },
+    { name: "upstream", url: "https://github.com/NixOS/nixpkgs.git" },
+  ] as const;
+
+  it("owner/repoが一致するremoteの名前を返す", () => {
+    expect(findRemoteFor(remotes, { owner: "NixOS", repo: "nixpkgs" })).toEqual(
+      Option.some("upstream"),
+    );
+  });
+
+  it("大文字小文字を区別せずに比較する", () => {
+    expect(findRemoteFor(remotes, { owner: "nixos", repo: "NixPkgs" })).toEqual(
+      Option.some("upstream"),
+    );
+  });
+
+  it("一致するremoteが無ければ`Option.none`を返す", () => {
+    expect(findRemoteFor(remotes, { owner: "ncaq", repo: "konoka" })).toEqual(Option.none());
+  });
+});
+
+describe("formatHead", () => {
+  it("push先のownerがbaseのownerと異なればowner付きにする", () => {
+    expect(formatHead("feat", "NixOS", Option.some("ncaq"))).toBe("ncaq:feat");
+  });
+
+  it("push先のownerがbaseのownerと大文字小文字違いならブランチ名だけにする", () => {
+    expect(formatHead("feat", "ncaq", Option.some("NCAQ"))).toBe("feat");
+  });
+
+  it("push先のownerが不明ならブランチ名だけにする", () => {
+    expect(formatHead("feat", "ncaq", Option.none())).toBe("feat");
+  });
+});

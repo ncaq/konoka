@@ -1,7 +1,7 @@
 ---
 name: pr
 description: Generate a GitHub pull request title and body from the current branch, then let the user review before creation in manual mode or create it without confirmation in auto mode. Use when the user wants to create a pull request.
-argument-hint: "[manual|auto]"
+argument-hint: "[manual|auto] [base]"
 allowed-tools: AskUserQuestion, Bash(git status:*), Bash(konoka-pr-editor:*), Bash(prepare-editmsg:*), Bash(run-commit-msg-hook:*), Bash(sync-and-push:*), Edit, Read, Skill(pr-style), Write, mcp__github__create_pull_request, mcp__github__issue_write, mcp__plugin_claude-code-home-manager_github__create_pull_request, mcp__plugin_claude-code-home-manager_github__issue_write
 effort: low
 ---
@@ -15,7 +15,18 @@ AIがタイトルと本文を生成し、
 
 # 確認モードの決定
 
-`$ARGUMENTS`を確認モードとして解釈してください。
+`$ARGUMENTS`には確認モードとbaseブランチが順不同で並びます。
+どちらも省略できます。
+
+`$ARGUMENTS`を空白で分割し、
+`manual`または`auto`と完全一致するトークンだけを確認モードの指定として消費してください。
+残ったトークンはbaseブランチの指定です。
+baseブランチは後述の`sync-and-push`が`$ARGUMENTS`から同じ規則で取り出して扱うため、
+ここで解釈する必要はありません。
+
+部分一致で判定してはいけません。
+`auto-update`のようにブランチ名が`auto`を含むことがあり、
+包含で判定するとbaseブランチを取り違えた上に確認まで省略されてしまうからです。
 
 - `manual`: ユーザにタイトルと本文を提示し、
   確認を取ってから作成します。
@@ -23,7 +34,7 @@ AIがタイトルと本文を生成し、
   生成した内容でそのまま作成します。
   内容自体は`manual`と同じタイミングで提示します。
 
-引数が省略された場合は、
+確認モードの指定が無い場合は、
 後述の`sync-and-push`の出力の`commits`で確認モードを決めます。
 
 - `commits`が`1`の場合は`auto`として扱ってください。
@@ -34,10 +45,15 @@ AIがタイトルと本文を生成し、
 引数で`manual`が明示された場合は、
 コミットが1つだけでも`manual`として扱ってください。
 
-`manual`とも`auto`とも解釈できない値が渡された場合は、
+`manual`と`auto`の両方が指定された場合は、
 `manual`として扱った上で、
-解釈できなかった値を完了報告で伝えてください。
+そう判断したことを完了報告で伝えてください。
 勝手に`auto`とみなして確認を省略してはいけません。
+
+`atuo`のように確認モードを打ち間違えた値はbaseブランチとして扱われます。
+そのようなブランチは通常存在しないため、
+`sync-and-push`がbaseブランチの取得に失敗して、
+rebaseやpushの前に終了します。
 
 以降の手順のうち、
 対象の確認モードが明記されているセクションは、
@@ -54,17 +70,30 @@ AIがタイトルと本文を生成し、
 
 # baseとの同期とremoteへのpush
 
-!`sync-and-push`
+!`sync-and-push $ARGUMENTS`
 
 上記の埋め込みコマンドは、
 baseブランチとの同期(必要ならrebase)に続けて、
 headブランチをremoteへ同期します。
 
+スキルの引数はそのままスクリプトに渡されます。
+スクリプトは`manual`と`auto`に完全一致するトークンを読み捨てて、
+残りの1トークンをbaseブランチとして扱います。
+baseブランチの指定が無ければリポジトリのデフォルトブランチを使います。
+baseブランチの候補が2つ以上ある場合はエラーになります。
+
 このスクリプトは以下を行います。
 
-- 現在のブランチがbaseブランチでないことを確認します。
-- baseブランチに切り替えてpullし、元のブランチに戻ります。
-- baseブランチが進行していた場合は元のブランチをbaseの上にrebaseします。
+- `gh repo view`でPR先のリポジトリ(owner/repo)とデフォルトブランチを取得します。
+- baseブランチ名として正しいことと、
+  現在のブランチがbaseブランチでないことを確認します。
+- PR先のリポジトリを指すremoteを探して、
+  baseブランチをそのremote追跡ブランチへfetchします。
+  ローカルのbaseブランチには触らないため、
+  forkからの作業でローカルにbaseブランチが無い場合や、
+  baseブランチが別のworktreeでcheckoutされている場合でも動きます。
+- baseブランチの先端が現在のブランチに含まれていない場合は、
+  現在のブランチをbaseの上にrebaseします。
   PR作成後にbaseが進行するとGitHub上でupdate baseの作業が必要になりますが、
   作成前にrebaseしておくことでこれを回避します。
   PR作成前なのでrebaseで履歴が書き換わっても他者に影響しません。
@@ -78,6 +107,7 @@ headブランチをremoteへ同期します。
 スクリプトの出力は`key=value`形式で、
 
 - `current`
+- `head`
 - `base`
 - `owner`
 - `repo`
@@ -86,6 +116,11 @@ headブランチをremoteへ同期します。
 - `commits`
 
 が1ブロックにまとまって含まれます。
+
+`head`はPR作成時に`head`として渡す値です。
+push先の`origin`のownerがPR先のリポジトリのownerと異なる場合、
+つまりforkからのPRの場合は`<owner>:<current>`の形になり、
+それ以外は`current`と同じ値になります。
 
 `commits`はbaseブランチからPRに含まれるコミットの数です。
 
@@ -248,7 +283,7 @@ GitHub MCPの`create_pull_request`を使ってPRを作成してください。
 
 - `owner`: `sync-and-push`の出力の`owner`
 - `repo`: `sync-and-push`の出力の`repo`
-- `head`: `sync-and-push`の出力の`current`
+- `head`: `sync-and-push`の出力の`head`
 - `base`: `sync-and-push`の出力の`base`
 - `title`: 生成したタイトル
 - `body`: 生成した本文

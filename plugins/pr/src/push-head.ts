@@ -1,6 +1,7 @@
 import { Data, Effect, Option, Schema } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
+import { parseGitHubRemoteUrl } from "./github-remote";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 /** `pushHead`が取り得る動作の種類。 */
@@ -9,6 +10,12 @@ export type PushAction = "none" | "initial" | "normal" | "force";
 export interface PushHeadResult {
   readonly currentBranch: string;
   readonly action: PushAction;
+  /**
+   * push先remoteのGitHubリポジトリのowner。
+   * forkからのPRで`head`を`<owner>:<branch>`にするために使います。
+   * remoteのURLを解釈できなかった場合は`Option.none`です。
+   */
+  readonly pushOwner: Option.Option<string>;
 }
 
 interface AheadBehind {
@@ -178,17 +185,24 @@ export function pushHead(): Effect.Effect<
   return Effect.gen(function* () {
     const remote = "origin";
     const currentBranch = yield* runStdout("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const pushOwner = Option.map(
+      Option.flatMap(
+        yield* tryRunStdout("git", ["remote", "get-url", "--", remote]),
+        parseGitHubRemoteUrl,
+      ),
+      (repository) => repository.owner,
+    );
     const action = yield* detectAction();
 
     switch (action) {
       case "none":
-        return { currentBranch, action };
+        return { currentBranch, action, pushOwner };
       case "initial":
         yield* runStdout("git", ["push", "-u", "--", remote, currentBranch]);
-        return { currentBranch, action };
+        return { currentBranch, action, pushOwner };
       case "normal":
         yield* runStdout("git", ["push", "--", remote, currentBranch]);
-        return { currentBranch, action };
+        return { currentBranch, action, pushOwner };
       case "force": {
         const openPr = yield* findOpenPullRequest(currentBranch);
         if (Option.isSome(openPr)) {
@@ -198,7 +212,7 @@ export function pushHead(): Effect.Effect<
           });
         }
         yield* runStdout("git", ["push", "--force-with-lease", "--", remote, currentBranch]);
-        return { currentBranch, action };
+        return { currentBranch, action, pushOwner };
       }
     }
   });

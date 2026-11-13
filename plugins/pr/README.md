@@ -84,8 +84,12 @@ Claude Codeで`/pr`スキルを呼び出してください。
 
 スキルは以下のフローで動作します。
 
-1. baseブランチを最新化し、必要に応じて現在のブランチをrebaseします。
-2. 現在のブランチをremoteへpushします。
+1. PR先のリポジトリを指すremoteからbaseブランチをfetchし、
+   必要に応じて現在のブランチをrebaseします。
+   ローカルのbaseブランチには触らないため、
+   ローカルにbaseブランチが無いforkからの作業や、
+   baseブランチを別のworktreeでcheckoutしている場合でも動きます。
+2. 現在のブランチを`origin`へpushします。
    PR作成前なのでrebase後はforce-with-leaseで安全に上書きできます。
 3. リポジトリの`CONTRIBUTING.md`と`pull_request_template.md`を読み込み、
    過去のmerged PRも参考にしてタイトルと本文を生成します。
@@ -99,13 +103,45 @@ Claude Codeで`/pr`スキルを呼び出してください。
 5. ユーザが内容を確認します。
    必要なら`$EDITOR`で本文を編集できます。
 6. PRを作成し、自分自身をアサインして適切なラベルを付与します。
+   `origin`のownerがPR先のリポジトリのownerと異なるforkからのPRでは、
+   `head`を`<owner>:<branch>`の形にして作成します。
 
 このスキルは新規作成のみを扱います。
 既存PRの更新は対象外です。
 
+### 引数
+
+`/pr`は引数に確認モードとbaseブランチを順不同で取ります。
+どちらも省略できます。
+
+```text
+/pr [manual|auto] [base]
+```
+
+`manual`か`auto`に完全一致する引数が確認モードで、
+それ以外の引数がbaseブランチです。
+
+### baseブランチ引数
+
+baseブランチを省略するとリポジトリのデフォルトブランチがbaseになります。
+デフォルトブランチ以外に向けたPRを作る場合はbaseブランチを指定してください。
+
+```text
+/pr staging
+/pr auto release-26.05
+/pr haskell-updates manual
+```
+
+PR先のリポジトリは`gh repo view`が解決するリポジトリです。
+forkから上流へPRを出す場合は、
+上流のリポジトリを`upstream`などの名前でremoteに登録しておいてください。
+baseブランチはそのremoteから取得します。
+
+`manual`や`auto`という名前のブランチはbaseブランチとして指定できません。
+
 ### 確認モード引数
 
-`/pr`は引数に確認モードを取ります。
+確認モードは以下のどちらかです。
 
 | 確認モード | 挙動                                             |
 | ---------- | ------------------------------------------------ |
