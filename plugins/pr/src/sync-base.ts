@@ -134,6 +134,54 @@ function listRemotes(): Effect.Effect<
 }
 
 /**
+ * baseブランチ名として正しいことを検証します。
+ *
+ * `--branch`を付けると`@{-1}`などを展開してしまうため、
+ * `refs/heads/`を前置した完全な参照名として検証します。
+ */
+export function validateBaseBranch(
+  baseBranch: string,
+): Effect.Effect<void, PlatformError | InvalidBaseBranchError, ChildProcessSpawner.ChildProcessSpawner> {
+  return Effect.gen(function* () {
+    const valid = yield* tryRunStdout("git", ["check-ref-format", `refs/heads/${baseBranch}`]);
+    if (Option.isNone(valid)) {
+      return yield* new InvalidBaseBranchError({ baseBranch });
+    }
+  });
+}
+
+/**
+ * baseリポジトリを指すremoteの名前を返します。
+ *
+ * hostを比較しないため、同じパスを持つ別ホストのmirrorも一致し得ます。
+ * 取り違えたremoteからfetchしてrebaseやpushまで進まないように、複数一致はエラーにします。
+ */
+export function resolveBaseRemote(
+  owner: string,
+  repo: string,
+): Effect.Effect<
+  string,
+  CommandFailedError | PlatformError | BaseRemoteNotFoundError | AmbiguousBaseRemoteError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
+  return Effect.gen(function* () {
+    const remotes = yield* listRemotes();
+    const [baseRemote, ...otherRemotes] = findRemotesFor(remotes, { owner, repo });
+    if (baseRemote == null) {
+      return yield* new BaseRemoteNotFoundError({ owner, repo, remotes });
+    }
+    if (otherRemotes.length > 0) {
+      return yield* new AmbiguousBaseRemoteError({
+        owner,
+        repo,
+        candidates: [baseRemote, ...otherRemotes],
+      });
+    }
+    return baseRemote.name;
+  });
+}
+
+/**
  * baseブランチをremoteから取得し、remote追跡ブランチの参照名を返します。
  *
  * forkから上流へPRを出す場合はローカルにbaseブランチが無いことが多く、
@@ -142,7 +190,7 @@ function listRemotes(): Effect.Effect<
  * remoteのfetch refspecが一部のブランチに絞られていても取得できるように、
  * refspecは明示します。
  */
-function fetchBase(
+export function fetchBase(
   remote: string,
   baseBranch: string,
 ): Effect.Effect<
@@ -154,6 +202,51 @@ function fetchBase(
     const baseRef = `refs/remotes/${remote}/${baseBranch}`;
     yield* runStdout("git", ["fetch", "--", remote, `+refs/heads/${baseBranch}:${baseRef}`]);
     return baseRef;
+  });
+}
+
+/**
+ * `ref`が`HEAD`の祖先であるかを返します。
+ * `--is-ancestor`は祖先でない場合に非0で終了します。
+ */
+export function isAncestor(
+  ref: string,
+): Effect.Effect<boolean, PlatformError, ChildProcessSpawner.ChildProcessSpawner> {
+  return tryRunStdout("git", ["merge-base", "--is-ancestor", "--end-of-options", ref, "HEAD"]).pipe(
+    Effect.map(Option.isSome),
+  );
+}
+
+/**
+ * baseの先端が現在のブランチに含まれていなければ、
+ * 現在のブランチをbaseの上にrebaseします。
+ * rebaseしたかどうかを返します。
+ */
+export function rebaseOntoBaseIfNeeded(
+  baseRef: string,
+  baseBranch: string,
+  currentBranch: string,
+): Effect.Effect<
+  boolean,
+  CommandFailedError | PlatformError | RebaseFailedError,
+  ChildProcessSpawner.ChildProcessSpawner
+> {
+  return Effect.gen(function* () {
+    if (yield* isAncestor(baseRef)) {
+      return false;
+    }
+    yield* runStdout("git", ["rebase", "--", baseRef]).pipe(
+      Effect.catchTags({
+        CommandFailedError: (err) =>
+          Effect.gen(function* () {
+            // コンフリクト等でrebaseに失敗した場合、
+            // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
+            yield* runStdout("git", ["rebase", "--abort"]);
+            return yield* new RebaseFailedError({ currentBranch, baseBranch, cause: err });
+          }),
+      }),
+    );
+    return true;
   });
 }
 
@@ -191,59 +284,14 @@ export function syncBase(
     const baseBranch = Option.getOrElse(baseOverride, () => defaultBranch);
     const currentBranch = yield* runStdout("git", ["rev-parse", "--abbrev-ref", "HEAD"]);
 
-    // `--branch`を付けると`@{-1}`などを展開してしまうため、
-    // `refs/heads/`を前置した完全な参照名として検証します。
-    const validBranchName = yield* tryRunStdout("git", [
-      "check-ref-format",
-      `refs/heads/${baseBranch}`,
-    ]);
-    if (Option.isNone(validBranchName)) {
-      return yield* new InvalidBaseBranchError({ baseBranch });
-    }
-
+    yield* validateBaseBranch(baseBranch);
     if (currentBranch === baseBranch) {
       return yield* new CurrentIsBaseError({ baseBranch });
     }
 
-    const remotes = yield* listRemotes();
-    // hostを比較しないため、同じパスを持つ別ホストのmirrorも一致し得ます。
-    // 取り違えたremoteからfetchしてrebaseやpushまで進まないように、複数一致はエラーにします。
-    const [baseRemote, ...otherRemotes] = findRemotesFor(remotes, { owner, repo });
-    if (baseRemote == null) {
-      return yield* new BaseRemoteNotFoundError({ owner, repo, remotes });
-    }
-    if (otherRemotes.length > 0) {
-      return yield* new AmbiguousBaseRemoteError({
-        owner,
-        repo,
-        candidates: [baseRemote, ...otherRemotes],
-      });
-    }
-    const baseRef = yield* fetchBase(baseRemote.name, baseBranch);
-
-    // baseの先端が既に現在のブランチに含まれていればrebaseは不要です。
-    // `--is-ancestor`は含まれない場合に非0で終了します。
-    const upToDate = yield* tryRunStdout("git", [
-      "merge-base",
-      "--is-ancestor",
-      "--end-of-options",
-      baseRef,
-      "HEAD",
-    ]);
-    const rebased = Option.isNone(upToDate);
-    if (rebased) {
-      yield* runStdout("git", ["rebase", "--", baseRef]).pipe(
-        Effect.catchTags({
-          CommandFailedError: (err) =>
-            Effect.gen(function* () {
-              // コンフリクト等でrebaseに失敗した場合、
-              // 中断状態を残さないように`git rebase --abort`で巻き戻してから例外を再構築します。
-              yield* runStdout("git", ["rebase", "--abort"]);
-              return yield* new RebaseFailedError({ currentBranch, baseBranch, cause: err });
-            }),
-        }),
-      );
-    }
+    const baseRemote = yield* resolveBaseRemote(owner, repo);
+    const baseRef = yield* fetchBase(baseRemote, baseBranch);
+    const rebased = yield* rebaseOntoBaseIfNeeded(baseRef, baseBranch, currentBranch);
 
     return { currentBranch, baseBranch, baseRef, owner, repo, rebased };
   });
