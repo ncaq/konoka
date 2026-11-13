@@ -65,6 +65,30 @@ export function parseRemoteList(out: string): readonly Remote[] {
 }
 
 /**
+ * remoteのURLから認証情報を取り除きます。
+ *
+ * HTTPSのremoteには`https://user:token@github.com/owner/repo.git`のように認証情報が含まれることがあり、
+ * エラーメッセージに出すとAIのコンテキストやログに残ってしまいます。
+ * URLとして解釈できる場合はユーザ名とパスワードを消します。
+ * `git@github.com:owner/repo.git`のようなscp形式はURLとして解釈できませんが、
+ * パスワードを含められない形式なのでそのまま返します。
+ */
+export function redactRemoteUrl(url: string): string {
+  const parsed = URL.parse(url);
+  if (parsed == null) {
+    return url;
+  }
+  parsed.username = "";
+  parsed.password = "";
+  return parsed.toString();
+}
+
+/** エラーメッセージ用にremoteを`<name>\t<url>`の形にします。URLの認証情報は取り除きます。 */
+export function formatRemote(remote: Remote): string {
+  return `${remote.name}\t${redactRemoteUrl(remote.url)}`;
+}
+
+/**
  * remoteのURLからGitHubリポジトリのownerを取り出します。
  * URLが取得できなかった場合や解釈できない場合は`Option.none`を返します。
  */

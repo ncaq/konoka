@@ -1,7 +1,7 @@
 import { Data, Effect, Option, Schema, SchemaTransformation } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import type { ChildProcessSpawner } from "effect/process";
-import { type Remote, findRemotesFor, parseRemoteList } from "./github-remote";
+import { type Remote, findRemotesFor, formatRemote, parseRemoteList } from "./github-remote";
 import { CommandFailedError, runStdout, tryRunStdout } from "./run";
 
 export interface SyncBaseResult {
@@ -86,7 +86,7 @@ export class BaseRemoteNotFoundError extends Data.TaggedError("BaseRemoteNotFoun
   readonly remotes: readonly Remote[];
 }> {
   override get message(): string {
-    const remotes = this.remotes.map((remote) => `${remote.name}\t${remote.url}`);
+    const remotes = this.remotes.map(formatRemote);
     return [
       `No git remote points to ${this.owner}/${this.repo}.`,
       "Add a remote for the base repository and retry.",
@@ -107,7 +107,7 @@ export class AmbiguousBaseRemoteError extends Data.TaggedError("AmbiguousBaseRem
       `Multiple git remotes point to ${this.owner}/${this.repo}.`,
       "Keep only one remote for the base repository and retry.",
       "Candidate remotes:",
-      ...this.candidates.map((remote) => `${remote.name}\t${remote.url}`),
+      ...this.candidates.map(formatRemote),
     ].join("\n");
   }
 }

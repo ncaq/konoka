@@ -6,6 +6,7 @@ import {
   ownerFromRemoteUrl,
   parseGitHubRemoteUrl,
   parseRemoteList,
+  redactRemoteUrl,
 } from "../src/github-remote";
 
 describe("parseGitHubRemoteUrl", () => {
@@ -59,6 +60,23 @@ describe("parseRemoteList", () => {
     expect(parseRemoteList("local\t/tmp/my repo (fetch)\nlocal\t/tmp/my repo (push)")).toEqual([
       { name: "local", url: "/tmp/my repo" },
     ]);
+  });
+});
+
+describe("redactRemoteUrl", () => {
+  it.each([
+    ["トークン入りのhttps", "https://ncaq:ghp_secret@github.com/NixOS/nixpkgs.git"],
+    ["ユーザ名だけのhttps", "https://ncaq@github.com/NixOS/nixpkgs.git"],
+  ])("%sから認証情報を取り除く", (_, url) => {
+    expect(redactRemoteUrl(url)).toBe("https://github.com/NixOS/nixpkgs.git");
+  });
+
+  it.each([
+    "https://github.com/NixOS/nixpkgs.git",
+    "git@github.com:NixOS/nixpkgs.git",
+    "/home/ncaq/Desktop/nixpkgs",
+  ])("認証情報を含まない%sはそのまま返す", (url) => {
+    expect(redactRemoteUrl(url)).toBe(url);
   });
 });
 
