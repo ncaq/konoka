@@ -6,7 +6,10 @@ const confirmationModes = ["manual", "auto"] as const;
 type ConfirmationMode = (typeof confirmationModes)[number];
 
 function isConfirmationMode(arg: string): arg is ConfirmationMode {
-  return confirmationModes.some((mode) => mode === arg);
+  // リテラル型の配列の`includes`は`string`を受け付けないため、
+  // 型を広げる代入で`readonly string[]`として扱います。
+  const modes: readonly string[] = confirmationModes;
+  return modes.includes(arg);
 }
 
 export interface SyncAndPushArgs {
