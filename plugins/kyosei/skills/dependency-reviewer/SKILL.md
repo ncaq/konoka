@@ -30,7 +30,6 @@ allowed-tools: >-
 リリースノートやGitHubのissueなど、
 リポジトリの外にある情報の調査は、
 `Skill`ツールで`research:research`スキルを呼び出して委託してください。
-利用できない場合は直接Web検索で調査してください。
 
 # レビュー対象
 
