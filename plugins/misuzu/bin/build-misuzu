@@ -31,7 +31,9 @@ fi
 # ディレクトリを固定します。
 cd "${plugin_root}"
 # 依存関係をインストールします。
-npm ci
+# `prepare`スクリプトはtscに開発用の診断を足すパッチを当てるだけで、
+# ビルドにも実行にも不要なので、スクリプトの実行を止めます。
+npm ci --ignore-scripts
 # ビルドします。
 npm run build
 
