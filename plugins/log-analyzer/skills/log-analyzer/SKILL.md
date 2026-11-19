@@ -4,7 +4,11 @@ description: Extract key information from verbose command output. Use when you w
 context: fork
 agent: general-purpose
 background: true
-allowed-tools: Bash, Glob, Grep, Read
+allowed-tools: >-
+  Bash,
+  Glob,
+  Grep,
+  Read
 model: sonnet
 ---
 

@@ -71,6 +71,8 @@
       "Bash(statix:*)",
       "Bash(typos:*)",
       "Bash(zizmor:*)",
+      "mcp__nixos",
+      "mcp__plugin_claude-code-home-manager_nixos",
       "mcp__plugin_nix-tasuke_nixos"
     ],
     "deny": [

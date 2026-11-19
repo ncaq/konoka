@@ -2,7 +2,17 @@
 name: commit
 description: Generate a commit message from staged changes, then let the user review before committing in manual mode or commit without confirmation in auto mode. Use when the user wants to commit changes or create a git commit.
 argument-hint: "[manual|auto]"
-allowed-tools: AskUserQuestion, Bash(commit-prepare:*), Bash(git commit:*), Bash(git diff:*), Bash(konoka-commit-editor:*), Bash(run-commit-msg-hook:*), Bash(show-staged-patch:*), Edit, Read, Write, Skill(commit-style)
+allowed-tools: >-
+  Bash(commit-prepare:*),
+  Bash(git commit:*),
+  Bash(git diff:*),
+  Bash(konoka-commit-editor:*),
+  Bash(run-commit-msg-hook:*),
+  Bash(show-staged-patch:*),
+  Edit,
+  Read,
+  Skill(commit:commit-style),
+  Write
 effort: low
 ---
 
@@ -35,7 +45,7 @@ AIがコミットメッセージを生成し、
 
 # スタイルガイドラインの適用
 
-`Skill`ツールで`commit-style`スキルを呼び出し、
+`Skill`ツールで`commit:commit-style`スキルを呼び出し、
 スタイルガイドラインに従ってください。
 
 # コミットメッセージファイルの生成

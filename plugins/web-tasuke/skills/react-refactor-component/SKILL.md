@@ -2,7 +2,28 @@
 name: react-refactor-component
 description: Refactor React components to follow project conventions. Use when reorganizing, splitting, or cleaning up existing React component files.
 argument-hint: "[file-path or component-name]"
-allowed-tools: AskUserQuestion, Bash(biome check:*), Bash(biome format:*), Bash(biome lint:*), Bash(eslint:*), Bash(git diff:*), Bash(git mv:*), Bash(git status:*), Bash(nix build --no-link:*), Bash(nix flake check:*), Bash(nix fmt:*), Bash(nix-fast-build --no-link:*), Bash(npm run:*), Bash(pnpm run:*), Bash(prettier:*), Bash(tsc --noEmit:*), Bash(yarn run:*), Edit, Glob, Grep, Read, Write
+allowed-tools: >-
+  Bash(biome check:*),
+  Bash(biome format:*),
+  Bash(biome lint:*),
+  Bash(eslint:*),
+  Bash(git diff:*),
+  Bash(git mv:*),
+  Bash(git status:*),
+  Bash(nix build --no-link:*),
+  Bash(nix flake check:*),
+  Bash(nix fmt:*),
+  Bash(nix-fast-build --no-link:*),
+  Bash(npm run:*),
+  Bash(pnpm run:*),
+  Bash(prettier:*),
+  Bash(tsc --noEmit:*),
+  Bash(yarn run:*),
+  Edit,
+  Glob,
+  Grep,
+  Read,
+  Write
 ---
 
 # Reactコンポーネントリファクタリング

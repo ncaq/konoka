@@ -1,7 +1,9 @@
 ---
 name: commit-style
 description: Commit message style guidelines. Use when writing or proposing git commit messages, including direct git commit commands outside the /commit skill.
-allowed-tools: Bash(git log:*), Bash(read-commit-instructions:*)
+allowed-tools: >-
+  Bash(git log:*),
+  Bash(read-commit-instructions:*)
 user-invocable: false
 effort: low
 ---
