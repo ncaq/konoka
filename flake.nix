@@ -472,6 +472,68 @@
                 touch $out
               '';
 
+            # allowed-toolsのMCPツール一覧は静的なSKILL.mdに重複して書かれているため、
+            # 片方だけ更新して同期が漏れた状態を検出する。
+            # 上流のMCPサーバにツールが追加されたことまでは検出しない。
+            allowed-tools-sync =
+              let
+                mcpTools =
+                  path:
+                  lib.pipe (builtins.readFile path) [
+                    (lib.splitString "\n")
+                    (builtins.filter (lib.hasPrefix "  mcp__"))
+                    (map (
+                      line:
+                      let
+                        name = lib.removeSuffix "," (lib.removePrefix "  " line);
+                        matched = builtins.match "mcp__(plugin_([^_]+)_)?([^_]+)__(.+)" name;
+                      in
+                      assert lib.assertMsg (matched != null) "${toString path}: MCPツール名を解釈できません: ${name}";
+                      {
+                        # ユーザスコープなどプラグインを経由しない名前は空文字列にする。
+                        plugin = if builtins.elemAt matched 1 == null then "" else builtins.elemAt matched 1;
+                        server = builtins.elemAt matched 2;
+                        tool = builtins.elemAt matched 3;
+                      }
+                    ))
+                  ];
+                toolNames = tools: lib.sort builtins.lessThan (map (t: t.tool) tools);
+                # 同じサーバのツールは、接頭辞のない名前でもプラグイン経由の名前でも同じ一覧を許可する。
+                assertSameAcrossPlugins =
+                  path:
+                  lib.all
+                    (
+                      server:
+                      let
+                        byPlugin = lib.attrValues (lib.groupBy (t: t.plugin) server.tools);
+                      in
+                      lib.assertMsg (lib.all (
+                        tools: toolNames tools == toolNames (builtins.head byPlugin)
+                      ) byPlugin) "${toString path}: ${server.name}のツール一覧が名前の接頭辞によって異なります"
+                    )
+                    (
+                      lib.mapAttrsToList (name: tools: { inherit name tools; }) (
+                        lib.groupBy (t: t.server) (mcpTools path)
+                      )
+                    );
+                githubReadTools =
+                  path:
+                  lib.subtractLists [
+                    "create_pull_request"
+                    "issue_write"
+                  ] (toolNames (builtins.filter (t: t.plugin == "" && t.server == "github") (mcpTools path)));
+                skillsWithGithub = [
+                  ./plugins/pr/skills/pr-style/SKILL.md
+                  ./plugins/pr/skills/pr/SKILL.md
+                  ./plugins/research/skills/survey/SKILL.md
+                ];
+              in
+              assert lib.all assertSameAcrossPlugins skillsWithGithub;
+              assert lib.assertMsg (lib.all (
+                path: githubReadTools path == githubReadTools (builtins.head skillsWithGithub)
+              ) skillsWithGithub) "GitHub MCPの読み取り専用ツールの一覧がスキルの間で一致しません";
+              pkgs.runCommand "allowed-tools-sync" { } "touch $out";
+
             lint-agnix =
               pkgs.runCommand "lint-agnix"
                 {
