@@ -1,7 +1,21 @@
 ---
 name: bump-cabal-index-state
 description: Update Cabal project index-state to the latest timestamp. Use when it needs to bump the cabal index-state.
-allowed-tools: Bash(cabal build:*), Bash(cabal update:*), Bash(gh pr create:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git status:*), Bash(git switch:*), Bash(nix flake check:*), Edit, Glob, Grep, Read, Write
+allowed-tools: >-
+  Bash(cabal build:*),
+  Bash(cabal update:*),
+  Bash(gh pr create:*),
+  Bash(git add:*),
+  Bash(git commit:*),
+  Bash(git push:*),
+  Bash(git remote:*),
+  Bash(git status:*),
+  Bash(git switch:*),
+  Bash(nix flake check:*),
+  Edit,
+  Glob,
+  Grep,
+  Read
 effort: medium
 ---
 
@@ -106,8 +120,12 @@ haskell.nixは最新の`index-state`への対応に遅れがあります。
 
 ## GitHubにプルリクエストを作成する
 
-まずGitHubを利用しているか確認してください。
+まず以下のコマンドでGitHubを利用しているか確認してください。
 GitHubを利用していない場合はこの手順をスキップしてください。
+
+```bash
+git remote --verbose
+```
 
 GitHubを利用している場合は以下のGitコマンドでリモートリポジトリにプッシュしてください。
 

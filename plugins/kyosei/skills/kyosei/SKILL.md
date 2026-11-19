@@ -4,7 +4,8 @@ description: Code review for PRs or local changes. Covers code quality, dependen
 argument-hint: "[pr-url]"
 allowed-tools: >-
   Bash(get-review-info:*),
-  Bash(node:*),
+  Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/bin/get-review-info.js:*),
+  Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/bin/submit-review.js:*),
   Bash(submit-review:*),
   Glob,
   Grep,
@@ -14,9 +15,7 @@ allowed-tools: >-
   Skill(kyosei:documentation-reviewer),
   Skill(kyosei:performance-reviewer),
   Skill(kyosei:security-reviewer),
-  Skill(kyosei:test-reviewer),
-  mcp__github,
-  mcp__plugin_claude-code-home-manager_github
+  Skill(kyosei:test-reviewer)
 ---
 
 # コマンドの実行方法

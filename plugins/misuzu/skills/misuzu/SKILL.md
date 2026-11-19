@@ -2,7 +2,18 @@
 name: misuzu
 description: Respond to PR review comments semi-automatically. Fetches all review threads and comments, splits them into logical units, fixes and commits one unit at a time, then replies and resolves review threads. Use when the user wants to address PR review feedback or respond to review comments.
 argument-hint: "[manual|auto] [pr-or-review-url]"
-allowed-tools: Agent, AskUserQuestion, Bash, Edit, EnterPlanMode, ExitPlanMode, Glob, Grep, LSP, Monitor, NotebookEdit, Read, Skill, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop, TaskUpdate, TodoWrite, ToolSearch, WebFetch, WebSearch, Write
+allowed-tools: >-
+  Bash,
+  Edit,
+  Glob,
+  Grep,
+  Monitor,
+  NotebookEdit,
+  Read,
+  Skill,
+  WebFetch,
+  WebSearch,
+  Write
 ---
 
 # 確認モードの決定

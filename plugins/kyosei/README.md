@@ -242,8 +242,9 @@ kyosei-actionとClaude Codeのリリースページへのリンクは、
 
 dependency-reviewerは差分に依存関係の変更が含まれている場合に、
 リリースノートやコミュニティの反応を調査して影響を評価します。
-[research@konoka](../research/)プラグインが利用可能な場合は`/research`スキルを活用し、
-利用できない場合は直接Web検索やMCPで調査します。
+リポジトリの外にある情報の調査は、
+[research@konoka](../research/)プラグインの`/research`スキルに委託します。
+他のレビュースキルも外部情報の調査が必要な場合は同じく`/research`スキルに委託します。
 
 ## ライセンス
 
