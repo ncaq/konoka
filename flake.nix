@@ -477,18 +477,23 @@
             # 上流のMCPサーバにツールが追加されたことまでは検出しない。
             allowed-tools-sync =
               let
+                relativePath = path: lib.removePrefix "${toString ./.}/" (toString path);
+                # frontmatterだけを対象にして、本文のコード例などを拾わないようにする。
+                # 行の書式には頼らず語で区切るので、YAMLのリスト形式で書かれていても拾える。
                 mcpTools =
                   path:
-                  lib.pipe (builtins.readFile path) [
-                    (lib.splitString "\n")
-                    (builtins.filter (lib.hasPrefix "  mcp__"))
+                  let
+                    frontmatter = builtins.head (lib.splitString "\n---\n" (builtins.readFile path));
+                  in
+                  lib.pipe frontmatter [
+                    (builtins.split "[ ,\n]+")
+                    (builtins.filter (word: builtins.isString word && lib.hasPrefix "mcp__" word))
                     (map (
-                      line:
+                      name:
                       let
-                        name = lib.removeSuffix "," (lib.removePrefix "  " line);
                         matched = builtins.match "mcp__(plugin_([^_]+)_)?([^_]+)__(.+)" name;
                       in
-                      assert lib.assertMsg (matched != null) "${toString path}: MCPツール名を解釈できません: ${name}";
+                      assert lib.assertMsg (matched != null) "${relativePath path}: MCPツール名を解釈できません: ${name}";
                       {
                         # ユーザスコープなどプラグインを経由しない名前は空文字列にする。
                         plugin = if builtins.elemAt matched 1 == null then "" else builtins.elemAt matched 1;
@@ -498,40 +503,83 @@
                     ))
                   ];
                 toolNames = tools: lib.sort builtins.lessThan (map (t: t.tool) tools);
-                # 同じサーバのツールは、接頭辞のない名前でもプラグイン経由の名前でも同じ一覧を許可する。
-                assertSameAcrossPlugins =
+                # MCPツールを許可するスキルを自動で集めて、対象の追加漏れを防ぐ。
+                skills = builtins.filter (path: baseNameOf path == "SKILL.md" && mcpTools path != [ ]) (
+                  lib.filesystem.listFilesRecursive ./plugins
+                );
+                # サーバ名から、そのサーバを`.mcp.json`で提供するkonokaのプラグイン名の一覧を求める。
+                pluginsProviding =
+                  server:
+                  builtins.filter (
+                    pluginName:
+                    let
+                      mcpJson = ./plugins/${pluginName}/.mcp.json;
+                    in
+                    builtins.pathExists mcpJson && (lib.importJSON mcpJson).mcpServers ? ${server}
+                  ) (lib.attrNames (builtins.readDir ./plugins));
+                # 同じサーバは以下の全ての名前で許可する。
+                # ユーザスコープの定義がプラグインの定義より優先されて名前が変わるため。
+                expectedPlugins =
+                  server:
+                  lib.sort builtins.lessThan (
+                    [
+                      # 接頭辞のない名前。
+                      ""
+                      "claude-code-home-manager"
+                    ]
+                    ++ pluginsProviding server
+                  );
+                assertServers =
                   path:
                   lib.all
                     (
                       server:
                       let
-                        byPlugin = lib.attrValues (lib.groupBy (t: t.plugin) server.tools);
+                        byPlugin = lib.groupBy (t: t.plugin) server.tools;
                       in
+                      assert lib.assertMsg (
+                        lib.attrNames byPlugin == expectedPlugins server.name
+                      ) "${relativePath path}: ${server.name}を許可する名前の接頭辞に過不足があります";
                       lib.assertMsg (lib.all (
-                        tools: toolNames tools == toolNames (builtins.head byPlugin)
-                      ) byPlugin) "${toString path}: ${server.name}のツール一覧が名前の接頭辞によって異なります"
+                        tools: toolNames tools == toolNames (builtins.head (lib.attrValues byPlugin))
+                      ) (lib.attrValues byPlugin)) "${relativePath path}: ${server.name}のツール一覧が名前の接頭辞によって異なります"
                     )
                     (
                       lib.mapAttrsToList (name: tools: { inherit name tools; }) (
                         lib.groupBy (t: t.server) (mcpTools path)
                       )
                     );
-                githubReadTools =
-                  path:
-                  lib.subtractLists [
+                # 読み取り専用ではないGitHub MCPのツールのうち、スキルが手順で使うために許可するもの。
+                # ここに無いスキルは読み取り専用ツールだけを許可する。
+                githubWriteTools = {
+                  "plugins/pr/skills/pr/SKILL.md" = [
                     "create_pull_request"
                     "issue_write"
-                  ] (toolNames (builtins.filter (t: t.plugin == "" && t.server == "github") (mcpTools path)));
-                skillsWithGithub = [
-                  ./plugins/pr/skills/pr-style/SKILL.md
-                  ./plugins/pr/skills/pr/SKILL.md
-                  ./plugins/research/skills/survey/SKILL.md
-                ];
+                  ];
+                };
+                githubTools =
+                  path: toolNames (builtins.filter (t: t.plugin == "" && t.server == "github") (mcpTools path));
+                githubReadTools =
+                  path: lib.subtractLists (githubWriteTools.${relativePath path} or [ ]) (githubTools path);
+                githubSkills = builtins.filter (path: githubTools path != [ ]) skills;
               in
-              assert lib.all assertSameAcrossPlugins skillsWithGithub;
-              assert lib.assertMsg (lib.all (
-                path: githubReadTools path == githubReadTools (builtins.head skillsWithGithub)
-              ) skillsWithGithub) "GitHub MCPの読み取り専用ツールの一覧がスキルの間で一致しません";
+              # 抽出が空になったまま成功しないように、対象が見つかっていることを確かめる。
+              assert lib.assertMsg (githubSkills != [ ]) "GitHub MCPのツールを許可するスキルが見つかりません";
+              assert lib.all (
+                path:
+                lib.assertMsg (lib.all (tool: builtins.elem tool (githubTools path)) (
+                  githubWriteTools.${relativePath path} or [ ]
+                )) "${relativePath path}: 許可するはずのGitHub MCPの書き込みツールがありません"
+              ) githubSkills;
+              assert lib.assertMsg (lib.all (rel: builtins.elem rel (map relativePath githubSkills)) (
+                lib.attrNames githubWriteTools
+              )) "githubWriteToolsにGitHub MCPのツールを許可しないスキルがあります";
+              assert lib.all assertServers skills;
+              assert lib.all (
+                path:
+                lib.assertMsg (githubReadTools path == githubReadTools (builtins.head githubSkills))
+                  "${relativePath path}: GitHub MCPの読み取り専用ツールの一覧が${relativePath (builtins.head githubSkills)}と一致しません"
+              ) githubSkills;
               pkgs.runCommand "allowed-tools-sync" { } "touch $out";
 
             lint-agnix =
