@@ -529,6 +529,11 @@
                     ]
                     ++ pluginsProviding server
                   );
+                # 失敗メッセージから修正箇所が分かるように、期待する一覧に対する過不足を文字列にする。
+                describeDiff =
+                  expected: actual:
+                  "不足: [${toString (lib.subtractLists actual expected)}] 余分: [${toString (lib.subtractLists expected actual)}]";
+                showPlugin = plugin: if plugin == "" then "接頭辞なし" else plugin;
                 assertServers =
                   path:
                   lib.all
@@ -536,13 +541,18 @@
                       server:
                       let
                         byPlugin = lib.groupBy (t: t.plugin) server.tools;
+                        plugins = lib.attrNames byPlugin;
+                        reference = builtins.head plugins;
                       in
-                      assert lib.assertMsg (
-                        lib.attrNames byPlugin == expectedPlugins server.name
-                      ) "${relativePath path}: ${server.name}を許可する名前の接頭辞に過不足があります";
-                      lib.assertMsg (lib.all (
-                        tools: toolNames tools == toolNames (builtins.head (lib.attrValues byPlugin))
-                      ) (lib.attrValues byPlugin)) "${relativePath path}: ${server.name}のツール一覧が名前の接頭辞によって異なります"
+                      assert lib.assertMsg (plugins == expectedPlugins server.name)
+                        "${relativePath path}: ${server.name}を許可する名前の接頭辞に過不足があります。${describeDiff (map showPlugin (expectedPlugins server.name)) (map showPlugin plugins)}";
+                      lib.all (
+                        plugin:
+                        lib.assertMsg (toolNames byPlugin.${plugin} == toolNames byPlugin.${reference})
+                          "${relativePath path}: ${server.name}のツール一覧が${showPlugin reference}と${showPlugin plugin}で異なります。${
+                            describeDiff (toolNames byPlugin.${reference}) (toolNames byPlugin.${plugin})
+                          }"
+                      ) plugins
                     )
                     (
                       lib.mapAttrsToList (name: tools: { inherit name tools; }) (
@@ -567,9 +577,12 @@
               assert lib.assertMsg (githubSkills != [ ]) "GitHub MCPのツールを許可するスキルが見つかりません";
               assert lib.all (
                 path:
-                lib.assertMsg (lib.all (tool: builtins.elem tool (githubTools path)) (
-                  githubWriteTools.${relativePath path} or [ ]
-                )) "${relativePath path}: 許可するはずのGitHub MCPの書き込みツールがありません"
+                let
+                  missing = lib.subtractLists (githubTools path) (githubWriteTools.${relativePath path} or [ ]);
+                in
+                lib.assertMsg (
+                  missing == [ ]
+                ) "${relativePath path}: 許可するはずのGitHub MCPの書き込みツールがありません: [${toString missing}]"
               ) githubSkills;
               assert lib.assertMsg (lib.all (rel: builtins.elem rel (map relativePath githubSkills)) (
                 lib.attrNames githubWriteTools
@@ -578,7 +591,7 @@
               assert lib.all (
                 path:
                 lib.assertMsg (githubReadTools path == githubReadTools (builtins.head githubSkills))
-                  "${relativePath path}: GitHub MCPの読み取り専用ツールの一覧が${relativePath (builtins.head githubSkills)}と一致しません"
+                  "${relativePath path}: GitHub MCPの読み取り専用ツールの一覧が${relativePath (builtins.head githubSkills)}と一致しません。${describeDiff (githubReadTools (builtins.head githubSkills)) (githubReadTools path)}"
               ) githubSkills;
               pkgs.runCommand "allowed-tools-sync" { } "touch $out";
 
