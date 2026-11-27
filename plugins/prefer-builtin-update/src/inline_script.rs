@@ -517,6 +517,23 @@ mod tests {
     }
 
     #[test]
+    fn skips_piped_script_behind_wrapper_command_as_false_negative() {
+        // パイプの判定は処理系の名前の直前しか見ないので、
+        // 別のコマンド越しの処理系へパイプで渡された本文は見逃す。
+        // READMEの「位置づけと限界」で許容と明記した挙動を固定する。
+        for command in [
+            "echo 'print(1)' | uv run python",
+            "echo 'print(1)' | timeout 5 python3",
+            "echo 'print(1)' | nix run nixpkgs#python3",
+        ] {
+            assert!(
+                detect_inline_script(command).is_none(),
+                "{command} should be skipped",
+            );
+        }
+    }
+
+    #[test]
     fn detects_node_eval() {
         assert_eq!(
             detect_inline_script("node -e 'console.log(1)'").as_deref(),
