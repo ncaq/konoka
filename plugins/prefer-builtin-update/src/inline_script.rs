@@ -166,8 +166,12 @@ fn classify_flagged(syntax: &Syntax, args: &[&str]) -> Invocation {
             return Invocation::Stdin;
         }
         if arg == "--" {
-            // フラグの終わり。後ろに何かあればスクリプトファイル。
-            return Invocation::Script;
+            // フラグの終わり。次の単語がスクリプトファイルで、無ければ標準入力から読む。
+            return match args.next() {
+                None => Invocation::NoScript,
+                Some("-") => Invocation::Stdin,
+                Some(_) => Invocation::Script,
+            };
         }
         if arg.starts_with("--") {
             let (name, attached_value) = match arg.split_once('=') {
