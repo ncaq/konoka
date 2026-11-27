@@ -1,5 +1,6 @@
 //! ファイル書き換えコマンドの検出ロジック。
 
+use crate::interpreter::interpreter_of;
 use std::iter::Peekable;
 use std::str::Chars;
 use winnow::Parser;
@@ -78,16 +79,9 @@ fn is_inplace_capable(word: &str) -> bool {
     matches!(basename(word), "sed" | "perl" | "ruby")
 }
 
-/// `python`/`python3`/`python3.12`のようなPython処理系の名前か。
-fn is_python(name: &str) -> bool {
-    name.strip_prefix("python")
-        .is_some_and(|rest| rest.chars().all(|c| c.is_ascii_digit() || c == '.'))
-}
-
 /// ワンライナーでファイルを書き換えうるスクリプト処理系の名前か。
 fn is_interpreter(word: &str) -> bool {
-    let name = basename(word);
-    is_python(name) || matches!(name, "node" | "ruby" | "perl")
+    interpreter_of(basename(word)).is_some()
 }
 
 /// `after`(コマンド名より後のトークン列)にin-place編集フラグが含まれるか。

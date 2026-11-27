@@ -47,7 +47,7 @@ PreToolUseフックでBashツールのコマンドを監視し、
   - パイプの後ろの`tee`や`sponge`
 - `cat > a.txt <<'EOF'`のような`cat`とヒアドキュメントによるファイルの作成
 - `perl -i`や`ruby -i`のようなin-place編集
-- `python`/`node`/`ruby`/`perl`のワンライナーやヒアドキュメントに、
+- `python`/`node`/`ruby`/`perl`などのスクリプト処理系のワンライナーやヒアドキュメントに、
   `open(..., "w")`や`writeFileSync`のような書き込みパターンが含まれる場合
 - インラインスクリプトの即座実行
   - `python3 -c`や`node -e`のようにスクリプトの本文を引数で渡す場合
@@ -78,6 +78,7 @@ grepは検索に日常的に使うためコマンドごとは拒否せず、
 承認する人間が実行前に内容を検証しにくいためです。
 `Write`ツールでスクリプトファイルとして書き出してから実行してください。
 対象の処理系は以下の通りです。
+書き込みパターンを含むワンライナーの検出でも同じ処理系を対象にします。
 
 - Python: `python`と`python3`と`python3.12`のようなバージョン付きの名前、`pypy`、`ipython`
 - JavaScript: `node`、`nodejs`、`bun`、`tsx`、`ts-node`、`deno`

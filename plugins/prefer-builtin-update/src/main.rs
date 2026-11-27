@@ -11,6 +11,7 @@
 mod detect;
 mod inline_script;
 mod input;
+mod interpreter;
 mod output;
 mod serialize;
 

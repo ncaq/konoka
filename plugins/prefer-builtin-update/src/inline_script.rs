@@ -5,6 +5,7 @@
 //! ファイルへ書き込むかどうかは問わない。
 
 use crate::detect::{Tok, basename, scan_io, tokenize};
+use crate::interpreter::{Interpreter, interpreter_of};
 use std::str::Chars;
 
 /// スクリプト処理系のコマンドラインの文法。
@@ -71,15 +72,6 @@ const PERL: Syntax = Syntax {
     value_long: &[],
 };
 
-/// 検出対象のスクリプト処理系。
-#[derive(Debug, Clone, Copy)]
-enum Interpreter {
-    /// フラグでスクリプトの本文を取る処理系。
-    Flagged(&'static Syntax),
-    /// `deno eval`のようにサブコマンドでスクリプトの本文を取るDeno。
-    Deno,
-}
-
 /// 処理系のコマンドラインがスクリプトをどこから取るか。
 #[derive(Debug, PartialEq, Eq)]
 enum Invocation {
@@ -91,29 +83,6 @@ enum Invocation {
     NoScript,
     /// スクリプトファイルやモジュールを実行する。
     Script,
-}
-
-/// `3`や`3.12`のようなバージョンの接尾辞か。空文字列も含む。
-fn is_version_suffix(rest: &str) -> bool {
-    rest.chars().all(|c| c.is_ascii_digit() || c == '.')
-}
-
-/// コマンド名からスクリプト処理系を判定する。
-fn interpreter_of(name: &str) -> Option<Interpreter> {
-    const PYTHON_NAMES: [&str; 3] = ["ipython", "python", "pypy"];
-    let is_python = PYTHON_NAMES
-        .iter()
-        .any(|prefix| name.strip_prefix(prefix).is_some_and(is_version_suffix));
-    if is_python {
-        return Some(Interpreter::Flagged(&PYTHON));
-    }
-    match name {
-        "node" | "nodejs" | "bun" | "tsx" | "ts-node" => Some(Interpreter::Flagged(&JAVASCRIPT)),
-        "deno" => Some(Interpreter::Deno),
-        "ruby" => Some(Interpreter::Flagged(&RUBY)),
-        "perl" => Some(Interpreter::Flagged(&PERL)),
-        _ => None,
-    }
 }
 
 /// 単語が指すスクリプト処理系。
@@ -240,7 +209,11 @@ fn classify_flagged(syntax: &Syntax, args: &[&str]) -> Invocation {
 /// 処理系への引数を分類する。
 fn classify(interpreter: Interpreter, args: &[&str]) -> Invocation {
     match interpreter {
-        Interpreter::Flagged(syntax) => classify_flagged(syntax, args),
+        Interpreter::Python => classify_flagged(&PYTHON, args),
+        Interpreter::JavaScript => classify_flagged(&JAVASCRIPT, args),
+        Interpreter::Ruby => classify_flagged(&RUBY, args),
+        Interpreter::Perl => classify_flagged(&PERL, args),
+        // Denoはフラグではなくサブコマンドでスクリプトの本文を取る。
         Interpreter::Deno => match args.iter().find(|arg| !arg.starts_with('-')) {
             Some(&"eval") => Invocation::Inline("eval"),
             _ => Invocation::Script,
