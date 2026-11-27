@@ -699,6 +699,22 @@ mod tests {
     }
 
     #[test]
+    fn detects_stdin_script_after_option_terminator() {
+        // `--`の後ろにスクリプトファイルが無ければ標準入力から本文を読む。
+        assert!(detect_inline_script("python3 -- <<'EOF'\nprint(1)\nEOF").is_some());
+        assert!(detect_inline_script("echo 'print(1)' | python3 --").is_some());
+        assert!(detect_inline_script("python3 -- - <<'EOF'\nprint(1)\nEOF").is_some());
+    }
+
+    #[test]
+    fn skips_script_after_option_terminator() {
+        // `--`の後ろの単語はスクリプトファイルで、それより後ろはスクリプトへの引数。
+        assert!(detect_inline_script("node -- script.js -e x").is_none());
+        assert!(detect_inline_script("python3 -- script.py -c config.toml").is_none());
+        assert!(detect_inline_script("cat a.json | python3 -- script.py").is_none());
+    }
+
+    #[test]
     fn skips_shell_command_string() {
         // シェル自身の`-c`は対象外。
         assert!(detect_inline_script("bash -c 'ls -la'").is_none());
