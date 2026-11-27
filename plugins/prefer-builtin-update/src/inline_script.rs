@@ -636,6 +636,127 @@ mod tests {
         assert!(detect_inline_script("perl -0777 -ne 'print' a.txt").is_some());
     }
 
+    /// 文法のテーブルと、それを使う代表的なコマンド名の組。
+    const SYNTAXES: [(&str, &Syntax); 4] = [
+        ("python3", &PYTHON),
+        ("node", &JAVASCRIPT),
+        ("ruby", &RUBY),
+        ("perl", &PERL),
+    ];
+
+    /// 文法の本文を取るフラグのうち代表として使うもの。
+    fn inline_flag(syntax: &Syntax) -> &'static str {
+        syntax.inline_short[0].1
+    }
+
+    #[test]
+    fn detects_inline_flag_after_every_short_flag_with_value() {
+        // 値がスクリプトファイルと取り違えられると後ろの本文を取るフラグを見逃す。
+        for (name, syntax) in SYNTAXES {
+            let inline = inline_flag(syntax);
+            for flag in syntax.value_short.chars() {
+                for command in [
+                    format!("{name} -{flag} value {inline} 'x'"),
+                    format!("{name} -{flag}value {inline} 'x'"),
+                ] {
+                    assert!(
+                        detect_inline_script(&command).is_some(),
+                        "{command} should be detected",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn detects_inline_flag_after_every_short_flag_with_attached_value() {
+        // 直後に繋げた値の中の文字を本文を取るフラグなどと取り違えない。
+        for (name, syntax) in SYNTAXES {
+            let inline = inline_flag(syntax);
+            for flag in syntax.attached_short.chars() {
+                let command = format!("{name} -{flag}value {inline} 'x'");
+                assert!(
+                    detect_inline_script(&command).is_some(),
+                    "{command} should be detected",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn skips_inline_flag_letter_inside_attached_value() {
+        // 値の中に本文を取るフラグと同じ文字があっても本文を取るフラグとはみなさない。
+        for (name, syntax) in SYNTAXES {
+            let flags = syntax
+                .value_short
+                .chars()
+                .chain(syntax.attached_short.chars());
+            for flag in flags {
+                for (letter, _) in syntax.inline_short {
+                    let command = format!("{name} -{flag}{letter} script");
+                    assert!(
+                        detect_inline_script(&command).is_none(),
+                        "{command} should be skipped",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn detects_inline_flag_after_every_long_flag_with_value() {
+        for (name, syntax) in SYNTAXES {
+            let inline = inline_flag(syntax);
+            for flag in syntax.value_long {
+                for command in [
+                    format!("{name} {flag} value {inline} 'x'"),
+                    format!("{name} {flag}=value {inline} 'x'"),
+                ] {
+                    assert!(
+                        detect_inline_script(&command).is_some(),
+                        "{command} should be detected",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn skips_script_after_every_long_flag_with_attached_value() {
+        // `=`で値を繋げた場合は次の単語を値として読み飛ばさない。
+        // 読み飛ばすとスクリプトファイルを見落として後ろのスクリプトへの引数を誤検知する。
+        for (name, syntax) in SYNTAXES {
+            let inline = inline_flag(syntax);
+            for flag in syntax.value_long {
+                let command = format!("{name} {flag}=value script {inline} x");
+                assert!(
+                    detect_inline_script(&command).is_none(),
+                    "{command} should be skipped",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn detects_every_inline_flag() {
+        for (name, syntax) in SYNTAXES {
+            for (letter, flag) in syntax.inline_short {
+                let command = format!("{name} -{letter} 'x'");
+                assert_eq!(
+                    detect_inline_script(&command),
+                    Some(format!("inline script execution with `{name} {flag}`")),
+                );
+            }
+            for flag in syntax.inline_long {
+                let command = format!("{name} {flag} 'x'");
+                assert_eq!(
+                    detect_inline_script(&command),
+                    Some(format!("inline script execution with `{name} {flag}`")),
+                );
+            }
+        }
+    }
+
     #[test]
     fn skips_python_script_execution() {
         assert!(detect_inline_script("python3 script.py").is_none());
