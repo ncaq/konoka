@@ -1,14 +1,18 @@
-use crate::serialize::mk_deny_output;
+use crate::serialize::{Guidance, mk_deny_output};
 use std::io::{self, Write};
 
 /// 拒否の判断を標準出力にJSONで出力する。
-pub fn output_deny(detected: &str) -> Result<(), Box<dyn std::error::Error>> {
-    write_deny(io::stdout().lock(), detected)
+pub fn output_deny(detected: &str, guidance: Guidance) -> Result<(), Box<dyn std::error::Error>> {
+    write_deny(io::stdout().lock(), detected, guidance)
 }
 
 /// 任意の`Write`にJSONを書き込む。
-fn write_deny<W: Write>(mut writer: W, detected: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let output = mk_deny_output(detected);
+fn write_deny<W: Write>(
+    mut writer: W,
+    detected: &str,
+    guidance: Guidance,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let output = mk_deny_output(detected, guidance);
     let json = serde_json::to_string(&output)?;
     writeln!(writer, "{json}")?;
     Ok(())
@@ -21,7 +25,7 @@ mod tests {
 
     fn capture(detected: &str) -> String {
         let mut buf = Vec::new();
-        write_deny(&mut buf, detected).expect("write should succeed");
+        write_deny(&mut buf, detected, Guidance::Update).expect("write should succeed");
         String::from_utf8(buf).expect("output should be utf-8")
     }
 
@@ -59,7 +63,11 @@ mod tests {
                 Ok(())
             }
         }
-        let result = write_deny(FailingWriter, "`sed -i` style in-place file editing");
+        let result = write_deny(
+            FailingWriter,
+            "`sed -i` style in-place file editing",
+            Guidance::Update,
+        );
         assert!(result.is_err());
     }
 }

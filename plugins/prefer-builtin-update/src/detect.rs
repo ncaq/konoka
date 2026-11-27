@@ -1,5 +1,6 @@
 //! ファイル書き換えコマンドの検出ロジック。
 
+use crate::interpreter::interpreter_of;
 use std::iter::Peekable;
 use std::str::Chars;
 use winnow::Parser;
@@ -8,7 +9,7 @@ use winnow::token::{one_of, take_while};
 
 /// シェルコマンドを構成する最小単位のトークン。
 #[derive(Debug, PartialEq, Eq)]
-enum Tok<'s> {
+pub(crate) enum Tok<'s> {
     /// 連続する空白文字。
     Whitespace(&'s str),
     /// シェルメタ文字を1文字単位で保持する。`&&`は2連続の`Punctuation('&')`になる。
@@ -19,7 +20,7 @@ enum Tok<'s> {
 
 impl Tok<'_> {
     /// 元のコマンド文字列上でこのトークンが占めるバイト長。
-    fn byte_len(&self) -> usize {
+    pub(crate) fn byte_len(&self) -> usize {
         match self {
             Tok::Whitespace(s) | Tok::Word(s) => s.len(),
             Tok::Punctuation(c) => c.len_utf8(),
@@ -59,14 +60,14 @@ fn token<'s>(input: &mut &'s str) -> winnow::Result<Tok<'s>> {
 ///
 /// 任意の文字は空白・シェルメタ文字・その他のいずれかとして必ず消費されるため、
 /// このパースは失敗しない。
-fn tokenize(input: &str) -> Vec<Tok<'_>> {
+pub(crate) fn tokenize(input: &str) -> Vec<Tok<'_>> {
     repeat(0.., token)
         .parse(input)
         .expect("every character should be consumed as whitespace, punctuation, or word")
 }
 
 /// パス付きで書かれたコマンド名からコマンド名本体を取り出す。
-fn basename(word: &str) -> &str {
+pub(crate) fn basename(word: &str) -> &str {
     word.rsplit('/').next().unwrap_or(word)
 }
 
@@ -78,16 +79,9 @@ fn is_inplace_capable(word: &str) -> bool {
     matches!(basename(word), "sed" | "perl" | "ruby")
 }
 
-/// `python`/`python3`/`python3.12`のようなPython処理系の名前か。
-fn is_python(name: &str) -> bool {
-    name.strip_prefix("python")
-        .is_some_and(|rest| rest.chars().all(|c| c.is_ascii_digit() || c == '.'))
-}
-
 /// ワンライナーでファイルを書き換えうるスクリプト処理系の名前か。
 fn is_interpreter(word: &str) -> bool {
-    let name = basename(word);
-    is_python(name) || matches!(name, "node" | "ruby" | "perl")
+    interpreter_of(basename(word)).is_some()
 }
 
 /// `after`(コマンド名より後のトークン列)にin-place編集フラグが含まれるか。
@@ -407,11 +401,11 @@ fn pipes_into_file_writer(chars: &mut Peekable<Chars>) -> bool {
 /// コマンド名より後ろを走査して分かった、
 /// そのコマンドの入出力の性質。
 #[derive(Debug, Default)]
-struct IoScan {
+pub(crate) struct IoScan {
     /// 出力がファイルへ書き込まれる。
-    writes_file: bool,
+    pub(crate) writes_file: bool,
     /// コマンド自身の標準入力がヒアドキュメントかヒアストリング。
-    reads_heredoc: bool,
+    pub(crate) reads_heredoc: bool,
 }
 
 /// `rest`(コマンド名より後ろのコマンド文字列)から、
@@ -445,7 +439,7 @@ struct IoScan {
 ///
 /// 括弧の深さを数えるので`<(...)`のようなプロセス置換の中の区切り文字では止まらず、
 /// コマンド自身が`$(...)`の中にある場合はその閉じ括弧で止まる。
-fn scan_io(rest: &str) -> IoScan {
+pub(crate) fn scan_io(rest: &str) -> IoScan {
     let mut scan = IoScan::default();
     let mut chars = rest.chars().peekable();
     let mut depth: usize = 0;
@@ -700,6 +694,23 @@ mod tests {
             detect("node -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'").as_deref(),
             Some("a `node` one-liner that writes to files"),
         );
+    }
+
+    #[test]
+    fn detects_write_one_liner_of_every_interpreter() {
+        // インラインスクリプトの検出対象の処理系は、
+        // 書き込みを含むワンライナーでも同じように検出する。
+        for command in [
+            "pypy3 -c \"open('a.txt', 'w').write('x')\"",
+            "ipython -c \"open('a.txt', 'w').write('x')\"",
+            "nodejs -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "bun -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "tsx -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "ts-node -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "deno eval 'Deno.writeFileSync(\"a.txt\", new Uint8Array())'",
+        ] {
+            assert!(detect(command).is_some(), "{command} should be detected");
+        }
     }
 
     #[test]
