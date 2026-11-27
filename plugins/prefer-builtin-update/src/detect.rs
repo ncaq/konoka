@@ -703,6 +703,23 @@ mod tests {
     }
 
     #[test]
+    fn detects_write_one_liner_of_every_interpreter() {
+        // インラインスクリプトの検出対象の処理系は、
+        // 書き込みを含むワンライナーでも同じように検出する。
+        for command in [
+            "pypy3 -c \"open('a.txt', 'w').write('x')\"",
+            "ipython -c \"open('a.txt', 'w').write('x')\"",
+            "nodejs -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "bun -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "tsx -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "ts-node -e 'require(\"fs\").writeFileSync(\"a.txt\", \"x\")'",
+            "deno eval 'Deno.writeFileSync(\"a.txt\", new Uint8Array())'",
+        ] {
+            assert!(detect(command).is_some(), "{command} should be detected");
+        }
+    }
+
+    #[test]
     fn detects_ruby_file_write() {
         assert!(detect("ruby -e 'File.write(\"a.txt\", \"x\")'").is_some());
     }
