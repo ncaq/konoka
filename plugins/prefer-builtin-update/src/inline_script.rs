@@ -579,6 +579,20 @@ mod tests {
     }
 
     #[test]
+    fn detects_deno_eval_after_global_flag() {
+        // サブコマンドの前に置かれたフラグは読み飛ばす。
+        assert!(detect_inline_script("deno -q eval 'console.log(1)'").is_some());
+    }
+
+    #[test]
+    fn skips_deno_stdin_script_as_false_negative() {
+        // Denoは`deno eval`だけを検出するので標準入力で渡された本文は見逃す。
+        // READMEの「位置づけと限界」で許容と明記した挙動を固定する。
+        assert!(detect_inline_script("echo 'console.log(1)' | deno").is_none());
+        assert!(detect_inline_script("deno run - <<'EOF'\nconsole.log(1)\nEOF").is_none());
+    }
+
+    #[test]
     fn detects_ruby_eval() {
         assert_eq!(
             detect_inline_script("ruby -e 'puts 1'").as_deref(),
