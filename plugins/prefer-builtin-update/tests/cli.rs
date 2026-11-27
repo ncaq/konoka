@@ -70,6 +70,41 @@ fn denies_cat_heredoc_file_creation() {
 }
 
 #[test]
+fn denies_inline_script() {
+    let value = deny_json(r#"{"tool_input": {"command": "python3 -c \"print(1)\""}}"#);
+    let specific = &value["hookSpecificOutput"];
+    assert_eq!(specific["permissionDecision"], "deny");
+    let reason = specific["permissionDecisionReason"]
+        .as_str()
+        .expect("reason should be a string");
+    assert!(
+        reason.contains("Write the script to a file with the Write tool"),
+        "reason should steer to writing a script file",
+    );
+}
+
+#[test]
+fn steers_writing_inline_script_to_edit_tool() {
+    // ファイルを書き換えるインラインスクリプトは`Edit`ツールへの誘導を優先する。
+    let value =
+        deny_json(r#"{"tool_input": {"command": "python3 -c \"open('a.txt', 'w').write('x')\""}}"#);
+    let reason = value["hookSpecificOutput"]["permissionDecisionReason"]
+        .as_str()
+        .expect("reason should be a string");
+    assert!(
+        reason.contains("Edit tool"),
+        "reason should steer to the Edit tool"
+    );
+}
+
+#[test]
+fn stays_silent_for_script_file_execution() {
+    let output = run_with_stdin(r#"{"tool_input": {"command": "python3 script.py"}}"#);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty(), "stdout should be empty");
+}
+
+#[test]
 fn stays_silent_for_undetected_command() {
     let output = run_with_stdin(r#"{"tool_input": {"command": "ls -la"}}"#);
     assert!(output.status.success());

@@ -1,6 +1,6 @@
 ---
 name: prefer-builtin-update
-description: Use the builtin Edit tool (or Write for new files and full rewrites) instead of sed, awk, perl, or Python one-liners or cat heredocs when modifying or creating files, and do not run sed or awk at all. Use when editing, creating, or rewriting file contents, or when about to run sed or awk.
+description: Use the builtin Edit tool (or Write for new files and full rewrites) instead of sed, awk, perl, or Python one-liners or cat heredocs when modifying or creating files, do not run sed or awk at all, and do not run inline scripts such as `python3 -c` or `node -e`. Use when editing, creating, or rewriting file contents, or when about to run sed, awk, or an inline script.
 user-invocable: false
 ---
 
@@ -25,6 +25,22 @@ sedとawkは書き換えに限らず、
 `sed -n`ではなく`Read`ツールの`offset`と`limit`を使ってください。
 コマンドの出力を加工する場合は、
 grepやcutやtrなどを使ってください。
+
+## インラインスクリプトを即座実行しない
+
+`python3 -c`や`node -e`や`ruby -e`や`perl -e`のように、
+スクリプトの本文をコマンドラインで処理系へ渡して実行しないでください。
+ファイルを書き換えない読み取りや計算だけの用途でも同じです。
+`python3 - <<'EOF'`や`echo '...' | python3`のように、
+ヒアドキュメントやパイプで標準入力から本文を渡すのも同じです。
+
+スクリプトが必要な場合は、
+`Write`ツールでスクリプトファイルとして書き出してから実行してください。
+ファイルとして残すことで人間が実行前に内容を検証できます。
+使い捨てのスクリプトは一時ディレクトリに置いてください。
+
+そもそもスクリプトを持ち出さずに済むなら、
+JSONには`jq`を使うなど専用のコマンドを使ってください。
 
 ## 理由
 
@@ -56,6 +72,10 @@ python3 -c "content = open('config.json').read().replace('foo', 'bar'); open('co
 cat > fix.sh <<'EOF'
 ...
 EOF
+python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+python3 - <<'EOF'
+...
+EOF
 ```
 
 使う:
@@ -63,6 +83,8 @@ EOF
 複数箇所を書き換える場合も、
 `Edit`ツールを箇所ごとに呼び出してください。
 ファイルを作る場合は`Write`ツールを使います。
+スクリプトを実行する場合は`Write`ツールでスクリプトファイルを作ってから、
+`python3 script.py`のようにファイルを指定して実行します。
 
 ## 例外
 
@@ -85,8 +107,9 @@ bashやPythonなどで実行するスクリプトファイルに、
 Bashツール経由のsedとawkの使用や、
 in-place編集やワンライナーによるファイル書き込みや、
 grepの出力のファイルへの書き込みや、
-catとヒアドキュメントによるファイルの作成を検出して拒否します。
+catとヒアドキュメントによるファイルの作成や、
+インラインスクリプトの即座実行を検出して拒否します。
 リトライ往復を削減するための補助動作なので、
 依存しないでください。
-フックは全ての書き換えパターンを検出できません。
-なので最初から`Edit`ツールを使ってください。
+フックは全ての書き換えパターンや即座実行を検出できません。
+なので最初から`Edit`ツールや`Write`ツールを使ってください。
