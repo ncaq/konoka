@@ -8,124 +8,73 @@ user-invocable: false
 
 ファイルやスクリプトを生成するderivationを作るための関数群です。
 
+## シェルスクリプトには`writeShellApplication`を優先する
+
+シェルスクリプトを書く場合は、
+`writeShellScript`や`writeShellScriptBin`よりも`writeShellApplication`を優先して使います。
+以下の利点があるためです。
+
+- `set -o errexit`、`set -o nounset`、`set -o pipefail`が自動で適用されます。
+  `bashOptions`で変えられます。
+- ビルド時にshellcheckが自動で実行されます。
+- `runtimeInputs`でPATHを管理できて、実行時の依存が明示されます。
+- `runtimeEnv`で環境変数を設定できます。
+
 ## 無印と`Bin`サフィックスの違い
 
-多くのwriter関数には無印版と`Bin`サフィックス版があります。
+多くのwriter関数には、無印版と`Bin`サフィックス版があります。
 
-### 無印(`writeShellScript`等)
+- 無印(`writeShellScript`など): `$out`がファイルそのものです。
+  `${myScript}`でファイルのパスを直接参照できます。
+- `Bin`(`writeShellScriptBin`など): `$out/bin/<name>`にファイルを出力し、`meta.mainProgram`を設定します。
+  パスは`lib.getExe myPkg`か`${myPkg}/bin/<name>`で得られます。
+  `lib.getExe`のほうを推奨します。
+  `$out`がファイルそのものではないので、
+  `environment.systemPackages`や`runtimeInputs`に入れて`$PATH`に載せられます。
 
-`$out`がファイルそのもの。
-`${myScript}`でバイナリパスを直接参照できる。
-
-### `Bin`(`writeShellScriptBin`等):
-
-`$out/bin/<name>`にファイルを出力し`meta.mainProgram`を設定する。
-
-`lib.getExe myPkg`や`${myPkg}/bin/<name>`でパスを得る。
-`lib.getExe`の使用を推奨します。
-
-ファイルそのものではないので、
-`environment.systemPackages`や`runtimeInputs`に入れて`$PATH`に載せられます。
-
-`writeShellApplication`は名前に`Bin`が付いていませんが`$out/bin/<name>`に出力するため`Bin`系と同じ構造です。
+`writeShellApplication`は名前に`Bin`が付いていませんが、
+`$out/bin/<name>`に出力するので`Bin`系と同じ構造です。
 
 ## trivial-builders (`pkgs.*`)
 
 [nixpkgs/pkgs/build-support/trivial-builders/default.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/trivial-builders/default.nix)
 に定義されています。
 
-### テキスト系
-
-- `writeTextFile`: 全テキスト系writerの基盤関数
-- `writeText name text`: テキストファイルを生成
-- `writeTextDir path text`: ディレクトリ構造付きでテキストファイルを生成
-
-### 汎用スクリプト系
-
-- `writeScript name text` / `writeScriptBin name text`: 実行可能スクリプト、シバンは手動で記述する
-
-### シェルスクリプト系
-
-- `writeShellScript name text` / `writeShellScriptBin name text`: シバン自動付与、構文チェックあり
-- `writeShellApplication`: シェルスクリプト用の最高機能writer
-
-### その他
-
-- `writeCBin pname code`: Cソースをコンパイルしてバイナリを生成
-- `concatTextFile`: 複数ファイルを連結
-- `concatText name files`: `concatTextFile`のラッパー
-- `concatScript name files`: 実行可能な連結ファイルを生成
-- `writeClosure paths`: ランタイム依存クロージャのパス一覧を書き出す
-- `writeDirectReferencesToFile path`: 直接参照のパス一覧を書き出す
-- `writeStringReferencesToFile string`: 文字列コンテキストの依存パスを書き出す
+- `writeTextFile`: テキスト系の全てのwriterの基盤になる関数です。
+- `writeText name text`: テキストファイルを生成します。
+- `writeTextDir path text`: ディレクトリ構造付きでテキストファイルを生成します。
+- `writeScript name text` / `writeScriptBin name text`: 実行可能なスクリプトを生成します。
+  シバンは自分で書きます。
+- `writeShellScript name text` / `writeShellScriptBin name text`: シバンが自動で付き、構文チェックがあります。
+- `writeShellApplication`: シェルスクリプト用の最も高機能なwriterです。
+- `writeCBin pname code`: Cのソースをコンパイルしてバイナリを生成します。
+- `concatTextFile`: 複数のファイルを連結します。
+- `concatText name files`: `concatTextFile`のラッパーです。
+- `concatScript name files`: 連結した実行可能なファイルを生成します。
+- `writeClosure paths`: ランタイム依存のクロージャのパスの一覧を書き出します。
+- `writeDirectReferencesToFile path`: 直接参照のパスの一覧を書き出します。
+- `writeStringReferencesToFile string`: 文字列コンテキストの依存パスを書き出します。
 
 ## writers (`pkgs.writers.*`)
 
+言語ごとのwriterは、
 [nixpkgs/pkgs/build-support/writers/scripts.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/writers/scripts.nix)
-配下に定義されています。
-各関数に`Bin`サフィックス版があり、
-`$out/bin/`に配置します。
+に定義されています。
+以下の各関数には、`writeBashBin`のように`Bin`サフィックスを付けた版があり、`$out/bin/`に配置します。
 
-### 基盤関数
+- シェル: `writeBash`, `writeDash`, `writeFish`, `writeNu`
+- スクリプト言語: `writeBabashka`, `writeGuile`, `writeJS`, `writeLua`, `writePerl`,
+  `writePyPy2`, `writePyPy3`, `writePython3`, `writeRuby`
+- コンパイル言語: `writeFSharp`, `writeHaskell`, `writeNim`, `writeRust`
 
-- `makeScriptWriter`: インタープリタ言語用スクリプトの基盤
-- `makeBinWriter`: コンパイル言語用バイナリの基盤
+これらの基盤になる関数は、
+インタープリタ言語のスクリプト用の`makeScriptWriter`と、
+コンパイル言語のバイナリ用の`makeBinWriter`です。
 
-### シェル系
-
-- `writeBash` / `writeBashBin`
-- `writeDash` / `writeDashBin`
-- `writeFish` / `writeFishBin`
-- `writeNu` / `writeNuBin`
-
-### スクリプト言語系
-
-- `writeBabashka` / `writeBabashkaBin`
-- `writeGuile` / `writeGuileBin`
-- `writeJS` / `writeJSBin`
-- `writeLua` / `writeLuaBin`
-- `writePerl` / `writePerlBin`
-- `writePyPy2` / `writePyPy2Bin`
-- `writePyPy3` / `writePyPy3Bin`
-- `writePython3` / `writePython3Bin`
-- `writeRuby` / `writeRubyBin`
-
-### コンパイル言語系
-
-- `writeFSharp` / `writeFSharpBin`
-- `writeHaskell` / `writeHaskellBin`
-- `writeNim` / `writeNimBin`
-- `writeRust` / `writeRustBin`
-
-### データ形式系
-
+Nixの値をデータ形式のファイルとして書き出す関数は、
 [nixpkgs/pkgs/build-support/writers/data.nix](https://github.com/NixOS/nixpkgs/blob/master/pkgs/build-support/writers/data.nix)
 に定義されています。
 
-- `writeJSON name data`: Nixの値をJSONファイルとして書き出す
-- `writeTOML name data`: Nixの値をTOMLファイルとして書き出す
-- `writeYAML name data`: Nixの値をYAMLファイルとして書き出す
-
-## `writeShellApplication`を優先する理由
-
-シェルスクリプトを書く場合は`writeShellApplication`を優先的に使用します。
-
-```nix
-writeShellApplication {
-  name = "my-script";
-  runtimeInputs = with pkgs; [ curl jq ];
-  text = ''
-    response=$(curl -s "https://api.example.com/data")
-    echo "$response" | jq '.items[]'
-  '';
-}
-```
-
-`writeShellScript`/`writeShellScriptBin`と比較した利点:
-
-- `set -o errexit`, `set -o nounset`, `set -o pipefail`が自動適用されること。
-  いわゆる`set -euo pipefail`がデフォルトで有効になります。
-  `bashOptions`で制御可能です。
-- ビルド時にshellcheckが自動実行される
-- `runtimeInputs`でPATH管理ができ、実行時依存が明示的になる
-- `runtimeEnv`で環境変数を設定できる
+- `writeJSON name data`
+- `writeTOML name data`
+- `writeYAML name data`

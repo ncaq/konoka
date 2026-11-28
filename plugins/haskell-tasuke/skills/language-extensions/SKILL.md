@@ -6,85 +6,15 @@ user-invocable: false
 
 # 言語拡張の選択方針
 
-Haskellの言語拡張と、
-言語拡張のセットである言語バージョンの選択方針について説明します。
+言語拡張のセットである言語バージョンには、使える場合は`GHC2024`を使います。
+使えない場合は`GHC2021`を使います。
 
-## 基本の方針
+`GHC2024`は`GHC2021`の言語拡張に加えて、
+`DataKinds`、`DerivingStrategies`、`DisambiguateRecordFields`、`ExplicitNamespaces`、
+`GADTs`、`LambdaCase`、`MonoLocalBinds`、`RoleAnnotations`を含みます。
 
-Haskellの言語バージョンは使える場合は`GHC2024`を使用します。
-
-使えない場合は`GHC2021`を使用します。
-
-`GHC2024`で有効になっていなくても、
-比較的安全で有用な言語拡張は有効にします。
-
-## GHC2021に含まれている拡張
-
-- `BangPatterns`
-- `BinaryLiterals`
-- `ConstrainedClassMethods`
-- `ConstraintKinds`
-- `DeriveDataTypeable`
-- `DeriveFoldable`
-- `DeriveFunctor`
-- `DeriveGeneric`
-- `DeriveLift`
-- `DeriveTraversable`
-- `DoAndIfThenElse`
-- `EmptyCase`
-- `EmptyDataDecls`
-- `EmptyDataDeriving`
-- `ExistentialQuantification`
-- `ExplicitForAll`
-- `FieldSelectors`
-- `FlexibleContexts`
-- `FlexibleInstances`
-- `ForeignFunctionInterface`
-- `GADTSyntax`
-- `GeneralisedNewtypeDeriving`
-- `HexFloatLiterals`
-- `ImplicitPrelude`
-- `ImplicitStagePersistence`
-- `ImportQualifiedPost`
-- `InstanceSigs`
-- `KindSignatures`
-- `MonomorphismRestriction`
-- `MultiParamTypeClasses`
-- `NamedFieldPuns`
-- `NamedWildCards`
-- `NoExplicitNamespaces`
-- `NumericUnderscores`
-- `PatternGuards`
-- `PolyKinds`
-- `PostfixOperators`
-- `RankNTypes`
-- `RelaxedPolyRec`
-- `ScopedTypeVariables`
-- `StandaloneDeriving`
-- `StandaloneKindSignatures`
-- `StarIsType`
-- `TraditionalRecordSyntax`
-- `TupleSections`
-- `TypeApplications`
-- `TypeOperators`
-- `TypeSynonymInstances`
-
-## GHC2024に含まれている拡張
-
-上の`GHC2021`に加えて、
-以下の拡張が`GHC2024`に含まれています。
-
-- `DataKinds`
-- `DerivingStrategies`
-- `DisambiguateRecordFields`
-- `ExplicitNamespaces`
-- `GADTs`
-- `LambdaCase`
-- `RoleAnnotations`
-
-## cabalファイルの設定例
-
-典型的なcabalファイルでの言語バージョンと言語拡張の設定は以下のようになります。
+`GHC2024`に含まれていなくても、比較的安全で有用な言語拡張はデフォルトで有効にします。
+cabalファイルでの典型的な設定は以下の通りです。
 
 ```cabal
 default-language: GHC2024
@@ -121,12 +51,26 @@ default-extensions:
   ViewPatterns
 ```
 
-## 個別の言語拡張ごとの採否方針
+## 個別の言語拡張の採否
 
-各言語拡張を、
+上の`default-extensions`に無い言語拡張のうち、以下は採否を決めています。
 
-- デフォルトで有効にする
-- 必要なときだけモジュール単位で有効にする
-- 禁止する
+- デフォルトでは有効にせず、必要なときだけモジュール単位で有効にする:
+  `Arrows`、`DeriveAnyClass`、`OverloadedLists`、`Strict`、`UnicodeSyntax`。
+  `OverloadedRecordUpdate`もこの分類ですが、`RebindableSyntax`が必須なので現時点では使いません。
+- 動作が不安定になりがちなので、ライブラリを使う都合などでどうしても必要なときだけ、
+  モジュール単位で有効にする:
+  `ImplicitParams`、`UndecidableInstances`。
+- 危険なので使わない:
+  `AllowAmbiguousTypes`、`DeferTypeErrors`、`ExtendedDefaultRules`、`ImpredicativeTypes`、
+  `IncoherentInstances`、`LiberalTypeSynonyms`、`OverlappingInstances`、`RebindableSyntax`、
+  `UndecidableSuperClasses`。
+  GHCがエラーメッセージで有効化を提案してきた場合も有効にしません。
+  `IncoherentInstances`と`OverlappingInstances`の代わりになる、
+  `INCOHERENT`、`OVERLAPPABLE`、`OVERLAPPING`のプラグマも危険なので使いません。
 
-かの個別の方針と理由は[reference.md](./reference.md)を参照してください。
+各言語拡張の採否の理由、注意点、代替手段は[reference.md](./reference.md)にあります。
+デフォルトで有効にする言語拡張についても同じです。
+上に挙げた言語拡張をモジュール単位で有効にする前、
+上で使わないとした言語拡張が必要に見えて代替手段を探すとき、
+採否の理由を説明するときは、該当する言語拡張の節を読んでください。

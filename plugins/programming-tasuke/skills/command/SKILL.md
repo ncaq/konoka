@@ -8,29 +8,27 @@ user-invocable: false
 
 ## 非推奨
 
-- `cat`: 代わりに`Read`ツールでファイルを読み込んでください。
-- `find`: 代わりに`Glob`ツールか`fd`コマンドを使ってください。
-- `grep`: 検索には`Grep`ツールか`rg`コマンドを使ってください。パイプのフィルタリングはなるべくせずに出力内容を全部読んでください。
+以下のコマンドは非推奨です。
+代わりの手段を使ってください。
 
-- `head`: `Read`ツールで全部読んでください。
-- `tail`: `Read`ツールで全部読んでください。
+- `cat`: `Read`ツールでファイルを読みます。
+- `find`: `Glob`ツールか`fd`コマンドを使います。
+- `grep`: 検索には`Grep`ツールか`rg`コマンドを使います。
+  コマンドの出力をパイプで絞り込むこともなるべく避けて、出力を全て読みます。
+- `head`と`tail`: 一部だけを切り出さずに、`Read`ツールで全て読みます。
 
 ## 禁止
 
-- `rm`: 代わりに`trash`コマンドを使ってください。
+`rm`は禁止です。
+代わりに`trash`コマンドを使ってください。
 
-別プラグインの、
-[rm-to-trash@konoka](https://github.com/ncaq/konoka/tree/master/plugins/rm-to-trash)を併用している場合、
-ある程度の`rm`コマンドは自動的に`trash`へ書き換えます。
-リトライ削減のための補助動作なので、
-依存しないでください。
-rm-to-trashは複雑なコマンドは置き換えられません。
-なので最初から`trash`で書いてください。
+別プラグインの[rm-to-trash@konoka](https://github.com/ncaq/konoka/tree/master/plugins/rm-to-trash)を併用していると、
+一部の`rm`は自動で`trash`に書き換えられます。
+これは再試行を減らすための補助で、複雑なコマンドは書き換えられないので、
+書き換えを当てにせず、最初から`trash`で書いてください。
 
 ## コミット
 
-`git commit`の作成は`commit:commit`スキルに任せてください。
-このスキルではコミットメッセージの生成や実行を扱いません。
-
-`commit:commit`を経由しない直接の`git commit`コマンドであっても、
-コミットメッセージのスタイルは`commit:commit-style`スキルに従ってください。
+コミットの作成は`commit:commit`スキルに任せてください。
+`commit:commit`を経由せずに`git commit`を直接実行する場合も、
+コミットメッセージのスタイルは`commit:commit-style`スキルに従います。

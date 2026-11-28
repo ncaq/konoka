@@ -6,7 +6,93 @@ user-invocable: false
 
 # WAI-ARIAの使用指針
 
-無意味で冗長なARIA属性の追加を避けてください。
+`role`属性と`aria-*`属性は、使わなければいけない理由があるときだけ書いてください。
+[APGのRead Me First](https://www.w3.org/WAI/ARIA/apg/practices/read-me-first/)にある通り、
+悪いARIAよりもARIA無しのほうが良いからです。
+
+## HTMLのセマンティクスとの関係
+
+HTMLの要素と属性を目的通りに使えば、適切なロールや名前が暗黙のうちに付きます。
+同じ内容を`role`属性や`aria-*`属性で書き足しません。
+
+```html
+<!-- 避ける: 暗黙のセマンティクスと同じ内容を書いている -->
+<button role="button" aria-label="送信">送信</button>
+
+<!-- 良い -->
+<button>送信</button>
+```
+
+WAI-ARIAの属性は暗黙のセマンティクスを上書きします。
+`<h1 aria-level="2">`は見出しレベル2として、
+`<a role="menuitem">`はリンクではなくメニュー項目として、支援技術に伝わります。
+誤った値を書くとアクセシビリティを下げてしまい、
+しかも通常の動作確認ではその誤りに気付けません。
+`role`属性で暗黙のロールを上書きすると、
+その要素のネイティブの機能が損なわれることもあります。
+
+`checked`属性のような強いネイティブセマンティクスは、逆にWAI-ARIAの属性値を無視します。
+`<input type="checkbox" checked aria-checked="false" />`は、チェックされていると伝わります。
+
+各要素の暗黙のセマンティクスは、
+[HTML Accessibility API Mappings 1.0](https://www.w3.org/TR/html-aam-1.0/)
+に定義されています。
+
+## ロールは約束
+
+`role`属性を指定した要素には、そのロールに期待される振る舞いを全て実装します。
+ロールの指定は、期待されることをこの要素が全て満たしているという、ユーザへの約束だからです。
+
+`<div role="button">`なら、クリックだけでなく、
+キーボードでフォーカスできて、SpaceキーとEnterキーでも操作できる必要があります。
+ネイティブの`<button>`要素は最初からこれらを満たしているので、
+ネイティブの要素で書けるものはネイティブの要素で書きます。
+
+## 誤った使用を避けるためのガイダンス
+
+[ARIA in HTML](https://www.w3.org/TR/html-aria/#author-guidance-to-avoid-incorrect-use-of-aria)のガイダンスに従います。
+
+- インタラクティブな要素を、非インタラクティブなロールで上書きしません。
+  `<button>`に`role="heading"`を指定するなどです。
+- 冗長なロールを指定しません。
+  `<button>`に`role="button"`を指定するなどです。
+- 副作用に気をつけます。
+  `<summary>`に`role="button"`を指定すると、支援技術に伝わるべき情報が失われます。
+- ARIAのルールとHTMLのルールの両方に従います。
+
+## WAI-ARIAを使う場面
+
+以下の場合はWAI-ARIAの属性を使います。
+
+### HTMLのネイティブの機能だけではアクセシブルにできない場合
+
+`<svg>`要素の暗黙のロールは`graphics-document`で、画像として扱われないことがあります。
+画像として意味を伝える`<svg>`要素には、`role="img"`を明示して、`aria-label`属性で名前を付けます。
+トグルボタンであることはHTMLだけでは表現できないので、`aria-pressed`属性で伝えます。
+
+```html
+<svg role="img" aria-label="エラー">...</svg>
+
+<button aria-pressed="false">Mute</button>
+```
+
+[APGのPatterns](https://www.w3.org/WAI/ARIA/apg/patterns/)にあるTabsやTree Viewのように、
+HTMLに対応する要素がないUIパターンにもWAI-ARIAが必要です。
+
+### HTMLの標準の仕様では実現が難しいことをしている場合
+
+セレクトボックスの選択肢にスタイルを当てる、数万行のテーブルを仮想化するなど、
+`<select>`や`<table>`では実装できないことがあります。
+ネイティブの要素を使うほうがリスクは低いので、本当に必要かを先に検討します。
+必要なら、WAI-ARIAで少しでもアクセシブルにします。
+
+### コードに大きな変更を加えづらい状況で、少しでもアクセシビリティを高めたい場合
+
+長期間運用されたシステムで、要素の種類を変えるとスタイルが崩れるようなときは、
+WAI-ARIAの属性を足すだけで多少改善できる可能性があります。
+対症療法であり根本的な改善を目指すべきですが、現実的な選択肢として有効です。
+
+## 出典
 
 この文書は以下の著作物の内容を要約・改変して作成しています。
 
@@ -17,134 +103,3 @@ user-invocable: false
 - [ARIA in HTML](https://www.w3.org/TR/html-aria/) (Copyright © W3C)
 - [HTML Accessibility API Mappings 1.0](https://www.w3.org/TR/html-aam-1.0/) (Copyright © W3C)
 - [WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) (Copyright © W3C, W3C Software and Document License)
-
-## 暗黙のWAI-ARIAセマンティクス
-
-HTMLの要素は暗黙のWAI-ARIAセマンティクスを持っています。
-`role`属性や`aria-*`属性を書かなくても、
-明示的に書いたのと同じ状態になっています。
-
-たとえば`<button>`要素は、
-WAI-ARIAの属性がなくても「ボタン」というロールと、
-テキストコンテンツによる名前を持ちます。
-
-```html
-<!-- この2つは同じセマンティクスです。下のように書く必要はありません -->
-<button>送信</button>
-<button role="button" aria-label="送信">送信</button>
-```
-
-HTMLの要素や属性をそれらの目的通りに使っていれば、
-適切な暗黙のWAI-ARIAセマンティクスが自動的に付与されます。
-暗黙のセマンティクスの詳細は、
-[HTML Accessibility API Mappings 1.0](https://www.w3.org/TR/html-aam-1.0/)
-に定義されています。
-
-## WAI-ARIAセマンティクスとHTMLのコンフリクト
-
-WAI-ARIAの属性はHTMLの暗黙のセマンティクスを上書きします。
-誤った属性値を使ってしまうとアクセシビリティを下げてしまいます。
-しかも通常の動作確認ではその誤りに気付けません。
-
-```html
-<!-- h1要素は暗黙のうちにaria-level="1"を持つが、
-     aria-level属性が明示的に指定されたことで見出しレベル2に変更されている -->
-<h1 aria-level="2">これは見出しレベル2です</h1>
-```
-
-一方で`checked`属性のような「強いネイティブセマンティクス」はWAI-ARIAの属性値を無視します。
-
-```html
-<!-- aria-checkedは無視され、HTMLネイティブのchecked属性値のみが支援技術に提示される -->
-<label>
-  <input type="checkbox" checked="checked" aria-checked="false" />
-  このチェックボックスは、チェックされているでしょうか?
-</label>
-```
-
-## No ARIA is better than Bad ARIA
-
-[APGのRead Me First](https://www.w3.org/WAI/ARIA/apg/practices/read-me-first/)にある通り、
-悪いARIAよりもARIA無しのほうが良いです。
-この原則を理解するために、
-2つの重要な考え方があります。
-
-### ロールは約束である
-
-```html
-<div role="button">Place Order</div>
-```
-
-`role="button"`を指定した以上、
-この要素はボタンとして完璧に振る舞わなければなりません。
-クリックだけでなく、
-キーボードでフォーカスできてSpaceキーやEnterキーでも操作できる必要があります。
-ロールを指定するということは
-「このロールに期待されることは、この要素がすべて満たしています」
-というユーザーに対する約束です。
-
-ネイティブの`<button>`要素を使えばこれらは最初から満たされています。
-
-### ARIAは情報を隠すことも拡張することもできる
-
-WAI-ARIAはHTMLのネイティブの機能を拡張できますが、
-同時に隠してしまうこともあります。
-
-```html
-<!-- menuitemロールをつけることで、リンクがメニュー項目であることを伝えている -->
-<a role="menuitem">Assistive tech users perceive this element as an item in a menu, not a link.</a>
-
-<!-- aria-pressed属性でトグルボタンであることを伝えている。HTMLだけでは表現できない -->
-<button aria-pressed="false">Mute</button>
-```
-
-拡張は強力ですが、
-`role`属性が暗黙のロールを上書きしてしまうことで、
-HTML要素のネイティブの機能が損なわれることもあります。
-
-## ARIAの誤った使用を回避するためのガイダンス
-
-[ARIA in HTML](https://www.w3.org/TR/html-aria/#author-guidance-to-avoid-incorrect-use-of-aria)では、
-以下のガイダンスが示されています。
-
-- インタラクティブな要素を非インタラクティブなロールで上書きしない(`<button>`に`role="heading"`を指定するなど)
-- 冗長なロールの指定を避ける(`<button>`に`role="button"`を指定するなど)
-- 副作用に気をつける(`<summary>`に`role="button"`を指定すると、支援技術に伝わるべき情報が失われる)
-- ARIAのルールを遵守する
-- HTMLのルールを遵守する
-
-## WAI-ARIAを使うべき場面
-
-WAI-ARIAの属性は「使わなければいけない理由がなければ使わない」ようにすべきです。
-以下のような場合にのみ使用してください。
-
-### HTMLのネイティブの機能だけではアクセシブルにできないとき
-
-```html
-<!-- img要素は暗黙のimgロールを持ち、alt属性が名前となる -->
-<img src="error.png" alt="エラー" />
-
-<!-- svg要素は暗黙のロールがgraphics-documentで「画像」として扱われないことがある
-     そのためimgロールを明示し、aria-label属性で名前をつけている -->
-<svg role="img" aria-label="エラー">...</svg>
-```
-
-[APGのPatterns](https://www.w3.org/WAI/ARIA/apg/patterns/)にあるTabsやTree Viewなど、
-HTMLに対応する要素がないUIパターンもWAI-ARIAが必要です。
-
-### HTMLの標準の仕様では実現が難しいことをしているとき
-
-セレクトボックスの選択肢にスタイルを当てたい場合や、
-数万行のテーブルを仮想化したい場合など、
-`<select>`や`<table>`では実装できないケースがあります。
-
-HTMLのネイティブ要素を使うほうがリスクは低いため、
-本当に必要かは検討すべきですが、
-やる必要があるならWAI-ARIAで少しでもアクセシブルにしてください。
-
-### コードに大きな変更を加えづらい状況で、少しでもアクセシビリティを高めようとしているとき
-
-長期間運用されたシステムで要素の種類を変えるとスタイルが崩れるような場合、
-WAI-ARIAの属性を足すだけで多少改善できる可能性があります。
-あくまで対処療法であり根本的な改善を目指すべきですが、
-現実的な選択肢として有効です。

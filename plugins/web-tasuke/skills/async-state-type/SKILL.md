@@ -4,14 +4,12 @@ description: Avoid contradictory state types for async data fetching. Use Suspen
 user-invocable: false
 ---
 
-# 非同期データ取得の型設計
+# 非同期データ取得の状態を矛盾のない型で表す
 
-## 矛盾した状態を許容する型を避ける
-
-非同期データ取得において以下のような型設計は避けてください。
+非同期データ取得の状態を、以下のように矛盾した組み合わせを許す型で表さないでください。
 
 ```typescript
-// Bad: dataにアクセス可能なのにloading/errorも同時に存在しうる
+// 避ける
 type AsyncState<T> = {
   data: T | undefined;
   loading: boolean;
@@ -19,84 +17,36 @@ type AsyncState<T> = {
 };
 ```
 
-この型は以下の問題を持ちます。
+この型は、`data`があるのに`loading`が`true`である状態や、
+`data`と`error`が同時にある状態を許してしまいます。
+正しさが実行時の状態遷移に依存していて、型の上での安全性がありません。
 
-- `data`が存在するのに`loading: true`という矛盾した状態を型が許容します
-- `data`と`error`が同時に存在する状態を型が許容します
-- 実行時の状態遷移に依存しており、型レベルでの安全性がありません
+## Suspenseを優先する
 
-## 推奨されるアプローチ
+React Suspenseを使うと、ローディング中はコンポーネントがレンダリングされないので、
+`data`の型が`T | undefined`ではなく`T`に確定します。
+ローディングとエラーの表示は、親コンポーネントの`Suspense`と`ErrorBoundary`で扱います。
 
-### Suspenseパターンを使う
+データ取得ライブラリにSuspense対応のAPIがあれば、そちらを優先して使います。
+例えば、
+[apollo-client](https://github.com/apollographql/apollo-client)や、
+[TanStack Query](https://tanstack.com/query/latest)なら、
+`useQuery`ではなく`useSuspenseQuery`を使います。
 
-React Suspenseを使えば、ローディング中はコンポーネントがレンダリングされないため、
-`data`の型が確定します。
+## Suspenseを使えない場合は判別共用体を使う
 
-```tsx
-// Good: useSuspenseQueryはdataがT型で確定している
-function UserList() {
-  const { data } = useSuspenseQuery({
-    queryKey: ["users"],
-    queryFn: fetchUsers,
-  });
-  // data: User[] (undefinedにならない)
-  return (
-    <ul>
-      {data.map((user) => (
-        <li key={user.id}>{user.name}</li>
-      ))}
-    </ul>
-  );
-}
-
-// 親コンポーネントでSuspenseとErrorBoundaryを使う
-<ErrorBoundary fallback={<ErrorMessage />}>
-  <Suspense fallback={<Loading />}>
-    <UserList />
-  </Suspense>
-</ErrorBoundary>;
-```
-
-### 判別共用体(Discriminated Union)を使う
-
-Suspenseが使えない場合は、状態を排他的に表現する判別共用体を使ってください。
+状態を排他的に表す判別共用体にして、`status`フィールドで分岐します。
+各状態で使えるフィールドが型の上で保証されます。
 
 ```typescript
-// Good: 状態が排他的に表現されている
+// 良い
 type AsyncState<T> =
   | { status: "loading" }
   | { status: "error"; error: Error }
   | { status: "success"; data: T };
 ```
 
-`status`フィールドで分岐することで、各状態で利用可能なフィールドが型レベルで保証されます。
-
-```tsx
-function renderState(state: AsyncState<User[]>) {
-  switch (state.status) {
-    case "loading":
-      return <Loading />;
-    case "error":
-      return <ErrorMessage error={state.error} />;
-    case "success":
-      return <UserList users={state.data} />;
-  }
-}
-```
-
-[Effect](https://effect.website/)の`Schema`を使えば、
-APIレスポンスのデコード時に型を確定させつつ、
+判別共用体を手書きする代わりに、
+[Effect](https://effect.website/)の仕組みに乗せるのも良い方法です。
+`Schema`でAPIレスポンスをデコードする時点で型を確定させつつ、
 失敗を`Exit`や`Either`で型安全に表現できます。
-判別共用体を手書きする代わりにEffectの仕組みに乗せるのも良いでしょう。
-
-## ライブラリの関数選定時の注意
-
-データ取得ライブラリを使用する場合、
-Suspense対応のAPIが存在するならそちらを優先して使用してください。
-
-例えば、
-[apollo-client](https://github.com/apollographql/apollo-client)や、
-[TanStack Query](https://tanstack.com/query/latest)なら、
-`useQuery`ではなく`useSuspenseQuery`を使います。
-
-Suspense対応APIは`data`が`T | undefined`ではなく`T`で返るため、型安全です。
