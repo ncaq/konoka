@@ -4,13 +4,8 @@ description: Distinguish mkName and newName in Template Haskell. Use mkName to c
 user-invocable: false
 ---
 
-# [template-haskell: Support library for Template Haskell](https://hackage.haskell.org/package/template-haskell)
+# Template Haskellの`mkName`と`newName`の使い分け
 
-## Template Haskellの`mkName`と`newName`の使いかた
-
-既にスコープに存在する名前をキャプチャする形で参照したい時は`mkName`を使います。
-
-新しいフレッシュな衝突しない名前を生成したい時は`newName`を使います。
-
-キャプチャする必要がある場合は`mkName`、
-そうでなければ安全な`newName`を使うべきです。
+[template-haskell](https://hackage.haskell.org/package/template-haskell)で名前を作るときは、
+既にスコープにある名前をキャプチャして参照する必要がある場合だけ`mkName`を使います。
+それ以外の場合は、衝突しない新しい名前を生成する安全な`newName`を使います。
