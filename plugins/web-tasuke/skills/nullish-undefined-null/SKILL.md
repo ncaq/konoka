@@ -6,58 +6,44 @@ user-invocable: false
 
 # `null`より`undefined`を優先して使う
 
-TypeScript/JavaScriptにおいて`undefined`と`null`が両方あるのは単なる歴史的経緯による混乱なので、
-なるべく`undefined`だけを使うようにしてください。
+TypeScript/JavaScriptに`undefined`と`null`の両方があるのは、単なる歴史的経緯による混乱です。
+どちらを使うか選べる場合は`undefined`を使ってください。
 
-## nullを使って良い場合
+`null`を逐一排除する方針ではありません。
+Reactのコンポーネントが何も描画しないことを表すために返す`null`のように、
+既存のAPIで`null`に意味がある箇所や、既存のライブラリから`null`が自然に出てくる箇所では、
+`null`のまま扱って構いません。
+`undefined`への変換は必須ではありません。
 
-### 特別なnull
+## nullishとの比較には`== null`と`!= null`を使う
 
-既存のAPIで`null`に意味がある場合は許容されます。
-
-例えばReactのコンポーネントが返却する`null`は何も描画しないことを表します。
-
-そのように様々な既存のライブラリで、
-`null`が自然に発生する箇所では`null`のまま扱っても構いません。
-`undefined`に変換するのは必須ではありません。
-「選択の余地がある場合に`undefined`を優先する」というポリシーであり、
-`null`を逐一排除するものではありません。
-
-## nullishとの比較には `== null` / `!= null` を使う
-
-Nullish valueである`undefined`や`null`との比較には、
-基本的には、
-厳密等価演算子(`=== undefined`, `!== undefined`, `=== null`, `!== null`)ではなく、
-抽象等価演算子 (`== null`, `!= null`) を使ってください。
-
-`== null`は`undefined`と`null`の両方にマッチするため、
-どちらか一方のチェック漏れを防げます。
-
-これらを厳密に分ける必要はほぼないはずです。
-厳密に分けているインターフェイスはあまり良くないのですが、
-既存のインターフェイスがそうであれば仕方がありません。
-
-ESLintの`eqeqeq`ルールが`always`に設定されていると`== null`が警告されますが、
-現代の一般的なESLint設定では`smart`オプションが有効になっており、
-`null`との比較に`==`/`!=`を使うケースは許容されるため基本的に問題ありません。
+`undefined`や`null`との比較には、
+厳密等価演算子(`=== undefined`、`!== undefined`、`=== null`、`!== null`)ではなく、
+`== null`と`!= null`を使ってください。
+`undefined`と`null`の両方に一致するので、どちらか一方のチェック漏れを防げます。
 
 ```typescript
-// 良い例
-if (value == null) {
-  /* value is null or undefined */
-}
-if (value != null) {
-  /* value is neither null nor undefined */
-}
-
-// 避ける例
+// 避ける
 if (value === null || value === undefined) {
-  /* 冗長 */
-}
-if (value !== null && value !== undefined) {
-  /* 冗長 */
+  // 冗長
 }
 if (value === null) {
-  /* undefined を見落とす可能性がある */
+  // undefinedを見落とす可能性がある
+}
+
+// 良い
+if (value == null) {
+  // valueはnullかundefined
+}
+if (value != null) {
+  // valueはnullでもundefinedでもない
 }
 ```
+
+`undefined`と`null`を厳密に区別する必要はほぼありません。
+区別しているインターフェイスは良い設計ではありませんが、
+既存のインターフェイスが区別している場合は、それに合わせて厳密等価演算子を使います。
+
+ESLintの`eqeqeq`ルールが`always`に設定されていると`== null`は警告されます。
+ただし現代の一般的なESLint設定では`smart`オプションが有効で、
+`null`との比較に`==`と`!=`を使うことは許容されるので、基本的に問題ありません。

@@ -4,37 +4,14 @@ description: Use `as const` and `as const satisfies Type` for constant definitio
 user-invocable: false
 ---
 
-# `as const satisfies` パターンの使用
+# 定数定義には`as const`と`as const satisfies`を使う
 
-## 基本原則
+定数定義には基本的に`as const`を付けます。
+リテラル型が保たれて型推論が厳密になり、型の上で`readonly`になるためです。
+実行時にオブジェクトが凍結されるわけではありません。
 
-定数定義では`as const`を積極的に使用します。
-`as const`によりリテラル型が保持され、
-より厳密な型推論が可能になります。
-
-名前のついている特定の型で型チェックも出来る場合は`as const satisfies Type`を使用します。
-これで「`as const`を使いたいが、型のチェックもしたい」という要求を満たせます。
-
-## 使い分け
-
-### `as const`を使う場合
-
-定数定義では基本的に`as const`を使います。
-リテラル型の保持と型レベルでの`readonly`(ただし実行時にはオブジェクトは凍結されません)が得られます。
-
-```typescript
-const status = {
-  pending: "pending",
-  approved: "approved",
-  rejected: "rejected",
-} as const;
-
-// `status.pending`の型: "pending"
-```
-
-### `as const satisfies Type`を使う場合
-
-`as const`の利点を保ちつつ型チェックも行いたい場合に使用します。
+名前の付いた型で型チェックもできる場合は、`as const satisfies Type`にします。
+`as const`の利点を保ったまま、その型を満たすことも保証できます。
 
 ```typescript
 const status = {
@@ -42,45 +19,19 @@ const status = {
   approved: "approved",
   rejected: "rejected",
 } as const satisfies Record<string, string>;
-
-// `status.pending`の型: "pending"(リテラル型保持)
-// かつ`Record<string, string>`を満たすことが保証される
+// status.pendingの型は"pending"
 ```
 
-### `: Type` や `satisfies Type` を使う場合
+`: Type`や、`as const`を付けない`satisfies Type`は、
+要素を`push`する配列のように可変性が必要な場合と、
+リテラル型が保たれると問題になる場合に限って使います。
 
-可変性が必要な場合や、
-リテラル型の保持が問題になる場合に限り使用します。
+## `satisfies`に指定する型の配列が可変な場合
 
-```typescript
-// 可変な配列が必要な場合
-const items: string[] = [];
-items.push("a"); // OK
-
-// `as const`だと`readonly`になり`push`できない
-```
-
-## `as const satisfies`がそのまま使えないパターン
-
-`satisfies`で指定する型が可変な型の場合、
-`as const`の`readonly`性と競合してエラーになることがあります。
-
-### 問題のあるパターン
-
-```typescript
-type Config = {
-  values: string[];
-};
-
-// エラー: `readonly string[]`は`string[]`に割り当てられない
-const config = {
-  values: ["a", "b", "c"],
-} as const satisfies Config;
-```
-
-### 解決方法: `readonly`な型を定義する
-
-`satisfies`で使用する型自体を`readonly`にすることで解決できます。
+`satisfies`に指定する型の配列が`string[]`のように可変だと、
+配列リテラルはエラーにならないまま、`readonly`の付かないタプルに推論されます。
+既に`readonly`な配列を渡した場合はエラーになります。
+どちらの場合も、`satisfies`に指定する型の側を`readonly`にします。
 
 ```typescript
 type Config = {
@@ -90,86 +41,46 @@ type Config = {
 const config = {
   values: ["a", "b", "c"],
 } as const satisfies Config;
-
-// `config.values`の型: `readonly ["a", "b", "c"]`
+// config.valuesの型はreadonly ["a", "b", "c"]
 ```
 
-### `Readonly`ユーティリティ型の活用
-
-既存の型を`readonly`化する場合は`Readonly`や再帰的な`DeepReadonly`を使用できます。
+既存の型を`readonly`にするには`Readonly`を使えます。
+`Readonly`は浅い`readonly`化なので、
+プロパティにある配列まで`readonly`にするには、再帰的な`DeepReadonly`を自前で定義します。
 
 ```typescript
-type MutableConfig = {
-  values: string[];
-  nested: {
-    items: number[];
-  };
-};
-
-// 浅い`readonly`化
-type ShallowReadonlyConfig = Readonly<MutableConfig>;
-
-// 深い`readonly`化が必要な場合は自前で定義
-// この定義はプレーンオブジェクトと配列のみを対象としています。
-// Map/Set/Date等のビルトインオブジェクトを含む型には専用の対応が必要です。
+// プレーンオブジェクトと配列だけを対象にした定義です。
+// Map、Set、Dateなどのビルトインオブジェクトを含む型には専用の対応が必要です。
 type DeepReadonly<T> = T extends readonly (infer U)[]
   ? readonly DeepReadonly<U>[]
   : T extends object
     ? { readonly [P in keyof T]: DeepReadonly<T[P]> }
     : T;
-
-type ReadonlyConfig = DeepReadonly<MutableConfig>;
-
-const config = {
-  values: ["a", "b", "c"],
-  nested: {
-    items: [1, 2, 3],
-  },
-} as const satisfies ReadonlyConfig;
 ```
 
-### 配列型の`readonly`化
-
-配列を含む型では`readonly T[]`または`ReadonlyArray<T>`を使用する。
-
-```typescript
-// どちらも同じ意味
-type Items = readonly string[];
-type Items2 = ReadonlyArray<string>;
-
-const items = ["a", "b", "c"] as const satisfies readonly string[];
-```
-
-### 型の`readonly`化があまりにも複雑になる場合
-
-`DeepReadonly`やビルトインオブジェクトの対応など、
-`as const satisfies`のために型側の調整が複雑になりすぎる場合は、
-無理に`as const`にこだわらず、
-通常の型推論や型ヒントで済ませて構いません。
-
+`DeepReadonly`やビルトインオブジェクトへの対応などで、
+型の側の調整が複雑になりすぎる場合は、
+`as const`にこだわらず、通常の型推論や型注釈で済ませて構いません。
 リテラル型のために可読性を大きく犠牲にする必要はありません。
 
-## 文字列ユニオン型は`as const`配列から導きます
+## 文字列ユニオン型は`as const`配列から導く
 
-文字列ユニオン型を定義するときは、
-まず`as const`配列を作り、
-そこから型を導きます。
-直接`type Foo = "a" | "b" | "c"`とは書きません。
+文字列ユニオン型は直接書かず、
+先に`as const`配列を作って、そこから型を導きます。
 
 ```typescript
+// 避ける
+type Foo = "a" | "b" | "c";
+
 // 良い
 const fooValues = ["a", "b", "c"] as const;
 type Foo = (typeof fooValues)[number];
-
-// 悪い
-type Foo = "a" | "b" | "c";
 ```
 
-配列として値を持つことで、
-ランタイムでも値の列挙が必要な場合(バリデーション等)に再利用できます。
-特に`includes`で型を絞り込みやすいのがメリットです。
+配列として値を持っていれば、
+バリデーションのように実行時にも値の列挙が必要な場合に再利用できます。
+特に`includes`で型を絞り込みやすいのが利点です。
 
-現時点でランタイムの列挙が不要な場合でも、
-一貫性のために`as const`配列から導くスタイルに統一してください。
-後からランタイムでも値が必要になったときに書き換えが発生しませんし、
-コードベース内で2つのスタイルが混在するのを防げます。
+実行時の列挙が今は必要ない場合も、一貫性のためにこの書き方に統一します。
+後から実行時に値が必要になっても書き換えが発生せず、
+コードベースに2つの書き方が混在することも防げます。

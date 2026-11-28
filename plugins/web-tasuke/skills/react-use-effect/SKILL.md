@@ -6,101 +6,37 @@ user-invocable: false
 
 # useEffectの使いどころを見極める
 
-`useEffect`は外部システム(ブラウザAPI、ネットワーク、サードパーティライブラリ)との同期にのみ使います。
-それ以外の用途では、より適切な代替手段がないか検討してください。
+`useEffect`は、ブラウザAPI、ネットワーク、サードパーティのライブラリといった外部システムとの同期だけに使います。
+それ以外の用途では、先に以下の代替手段を検討してください。
 
-参考: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
-
-## useEffectを使わずに解決するパターン
-
-### レンダリング用のデータ変換は直接計算します
-
-```tsx
-// Bad: useEffectでstateを更新
-const [fullName, setFullName] = useState("");
-useEffect(() => {
-  setFullName(firstName + " " + lastName);
-}, [firstName, lastName]);
-
-// Good: レンダリング中に計算
-const fullName = firstName + " " + lastName;
-```
-
-### ユーザー操作の処理はイベントハンドラで行います
+- レンダリング用のデータの変換は、stateに入れずにレンダリング中に直接計算します。
+- 高コストな計算のキャッシュには`useMemo`を使います。
+- ユーザー操作に伴う処理は、イベントハンドラの中で行います。
+- propsが変わったときのstateのリセットには、`key`を使ってコンポーネントを再マウントします。
+- データの取得には、TanStack Queryなどのデータフェッチライブラリを使います。
+  `useEffect`での手動のフェッチは定型のコードが冗長で、キャッシュも重複の排除もありません。
 
 ```tsx
-// Bad: useEffectで副作用を検知
-useEffect(() => {
-  if (product.isInCart) {
-    showNotification(`Added ${product.name} to cart!`);
-  }
-}, [product]);
-
-// Good: イベントハンドラで直接処理
-function handleBuyClick() {
-  addToCart(product);
-  showNotification(`Added ${product.name} to cart!`);
-}
-```
-
-### propsが変わったときの状態リセットにはkeyを使います
-
-```tsx
-// Bad: useEffectでリセット
-useEffect(() => {
-  setComment("");
-}, [userId]);
-
-// Good: keyでコンポーネントを再マウント
-<Profile userId={userId} key={userId} />;
-```
-
-### 高コストな計算のキャッシュにはuseMemoを使います
-
-```tsx
-// Bad: useEffectで計算結果をstateに保存
-useEffect(() => {
-  setFilteredTodos(getFilteredTodos(todos, filter));
-}, [todos, filter]);
-
-// Good: useMemoでキャッシュ
-const filteredTodos = useMemo(() => getFilteredTodos(todos, filter), [todos, filter]);
-```
-
-### データ取得にはデータフェッチライブラリを使います
-
-```tsx
-// Bad: useEffectで手動フェッチ(冗長なボイラープレート、キャッシュなし、重複排除なし)
-useEffect(() => {
-  let ignore = false;
-  fetchData(id).then((data) => {
-    if (!ignore) setData(data);
-  });
-  return () => {
-    ignore = true;
-  };
-}, [id]);
-
-// Good: TanStack Query等を使う
 const result = useSuspenseQuery({ queryKey: ["data", id], queryFn: () => fetchData(id) });
 ```
 
-## useEffectが適切なケース
+参考: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)
 
-- ブラウザAPIとの同期(`IntersectionObserver`、`ResizeObserver`など)
-- サードパーティライブラリの初期化・破棄
-- 外部接続の管理(WebSocketなど)
+## useEffectが適切な場合
 
-これらの場合でも、
-より高抽象度なhooksやライブラリが使えないか検討してください。
+- `IntersectionObserver`や`ResizeObserver`などのブラウザAPIとの同期
+- サードパーティのライブラリの初期化と破棄
+- WebSocketなどの外部接続の管理
 
-## useEffectを使う場合はカスタムフックに切り出す
+これらの場合も、より抽象度の高いフックやライブラリが使えないかを先に検討します。
 
-コンポーネント本体に`useEffect`を直接書くことは禁止です。
-必ずカスタムフックに切り出し、コンポーネント側はそのフックを呼ぶだけにしてください。
+## カスタムフックに切り出す
 
-カスタムフックには責務を表す名前をつけます。
-`useDocumentTitle`, `useWindowResize`, `useDeviceListSubscription`など。
-フックの配置場所はプロジェクトの規約に従ってください。
-典型的には`src/hooks/`のような共有ディレクトリか、
-そのコンポーネントに固有のものであれば同じディレクトリの別ファイルに置きます。
+`useEffect`は、コンポーネントの本体には直接書かず、カスタムフックに切り出します。
+コンポーネントはそのフックを呼ぶだけにします。
+
+カスタムフックには、`useDocumentTitle`、`useWindowResize`、`useDeviceListSubscription`のように、
+責務を表す名前を付けます。
+フックの置き場所はプロジェクトの規約に従います。
+典型的には`src/hooks/`のような共有のディレクトリか、
+そのコンポーネントに固有のフックであれば同じディレクトリの別のファイルです。
