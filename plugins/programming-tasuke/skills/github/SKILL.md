@@ -6,62 +6,40 @@ user-invocable: false
 
 # GitHubへのアクセス方法
 
-## 直接URLアクセスの問題点
+GitHubの情報の取得や操作には、GitHub MCPが利用できる場合はそれを優先して使い、
+利用できない場合はGitHub CLI(`gh`)を使ってください。
 
-GitHubのURLをWebFetchなどで直接取得することは避けてください。
-以下の問題が発生します。
+GitHubのURLを`WebFetch`などで直接取得することは避けます。
+プライベートリポジトリにはアクセスできず、
+HTMLページは構造化されていないので扱いにくく、
+レート制限にも引っかかりやすいためです。
 
-- プライベートリポジトリにはアクセスできない。
-- HTMLページは構造化されておらずLLMには扱いにくい。
-- レート制限に引っかかりやすい。
+## GitHub MCP
 
-## 推奨されるアクセス方法
-
-### GitHub MCP
-
-GitHub MCPが利用可能な場合は、これを優先して使用してください。
-ツール名のプレフィクスはMCPサーバの登録方法によって異なります。
+ツール名のプレフィクスは、MCPサーバの登録方法によって異なります。
 ユーザ設定で直接登録している場合は`mcp__github__`、
 プラグイン経由で登録している場合は`mcp__plugin_<プラグイン名>_github__`
 (例: `mcp__plugin_claude-code-home-manager_github__`)で始まります。
 
-主要なツール:
+主なツールは、`get_file_contents`、`issue_read`、`pull_request_read`、
+`search_code`、`search_issues`、`list_commits`です。
+`pull_request_read`は、methodに`get_check_runs`を指定すると、
+GitHub Actionsのビルドやチェックの結果を確認できます。
 
-- `get_file_contents`: ファイル内容の取得
-- `issue_read`: Issue情報の取得
-- `pull_request_read`: Pull Request情報の取得
-  - method=`get_status`でGitHub Actionsのビルド・チェック結果を確認可能
-- `search_code`: コード検索
-- `search_issues`: Issue検索
-- `list_commits`: コミット一覧の取得
+## GitHub CLI
 
-### GitHub CLI
+`gh repo`、`gh issue`、`gh pr`、`gh release`、`gh run`、`gh workflow`のような、
+専用のサブコマンドを使います。
 
-MCPが使えない場合はGitHub CLI(`gh`)を使用してください。
+```console
+gh pr view 456 --repo owner/repo
+gh run view RUN_ID --repo owner/repo --log-failed
+```
 
-推奨するコマンド例:
+GitHub Actionsの実行ログは`gh run view`の`--log`で表示できます。
+`--log-failed`にすると、失敗したジョブのログだけになります。
 
-- `gh repo view owner/repo`: リポジトリ情報の表示
-- `gh issue view 123 --repo owner/repo`: Issue情報の表示
-- `gh pr view 456 --repo owner/repo`: Pull Request情報の表示
-- `gh pr diff 456 --repo owner/repo`: Pull Requestの差分表示
-- `gh release list --repo owner/repo`: リリース一覧の表示
-
-#### GitHub Actions関連
-
-- `gh run list --repo owner/repo`: ワークフロー実行一覧の表示
-- `gh run view RUN_ID --repo owner/repo`: 特定の実行の詳細表示
-- `gh run view RUN_ID --repo owner/repo --log`: 実行ログの表示
-- `gh run view RUN_ID --repo owner/repo --log-failed`: 失敗したジョブのログのみ表示
-- `gh workflow list --repo owner/repo`: ワークフロー一覧の表示
-
-#### 非推奨
-
-`gh api`コマンドは低レベルすぎるため非推奨です。
-理由:
-
-- 人間が承認時に何が実行されるか理解しにくい。
-- 高レベルなサブコマンドで同じことができる場合が多い。
-- エンドポイントの知識が必要になる。
-
-代わりに`gh issue`, `gh pr`, `gh repo`などの専用サブコマンドを使用してください。
+`gh api`は低レベルすぎるので非推奨です。
+人間が承認するときに何が実行されるのかを理解しにくく、
+エンドポイントの知識も必要になります。
+多くの場合は、専用のサブコマンドで同じことができます。
