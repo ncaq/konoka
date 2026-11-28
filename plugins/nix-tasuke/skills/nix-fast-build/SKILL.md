@@ -6,210 +6,85 @@ user-invocable: false
 
 # nix-fast-build
 
-[Mic92/nix-fast-build](https://github.com/Mic92/nix-fast-build)は
+[Mic92/nix-fast-build](https://github.com/Mic92/nix-fast-build)は、
 [nix-eval-jobs](https://github.com/nix-community/nix-eval-jobs)と
-[nix-output-monitor](https://github.com/maralorn/nix-output-monitor)を組み合わせて、
-Nix式の評価を並列実行するツールです。
+[nix-output-monitor](https://github.com/maralorn/nix-output-monitor)(nom)を組み合わせて、
+Nix式の評価を並列に実行してビルドするツールです。
+デフォルトではFlakeの`checks`をビルドするので、
+`flake.nix`が適切に設定されていれば、リントとビルドとテストが全て実行されます。
+評価が並列化されるので`nix flake check`より高速です。
 
-checksがビルドされるため、
-適切にflake.nixで設定されていればリント・ビルド・テストが全て実行されます。
+## 実行方法
 
-`nix flake check`と比べて評価が並列化されるため高速です。
-
-FlakeはGitで追跡されているファイルのみを対象とするため、
-新規ファイルがある場合は事前に`git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul`を実行してください。
-未追跡ファイルがなく空の入力でもエラーにはなりません。
-
-## 典型的な使い方
-
-### 手元のターミナルで実行する場合
+手元のターミナルでは以下で実行します。
 
 ```bash
 nix-fast-build --option eval-cache false --no-link --skip-cached
 ```
 
-nomによるリッチな出力が表示されます。
-
-### Claude CodeやCIなど非対話環境で実行する場合
+Claude CodeやCIのような非対話環境では`--no-nom`を追加します。
 
 ```bash
 nix-fast-build --option eval-cache false --no-link --skip-cached --no-nom
 ```
 
-nomはターミナル制御シーケンスに依存するため、
-非対話環境では`--no-nom`を追加してください。
+- `--option eval-cache false`: 評価キャッシュを無効にします。
+  評価キャッシュはSQLiteで管理されていて、
+  並列に評価するとビジー状態の警告が出て煩わしいことがあるためです。
+- `--no-link`: `result`シンボリックリンクを作りません。
+  checksをビルドすると大量のシンボリックリンクが作られて煩わしいためです。
+  省かれるのはリンクの作成だけで、ビルドは実行されます。
+- `--skip-cached`: バイナリキャッシュ(substituter)に既にあるビルドをスキップします。
+  ローカルのストアにあるかどうかを調べるオプションではありません。
+- `--no-nom`: nomによるビルド出力の表示を無効にします。
+  nomはターミナルの制御シーケンスを使ったリッチな出力をするので、
+  CIのログ、パイプ、非対話シェルのようなターミナルではない環境では表示が崩れます。
 
-## IFDを使うプロジェクトでの注意
+## 新規ファイルがある場合
 
-nix-fast-buildは`--systems`でビルド対象を絞っても、
-評価は全アーキテクチャに対して行います。
-IFD(Import From Derivation)は評価フェーズでderivationのビルドを要求するため、
+FlakeはGitで追跡されているファイルだけを対象にします。
+新規ファイルがある場合は、nix-fast-buildを実行する前に以下のコマンドで追跡対象にしてください。
+未追跡のファイルが無く入力が空でも、このコマンドはエラーになりません。
+
+```bash
+git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul
+```
+
+## IFDを使うプロジェクト
+
+`--systems`はビルド対象を絞るだけで、評価は全てのアーキテクチャに対して行われます。
+IFD(Import From Derivation)は評価の段階でderivationのビルドを要求するので、
 ローカルでビルドできないアーキテクチャのIFDが走ってエラーになることがあります。
-
-`nix flake check`はNix 2.16以降デフォルトで他システムの評価をスキップするためこの問題が出にくいですが、
+`nix flake check`はNix 2.16以降、
+デフォルトで他のシステムの評価をスキップするのでこの問題が出にくいですが、
 nix-eval-jobsにはその仕組みがありません。
 
-### 回避策: Flake URLでシステムを限定する
-
-評価対象を現在のシステムに限定することで回避できます。
+`--flake`で評価対象を現在のシステムに限定すると回避できます。
 
 ```bash
 nix-fast-build --flake ".#checks.$(nix eval --raw --impure --expr builtins.currentSystem)" --no-link --skip-cached
 ```
 
-`--impure`が必要ですが、
-`builtins.currentSystem`を取得するだけなので実害はありません。
+`--impure`が必要ですが、`builtins.currentSystem`を取得するだけなので実害はありません。
 
-## オプション
+## その他のオプション
 
-`nix-fast-build --help`の順番に記載しています。
+以下のオプションを含め、基本的にデフォルトのままで問題ありません。
 
-### `-f`, `--flake FLAKE`
+- `-j`, `--max-jobs`: nix-fast-buildがビルドキューから同時にディスパッチするジョブ数の上限です。
+  Nixデーモンの`max-jobs`とは別の制御です。
+- `--systems`: ビルド対象のシステムを、スペース区切りの1つの引数で指定します。
+  デフォルトは現在のシステムです。
+  例: `--systems "x86_64-linux aarch64-linux"`
+- `--remote`: 指定したSSHホストで評価とビルドを行い、結果をローカルに転送します。
+  リモートマシンがソースリポジトリにアクセスできない場合は`--always-upload-source`を付けます。
+  CIでリモートビルドしてキャッシュにアップロードするだけの場合は、`--no-download`で転送を省きます。
+- `--eval-max-memory-size`: nix-eval-jobsの評価ワーカー1つあたりのメモリ上限(MiB)です。
+  上限に達したワーカーは再起動されます。
+  大きなFlakeで評価中にOOMが発生する場合に調整します。
+- `--result-file`, `--result-format`: ビルド結果をファイルに書き出します。
+  CIでテスト結果として扱う場合は`--result-format junit`が便利です。
 
-評価・ビルド対象のFlake URLを指定します。
-デフォルトは`.#checks`で、通常はそのままで問題ありません。
-
-### `-j`, `--max-jobs MAX_JOBS`
-
-同時に実行するビルドジョブの最大数です。
-0を指定すると無制限になります。
-基本的にデフォルトで問題ありません。
-
-これはNixデーモンの`max-jobs`とは別の制御です。
-nix-fast-buildがビルドキューから同時にディスパッチするジョブ数を制限します。
-
-### `--option name value`
-
-Nixの設定オプションを指定します。
-`nix build --option`と同じ形式です。
-
-#### `--option eval-cache false`
-
-よく使う例です。
-評価キャッシュを無効化します。
-
-評価キャッシュはSQLiteで管理されており、
-並列評価時にビジー状態の警告が出ることがあります。
-煩わしい場合は無効化してください。
-
-### `--remote-ssh-option name value`
-
-リモートマシンへのSSH接続オプションを指定します。
-
-### `--cachix-cache CACHIX_CACHE`
-
-アップロード先のCachixキャッシュ名を指定します。
-
-### `--attic-cache ATTIC_CACHE`
-
-アップロード先のAtticキャッシュ名を指定します。
-
-### `--no-nom`
-
-[nom](https://github.com/maralorn/nix-output-monitor)
-によるビルド出力の表示を無効化します。
-デフォルトはfalse(nomを使用する)です。
-
-nomはターミナルの制御シーケンスを使ったリッチな出力を行うため、
-ターミナルではない環境(CIのログ、パイプ、非対話シェル等)では表示が崩れます。
-そのような環境では指定してください。
-
-### `--systems SYSTEMS`
-
-ビルド対象のシステムをスペース区切りで指定します。
-デフォルトは現在のシステムで、通常はそのままで問題ありません。
-
-例: `--systems "x86_64-linux aarch64-linux"`
-
-### `--retries RETRIES`
-
-ビルド失敗時のリトライ回数です。
-基本的にデフォルトで問題ありません。
-
-### `--no-link`
-
-ビルド後の`result`シンボリックリンクを作成しません。
-デフォルトはfalse(リンクを作成する)です。
-
-checksのビルドでは大量のシンボリックリンクが作成されて煩わしいため、
-指定することを推奨します。
-
-名前から「リンクしない = ビルドしない」と誤解しないでください。
-ビルドは実行され、出力リンクの作成だけがスキップされます。
-
-### `--out-link OUT_LINK`
-
-出力リンクの名前を指定します。
-デフォルトは`result`です。
-基本的にデフォルトで問題ありません。
-
-### `--remote REMOTE`
-
-ビルドを実行するリモートマシンのSSHホスト名です。
-リモート側で評価とビルドを行い、結果をローカルに転送します。
-
-### `--always-upload-source`
-
-ソースを常にリモートマシンにアップロードします。
-デフォルトはfalse(アップロードしない)です。
-
-リモートマシンがソースリポジトリにアクセスできない場合に必要です。
-
-### `--no-download`
-
-リモートビルドの結果をローカルにダウンロードしません。
-
-CIでリモートビルドしてキャッシュにアップロードするだけの場合に使います。
-
-### `--skip-cached`
-
-バイナリキャッシュに既に存在するビルドをスキップします。
-デフォルトはfalse(スキップしない)です。
-
-名前から「ローカルのストアにあればスキップ」と誤解されがちですが、
-チェック対象はバイナリキャッシュ(substituter)です。
-キャッシュに既にあるものを再ビルドしたくない場合に有用です。
-
-### `--copy-to COPY_TO`
-
-ビルド結果を指定パスにコピーします。
-`nix copy`に渡される形式で指定します。
-
-例: `--copy-to "file:///tmp/cache?compression=none"`
-
-### `--debug`
-
-デバッグログを出力します。
-基本的にデフォルトで問題ありません。
-
-### `--eval-max-memory-size EVAL_MAX_MEMORY_SIZE`
-
-`nix-eval-jobs`の評価ワーカー1つあたりのメモリ上限(MiB)です。
-上限に達するとワーカーが再起動されます。
-
-大きなFlakeで評価中にOOMが発生する場合に調整します。
-基本的にデフォルトで問題ありません。
-
-### `--eval-workers EVAL_WORKERS`
-
-評価スレッドの数です。
-`nix-eval-jobs`が生成する並列評価ワーカーの数を制御します。
-基本的にデフォルトで問題ありません。
-
-### `--result-file RESULT_FILE`
-
-ビルド結果を書き出すファイルパスです。
-
-### `--result-format {json,junit}`
-
-ビルド結果ファイルの形式です。
-`json`または`junit`を選択できます。
-
-CIでテスト結果として扱いたい場合は`junit`が便利です。
-
-### `--override-input input_path flake_url`
-
-特定のFlake入力をオーバーライドします。
-`nix build --override-input`と同じ形式です。
-
-例: `--override-input nixpkgs github:NixOS/nixpkgs/nixpkgs-unstable`
+キャッシュへのアップロード(`--cachix-cache`、`--attic-cache`、`--copy-to`)や
+Flake入力の上書き(`--override-input`)など、
+ここに無いオプションは`nix-fast-build --help`で確認してください。

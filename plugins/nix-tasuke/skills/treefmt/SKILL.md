@@ -6,189 +6,115 @@ user-invocable: false
 
 # treefmt-nix
 
-## 概要
+[treefmt](https://github.com/numtide/treefmt)は、
+プロジェクト内の複数の言語のファイルを、1つのコマンドで並列にフォーマットするツールです。
+[treefmt-nix](https://github.com/numtide/treefmt-nix)は、
+treefmtをNixのモジュールシステムで設定するラッパーです。
+flakeに組み込むと`formatter`出力がtreefmtになり、
+`nix fmt`で、設定した全てのプログラムが実行されます。
 
-[treefmt](https://github.com/numtide/treefmt)はプロジェクト内の複数言語ファイルを一コマンドで並列フォーマットするツールです。
-[treefmt-nix](https://github.com/numtide/treefmt-nix)はNixモジュールシステムでtreefmtを設定・管理するラッパーです。
+## 未追跡のファイルを先に登録する
 
-`nix fmt`コマンドはflakeの`formatter`出力を呼び出します。
-treefmt-nixを組み込むと`nix fmt`の実体がtreefmtになり、
-設定されたすべてのプログラムが実行されます。
+flakeはGitが追跡しているファイルだけを対象にします。
+未追跡の新しいファイルがある場合は、`nix fmt`の前に以下を実行してください。
+未追跡のファイルが無くて入力が空でも、エラーにはなりません。
 
-FlakeはGitで追跡されているファイルのみを対象とするため、
-新規ファイルがある場合は事前に`git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul`を実行してください。
-未追跡ファイルがなく空の入力でもエラーにはなりません。
+```bash
+git ls-files --others --exclude-standard -z | git add --intent-to-add --pathspec-from-file=- --pathspec-file-nul
+```
 
-## フォーマッタだけではなくリンターも含む
+## フォーマッタだけでなくリンターも実行する
 
-`nix fmt`や`treefmt`という名前から「フォーマッタだけ」と誤解されがちですが、
-treefmt-nixの`programs`にはリンターやチェッカーが多数含まれています。
+`nix fmt`や`treefmt`という名前から、フォーマッタしか実行しないと誤解しやすいですが、
+treefmt-nixの`programs`にはリンターやチェッカーも多く含まれています。
 
-フォーマッタの例:
+treefmtがプログラムに求める仕様は、
+`<command> [options] [...<files>]`の形でファイルのパスの一覧を受け取り、
+変更があればファイルに書き戻し、エラーのときは非ゼロで終了することです。
+リンターはファイルを変更しませんが、
+エラーのときに非ゼロで終了するので、treefmtがエラーとして検出します。
 
-- `nixfmt`
-- `prettier`
-- `rustfmt`
-- `shfmt`
-
-リンターの例:
-
-- `actionlint`
-- `deadnix`
-- `hlint`
-- `shellcheck`
-- `statix`
-
-その他:
-
-- `typos`(スペルチェック)
-- `zizmor`(GitHub Actionsセキュリティ)
-
-treefmtのフォーマッタ仕様は「ファイルパスのリストを受け取り、変更があればファイルに書き戻す」というものです。
-リンターはファイルを変更しませんが、エラー時に非ゼロ終了するためtreefmtがエラーとして検出します。
-
-## 典型的な設定例
+## 設定の例
 
 flake-partsを使う場合の例です。
+`flake-parts.lib.mkFlake`に渡すモジュールのうち、treefmtに関わる部分だけを示します。
 
 ```nix
 {
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  imports = [ treefmt-nix.flakeModule ];
 
-  outputs =
-    inputs@{
-      flake-parts,
-      treefmt-nix,
-      ...
-    }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        treefmt-nix.flakeModule
-      ];
-
-      systems = [
-        "aarch64-linux"
-        "x86_64-linux"
-      ];
-
-      perSystem = { pkgs, ... }: {
-        treefmt.config = {
-          projectRootFile = "flake.nix";
-          programs = {
-            nixfmt.enable = true;
-            prettier.enable = true;
-            shellcheck.enable = true;
-            shfmt.enable = true;
-          };
+  perSystem =
+    { pkgs, ... }:
+    {
+      treefmt.config = {
+        projectRootFile = "flake.nix";
+        programs = {
+          nixfmt.enable = true;
+          prettier.enable = true;
+          shellcheck.enable = true;
+          shfmt.enable = true;
+        };
+        settings.formatter.editorconfig-checker = {
+          command = pkgs.editorconfig-checker;
+          includes = [ "*" ];
         };
       };
     };
 }
 ```
 
-`nix fmt`で全プログラムが実行されます。
+## ツールの設定は、そのツールの設定ファイルに書く
 
-## フォーマッタのカスタム設定をする際の注意
-
-treefmtの設定モジュールを使ってカスタム引数を渡すこともできます。
-
-しかしなるべくflake.nixに書くのではなく、
-そのツール自体が標準的に使う設定ファイルなどに設定を書き込んでください。
-
-そうするとそのツールを`nix fmt`経由以外で使うときも同じ設定が適用されるため一貫性が保たれます。
-
-引数しか設定方法がないツールの場合などは仕方がないのでflake.nixに書いても構いません。
+treefmtの設定モジュールでツールに引数を渡すこともできますが、
+ツールの設定はなるべくflake.nixではなく、そのツールが標準で読む設定ファイルに書いてください。
+`nix fmt`を経由せずにそのツールを使うときにも、同じ設定が適用されるためです。
+引数でしか設定できないツールの場合は、flake.nixに書いて構いません。
 
 ## よく使われるプログラム
 
-### Nix
+| 対象                                  | フォーマッタ                            | リンター、チェッカー                  |
+| ------------------------------------- | --------------------------------------- | ------------------------------------- |
+| Nix                                   | `nixfmt`                                | `deadnix`, `statix`(自動修正もします) |
+| シェルスクリプト                      | `shfmt`                                 | `shellcheck`                          |
+| JS/TS/CSS/HTML/JSON/Markdown/YAMLなど | `prettier`                              |                                       |
+| Haskell                               | `fourmolu`, `cabal-gild`(Cabalファイル) | `hlint`                               |
+| C/C++                                 | `clang-format`                          |                                       |
+| Go                                    | `gofmt`                                 |                                       |
+| Python                                | `ruff-format`                           | `ruff-check`                          |
+| Rust                                  | `rustfmt`                               |                                       |
+| TOML                                  | `taplo`                                 |                                       |
+| YAML                                  | `yamlfmt`                               |                                       |
+| GitHub Actions                        |                                         | `actionlint`, `zizmor`(セキュリティ)  |
+| ソースコード全般                      |                                         | `typos`(スペルチェック)               |
 
-| プログラム | 種類         | 説明                           |
-| ---------- | ------------ | ------------------------------ |
-| `deadnix`  | リンター     | 未使用コードの検出             |
-| `nixfmt`   | フォーマッタ | 公式のNixフォーマッタ          |
-| `statix`   | リンター     | アンチパターンの検出と自動修正 |
+これらは一部で、100以上のプログラムが定義されています。
+全ての一覧は[treefmt-nixのprogramsディレクトリ](https://github.com/numtide/treefmt-nix/tree/main/programs)にあります。
 
-### シェル
+## `programs`に無いツールの追加
 
-| プログラム   | 種類         | 説明                           |
-| ------------ | ------------ | ------------------------------ |
-| `shellcheck` | リンター     | シェルスクリプトの静的解析     |
-| `shfmt`      | フォーマッタ | シェルスクリプトのフォーマット |
+`programs`に定義されていないツールは、
+上の例の`editorconfig-checker`のように`settings.formatter.<name>`に直接定義します。
 
-### Web/汎用
+| フィールド | 型                     | 説明                                        |
+| ---------- | ---------------------- | ------------------------------------------- |
+| `command`  | string/path/derivation | 実行するコマンド(必須)                      |
+| `options`  | list of string         | コマンドに渡す引数                          |
+| `includes` | list of string         | 対象にするファイルのglobパターン(必須)      |
+| `excludes` | list of string         | 除外するファイルのglobパターン              |
+| `priority` | int                    | 実行の順序(値が小さいほど先、デフォルトは0) |
 
-| プログラム | 種類         | 説明                                |
-| ---------- | ------------ | ----------------------------------- |
-| `prettier` | フォーマッタ | JS/TS/CSS/HTML/JSON/Markdown/YAML等 |
+追加するツールは、前述のtreefmtの仕様を満たす必要があります。
+満たさないツールはシェルスクリプトで包んでください。
 
-### Haskell
+globパターンは[gobwas/glob](https://github.com/gobwas/glob)で処理され、
+ツリーのルートからの相対パスと照合されます。
 
-| プログラム   | 種類         | 説明                          |
-| ------------ | ------------ | ----------------------------- |
-| `cabal-gild` | フォーマッタ | Cabalファイルの整理           |
-| `fourmolu`   | フォーマッタ | Haskellフォーマッタ           |
-| `hlint`      | リンター     | Haskellのリファクタリング提案 |
+- `*`は、パスの区切りの`/`も含む任意の文字列に一致します。
+  `*.rs`だけで、リポジトリ全体の`.rs`ファイルに再帰的に一致します。
+- `src/*.rs`のようにディレクトリを含むパターンも使えて、
+  `src/`以下の全ての`.rs`ファイルに再帰的に一致します。
+- `**`も使えますが、`*`と実質的に同じ動作です。
 
-### その他
-
-| プログラム     | 種類         | 説明                                 |
-| -------------- | ------------ | ------------------------------------ |
-| `actionlint`   | リンター     | GitHub Actions YAMLの検証            |
-| `clang-format` | フォーマッタ | C/C++のフォーマット                  |
-| `gofmt`        | フォーマッタ | Goのフォーマット                     |
-| `ruff-check`   | リンター     | Pythonのリント                       |
-| `ruff-format`  | フォーマッタ | Pythonのフォーマット                 |
-| `rustfmt`      | フォーマッタ | Rustのフォーマット                   |
-| `taplo`        | フォーマッタ | TOMLのフォーマット                   |
-| `typos`        | チェッカー   | ソースコード中のスペルチェック       |
-| `yamlfmt`      | フォーマッタ | YAMLのフォーマット                   |
-| `zizmor`       | リンター     | GitHub Actionsのセキュリティチェック |
-
-上記は一部で、100以上のプログラムが定義されています。
-全リストは[treefmt-nixのprogramsディレクトリ](https://github.com/numtide/treefmt-nix/tree/main/programs)を参照してください。
-
-## カスタムプログラムの追加
-
-`programs`に定義されていないツールは`settings.formatter`に直接定義できます。
-
-```nix
-treefmt.config = {
-  settings.formatter = {
-    editorconfig-checker = {
-      command = pkgs.editorconfig-checker;
-      includes = [ "*" ];
-    };
-  };
-};
-```
-
-`settings.formatter.<name>`のフィールド:
-
-| フィールド | 型                     | 説明                                    |
-| ---------- | ---------------------- | --------------------------------------- |
-| `command`  | string/path/derivation | 実行コマンド(必須)                      |
-| `options`  | list of string         | コマンド引数                            |
-| `includes` | list of string         | 対象ファイルのglobパターン(必須)        |
-| `excludes` | list of string         | 除外ファイルのglobパターン              |
-| `priority` | int                    | 実行順序(値が小さいほど先、デフォルト0) |
-
-globパターンは[gobwas/glob](https://github.com/gobwas/glob)ライブラリで処理され、
-ツリールートからの相対パスに対してマッチします。
-`*`はパス区切り`/`を含む任意の文字列にマッチするため、`*.rs`だけでリポジトリ全体の`.rs`ファイルに再帰的にマッチします。
-`src/*.rs`のようなディレクトリを含むパターンも機能し、`src/`以下の全`.rs`ファイルに再帰的にマッチします。
-`**`も使えますが`*`と実質同じ動作です。
-
-`settings.global.excludes`を使うと全フォーマッタ共通でファイルを除外できます。
-global excludesは各フォーマッタのincludes/excludesより先に処理されます。
-
-treefmtのフォーマッタ仕様を満たす必要があります。
-CLIが`<command> [options] [...<files>]`の形式で、変更があればファイルに書き戻し、エラー時は非ゼロ終了です。
-仕様を満たさないツールはシェルスクリプトでラップしてください。
+全てのフォーマッタに共通する除外は、
+`settings.excludes`(改名前の名前は`settings.global.excludes`)に書きます。
+この除外は、各フォーマッタの`includes`と`excludes`より先に処理されます。
