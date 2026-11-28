@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "proofreading-ja",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fix typos, grammar, readability, and notation consistency in Japanese text. Use when the user wants to proofread or edit Japanese text.",
   "author": {
     "name": "ncaq",
